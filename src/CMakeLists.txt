@@ -17,6 +17,8 @@ pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 set(name contigo)
 add_executable(${name}
     main.cpp
+    tty.cpp
+    tty.hpp
     vterm.cpp
     vterm.hpp
 )
