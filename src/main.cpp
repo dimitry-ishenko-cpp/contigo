@@ -5,13 +5,22 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "tty.hpp"
+
+#include <asio.hpp>
+#include <charconv>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 #include <pgm/args.hpp>
+#include <string>
 #include <string_view>
+#include <system_error>
+#include <tuple>
 
-void show_usage(const pgm::args& args, std::string_view name);
+std::tuple<unsigned, bool> get_vt(const asio::any_io_executor&, const pgm::args&);
+
+void show_usage(const pgm::args&, std::string_view name);
 void show_version(std::string_view name);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -21,10 +30,17 @@ try
     namespace fs = std::filesystem;
     auto name = fs::path{argv[0]}.filename().string();
 
+    const std::string def_login = "/bin/login";
+
     pgm::args args
     {
-        { "-v", "--version",    "Print version number and exit" },
-        { "-h", "--help",       "Show this help" },
+        { "-t", "--vt", "/dev/ttyN|ttyN|N", "Virtual terminal to use. If omitted, use the current one." },
+        { "-c", "--activate",               "Activate given terminal before starting."},
+
+        { "-v", "--version",                "Print version number and exit" },
+        { "-h", "--help",                   "Show this help" },
+
+        { "login", pgm::mul | pgm::opt,     "Login program (with options) to start. Default: " + def_login },
     };
 
     std::exception_ptr ep;
@@ -42,7 +58,15 @@ try
 
     else
     {
-        // normal program flow
+        asio::io_context io;
+        auto ex = io.get_executor();
+
+        auto [num, activate] = get_vt(ex, args);
+
+        tty tty{ex, num};
+        if (activate) tty.activate();
+
+        //
     }
 
     return 0;
@@ -52,6 +76,27 @@ catch (const std::exception& e)
     std::cerr << e.what() << std::endl;
     return 1;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+std::tuple<unsigned, bool> get_vt(const asio::any_io_executor& ex, const pgm::args& args)
+{
+    unsigned num;
+
+    if (auto vt = args["--vt"])
+    {
+        std::string_view val = vt.value();
+        auto off = val.starts_with("/dev/tty") ? 8 : val.starts_with("tty") ? 3 : 0;
+
+        auto [end, ec] = std::from_chars(val.begin() + off, val.end(), num);
+
+        if (ec != std::errc{} || end != val.end()) throw std::invalid_argument{
+            "Invalid terminal - " + args["--vt"].value()
+        };
+    }
+    else num = tty{ex}.num();
+
+    return {num, !!args["--activate"]};
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 void show_usage(const pgm::args& args, std::string_view name)
