@@ -30,10 +30,13 @@ struct command
     constexpr auto name() const { return Op; }
 };
 
-auto get_vt0(const asio::any_io_executor& ex)
+auto open_vt(const asio::any_io_executor& ex, unsigned num)
 {
-    auto fd = ::open("/dev/tty0", O_RDWR);
+    auto name = "/dev/tty" + std::to_string(num);
+
+    auto fd = ::open(name.data(), O_RDWR);
     if (fd < 0) throw std::system_error{errno, std::system_category()};
+
     return asio::posix::stream_descriptor{ex, fd};
 }
 
@@ -41,23 +44,21 @@ auto get_vt0(const asio::any_io_executor& ex)
 
 ////////////////////////////////////////////////////////////////////////////////
 tty::tty(const asio::any_io_executor& ex, unsigned num) :
-    vt_{ex}, num_{num}
+    vt_{open_vt(ex, num)}, num_{num}
 { }
 
 void tty::activate()
 {
-    auto vt0 = get_vt0(vt_.get_executor());
-
     command<VT_ACTIVATE, unsigned> activate{num_};
-    vt0.io_control(activate);
+    vt_.io_control(activate);
 
     command<VT_WAITACTIVE, unsigned> wait_active{num_};
-    vt0.io_control(wait_active);
+    vt_.io_control(wait_active);
 }
 
 unsigned tty::get_active(const asio::any_io_executor& ex)
 {
-    auto vt0 = get_vt0(ex);
+    auto vt0 = open_vt(ex, 0);
 
     command<VT_GETSTATE, vt_stat> get_state;
     vt0.io_control(get_state);
