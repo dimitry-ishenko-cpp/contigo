@@ -40,23 +40,7 @@ auto open_vt(const asio::any_io_executor& ex, unsigned num)
     return asio::posix::stream_descriptor{ex, fd};
 }
 
-}
-
-////////////////////////////////////////////////////////////////////////////////
-tty::tty(const asio::any_io_executor& ex, unsigned num) :
-    vt_{open_vt(ex, num)}, num_{num}
-{ }
-
-void tty::activate()
-{
-    command<VT_ACTIVATE, unsigned> activate{num_};
-    vt_.io_control(activate);
-
-    command<VT_WAITACTIVE, unsigned> wait_active{num_};
-    vt_.io_control(wait_active);
-}
-
-unsigned tty::get_active(const asio::any_io_executor& ex)
+unsigned active_vt(const asio::any_io_executor& ex)
 {
     auto vt0 = open_vt(ex, 0);
 
@@ -64,4 +48,23 @@ unsigned tty::get_active(const asio::any_io_executor& ex)
     vt0.io_control(get_state);
 
     return get_state.val.v_active;
+}
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+tty::tty(const asio::any_io_executor& ex) : tty{ex, active_vt(ex)} { }
+
+tty::tty(const asio::any_io_executor& ex, unsigned num) :
+    vt_{open_vt(ex, num)}, num_{num}
+{ }
+
+tty::tty(const asio::any_io_executor& ex, unsigned num, activate_t) :
+    tty{ex, num}
+{
+    command<VT_ACTIVATE, unsigned> activate{num_};
+    vt_.io_control(activate);
+
+    command<VT_WAITACTIVE, unsigned> wait_active{num_};
+    vt_.io_control(wait_active);
 }

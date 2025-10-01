@@ -14,21 +14,25 @@
 ////////////////////////////////////////////////////////////////////////////////
 class tty
 {
+    ////////////////////
+    struct activate_t { explicit activate_t() = default; };
+
 public:
     ////////////////////
-    explicit tty(const asio::any_io_executor& ex) : tty{ex, get_active(ex)} { }
+    static constexpr activate_t activate{};
+
+    ////////////////////
+    explicit tty(const asio::any_io_executor& ex);
     tty(const asio::any_io_executor&, unsigned num);
+    tty(const asio::any_io_executor&, unsigned num, activate_t);
 
     ////////////////////
     constexpr auto num() const noexcept { return num_; }
-    void activate();
 
 private:
     ////////////////////
     asio::posix::stream_descriptor vt_;
     unsigned num_;
-
-    static unsigned get_active(const asio::any_io_executor&);
 };
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -12,13 +12,14 @@
 #include <exception>
 #include <filesystem>
 #include <iostream>
+#include <memory>
+#include <optional>
 #include <pgm/args.hpp>
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <tuple>
 
-std::tuple<unsigned, bool> get_vt(const asio::any_io_executor&, const pgm::args&);
+std::optional<unsigned> get_vt(const pgm::args&);
 
 void show_usage(const pgm::args&, std::string_view name);
 void show_version(std::string_view name);
@@ -61,10 +62,15 @@ try
         asio::io_context io;
         auto ex = io.get_executor();
 
-        auto [num, activate] = get_vt(ex, args);
+        std::unique_ptr<tty> vt;
 
-        tty tty{ex, num};
-        if (activate) tty.activate();
+        if (auto num = get_vt(args))
+        {
+            if (args["--activate"])
+                vt = std::make_unique<tty>(ex, *num, tty::activate);
+            else vt = std::make_unique<tty>(ex, *num);
+        }
+        else vt = std::make_unique<tty>(ex);
 
         //
     }
@@ -78,24 +84,22 @@ catch (const std::exception& e)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::tuple<unsigned, bool> get_vt(const asio::any_io_executor& ex, const pgm::args& args)
+std::optional<unsigned> get_vt(const pgm::args& args)
 {
-    unsigned num;
-
     if (auto vt = args["--vt"])
     {
         std::string_view val = vt.value();
         auto off = val.starts_with("/dev/tty") ? 8 : val.starts_with("tty") ? 3 : 0;
 
+        unsigned num;
         auto [end, ec] = std::from_chars(val.begin() + off, val.end(), num);
 
         if (ec != std::errc{} || end != val.end()) throw std::invalid_argument{
             "Invalid terminal - " + args["--vt"].value()
         };
+        return num;
     }
-    else num = tty{ex}.num();
-
-    return {num, !!args["--activate"]};
+    else return std::nullopt;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
