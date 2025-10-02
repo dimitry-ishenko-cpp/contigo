@@ -52,18 +52,15 @@ unsigned active_vt(const asio::any_io_executor& ex)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::tty(const asio::any_io_executor& ex) : tty{ex, active_vt(ex)} { }
-
-tty::tty(const asio::any_io_executor& ex, unsigned num) :
-    vt_{open_vt(ex, num)}, num_{num}
-{ }
-
-tty::tty(const asio::any_io_executor& ex, unsigned num, activate_t) :
-    tty{ex, num}
+tty::tty(const asio::any_io_executor& ex, std::optional<unsigned> num, action action) :
+    num_{num.value_or(active_vt(ex))}, vt_{open_vt(ex, num_)}
 {
-    command<VT_ACTIVATE, unsigned> activate{num_};
-    vt_.io_control(activate);
+    if (action == activate)
+    {
+        command<VT_ACTIVATE, unsigned> activate{num_};
+        vt_.io_control(activate);
 
-    command<VT_WAITACTIVE, unsigned> wait_active{num_};
-    vt_.io_control(wait_active);
+        command<VT_WAITACTIVE, unsigned> wait_active{num_};
+        vt_.io_control(wait_active);
+    }
 }

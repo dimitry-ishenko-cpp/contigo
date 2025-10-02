@@ -11,7 +11,6 @@
 #include <charconv>
 #include <filesystem>
 #include <iostream>
-#include <memory>
 #include <optional>
 #include <pgm/args.hpp>
 #include <stdexcept>
@@ -61,15 +60,10 @@ try
         asio::io_context io;
         auto ex = io.get_executor();
 
-        std::unique_ptr<tty> vt;
+        auto num = get_vt(args);
+        auto act = args["--activate"] ? tty::activate : tty::dont_activate;
 
-        if (auto num = get_vt(args))
-        {
-            if (args["--activate"])
-                vt = std::make_unique<tty>(ex, *num, tty::activate);
-            else vt = std::make_unique<tty>(ex, *num);
-        }
-        else vt = std::make_unique<tty>(ex);
+        tty tty{ex, num, act};
 
         //
     }

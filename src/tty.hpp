@@ -10,29 +10,24 @@
 
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
+#include <optional>
 
 ////////////////////////////////////////////////////////////////////////////////
 class tty
 {
-    ////////////////////
-    struct activate_t { explicit activate_t() = default; };
-
 public:
     ////////////////////
-    static constexpr activate_t activate{};
+    enum action { dont_activate, activate };
 
-    ////////////////////
-    explicit tty(const asio::any_io_executor& ex);
-    tty(const asio::any_io_executor&, unsigned num);
-    tty(const asio::any_io_executor&, unsigned num, activate_t);
+    explicit tty(const asio::any_io_executor&, std::optional<unsigned> = {}, action = dont_activate);
 
     ////////////////////
     constexpr auto num() const noexcept { return num_; }
 
 private:
     ////////////////////
-    asio::posix::stream_descriptor vt_;
     unsigned num_;
+    asio::posix::stream_descriptor vt_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
