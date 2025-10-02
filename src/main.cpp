@@ -9,15 +9,14 @@
 
 #include <asio.hpp>
 #include <charconv>
-#include <exception>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <pgm/args.hpp>
+#include <stdexcept>
 #include <string>
 #include <string_view>
-#include <system_error>
 
 std::optional<unsigned> get_vt(const pgm::args&);
 

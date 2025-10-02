@@ -5,10 +5,9 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "posix_error.hpp"
 #include "tty.hpp"
 
-#include <cerrno>
-#include <system_error>
 #include <type_traits>
 
 #include <fcntl.h> // open()
@@ -35,7 +34,7 @@ auto open_vt(const asio::any_io_executor& ex, unsigned num)
     auto name = "/dev/tty" + std::to_string(num);
 
     auto fd = ::open(name.data(), O_RDWR);
-    if (fd < 0) throw std::system_error{errno, std::system_category()};
+    if (fd < 0) throw posix_error{"open_vt"};
 
     return asio::posix::stream_descriptor{ex, fd};
 }
