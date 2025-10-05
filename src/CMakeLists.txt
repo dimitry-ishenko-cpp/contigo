@@ -6,6 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_definitions(-DASIO_STANDALONE)
+add_definitions(-DASIO_NO_DEPRECATED)
 add_definitions(-DVERSION="${PROJECT_VERSION}")
 
 find_package(pgm_args REQUIRED)

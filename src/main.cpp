@@ -60,10 +60,9 @@ try
         asio::io_context io;
         auto ex = io.get_executor();
 
-        auto num = get_vt(args);
-        auto act = args["--activate"] ? tty::activate : tty::dont_activate;
-
-        tty tty{ex, num, act};
+        auto num = get_vt(args).value_or(tty::active(ex));
+        auto action = args["--activate"] ? tty::activate : tty::dont_activate;
+        tty tty{ex, num, action};
 
         //
     }
