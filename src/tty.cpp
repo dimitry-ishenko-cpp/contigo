@@ -6,6 +6,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #include "error.hpp"
+#include "logging.hpp"
 #include "tty.hpp"
 
 #include <type_traits>
@@ -31,9 +32,9 @@ struct command
     constexpr auto name() const { return Op; }
 };
 
-auto open(const asio::any_io_executor& ex, tty_num n)
+auto open(const asio::any_io_executor& ex, tty_num num)
 {
-    auto path = "/dev/tty" + std::to_string(n);
+    auto path = "/dev/tty" + std::to_string(num);
 
     auto fd = ::open(path.data(), O_RDWR);
     if (fd < 0) throw posix_error{"open"};
@@ -76,6 +77,7 @@ tty::scoped_active::~scoped_active()
 
 void tty::scoped_active::activate(tty_num n)
 {
+    info() << "Activating tty" << n;
     command<VT_ACTIVATE, tty_num> activate{n};
     vt.io_control(activate);
 
@@ -88,6 +90,7 @@ tty::scoped_raw_state::scoped_raw_state(asio::posix::stream_descriptor& vt) : vt
 {
     if (tcgetattr(vt.native_handle(), &old_state) < 0) throw posix_error{"tcgetattr"};
 
+    info() << "Switching to raw state";
     termios tio = old_state;
     cfmakeraw(&tio);
     tio.c_cc[VMIN] = 1;
@@ -97,6 +100,7 @@ tty::scoped_raw_state::scoped_raw_state(asio::posix::stream_descriptor& vt) : vt
 
 tty::scoped_raw_state::~scoped_raw_state()
 {
+    info() << "Restoring previous state";
     tcsetattr(vt.native_handle(), TCSANOW, &old_state);
 }
 
@@ -106,12 +110,14 @@ tty::scoped_graph_mode::scoped_graph_mode(asio::posix::stream_descriptor& vt) : 
     command<KDGETMODE, unsigned*> get_mode{&old_mode};
     vt.io_control(get_mode);
 
+    info() << "Switching to graphics mode";
     command<KDSETMODE, unsigned> set_graph{KD_GRAPHICS};
     vt.io_control(set_graph);
 }
 
 tty::scoped_graph_mode::~scoped_graph_mode()
 {
+    info() << "Restoring previous mode";
     command<KDSETMODE, unsigned> set_mode{old_mode};
     std::error_code ec;
     vt.io_control(set_mode, ec);
