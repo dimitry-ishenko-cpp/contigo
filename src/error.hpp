@@ -5,8 +5,7 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
-#ifndef POSIX_ERROR_HPP
-#define POSIX_ERROR_HPP
+#pragma once
 
 #include <cerrno>
 #include <string>
@@ -20,6 +19,3 @@ public:
     explicit posix_error(const char* msg) : std::system_error{errno, std::system_category(), msg} { }
     explicit posix_error(const std::string& msg) : std::system_error{errno, std::system_category(), msg} { }
 };
-
-////////////////////////////////////////////////////////////////////////////////
-#endif

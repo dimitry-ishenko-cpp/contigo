@@ -5,7 +5,7 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
-#include "posix_error.hpp"
+#include "error.hpp"
 #include "tty.hpp"
 
 #include <type_traits>
