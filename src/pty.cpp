@@ -31,26 +31,26 @@ inline int pidfd_open(pid_t pid, unsigned flags)
 
 ////////////////////////////////////////////////////////////////////////////////
 pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::string> args) :
-    pt_{ex}, fd_{ex}
+    pt_{ex}, child_fd_{ex}
 {
     info() << "Spawning child process";
 
     int pt;
-    pid_ = forkpty(&pt, nullptr, nullptr, nullptr);
-    if (pid_ < 0) throw posix_error{"forkpty"};
+    child_pid_ = forkpty(&pt, nullptr, nullptr, nullptr);
+    if (child_pid_ < 0) throw posix_error{"forkpty"};
 
-    if (pid_ > 0) // parent
+    if (child_pid_ > 0) // parent
     {
         pt_.assign(pt);
 
         // TODO: set up read callback
 
         /////////////////////
-        auto fd = pidfd_open(pid_, 0);
+        auto fd = pidfd_open(child_pid_, 0);
         if (fd < 0) throw posix_error{"pidfd_open"};
 
-        fd_.assign(fd);
-        fd_.async_wait(fd_.wait_read, [&](std::error_code ec){ if (!ec) handle_child_exit(); });
+        child_fd_.assign(fd);
+        child_fd_.async_wait(child_fd_.wait_read, [&](std::error_code ec){ if (!ec) handle_child_exit(); });
     }
     else start_child(std::move(pgm), std::move(args)); // child
 }
@@ -67,33 +67,36 @@ void pty::start_child(std::string pgm, std::vector<std::string> args)
 
 void pty::stop_child()
 {
-    info() << "Terminating child process";
-    kill(pid_, SIGTERM);
-
-    for (auto i = 0; i < 10; ++i)
+    if (child_pid_)
     {
-        std::this_thread::sleep_for(10ms);
+        info() << "Terminating child process";
+        kill(child_pid_, SIGTERM);
 
-        auto pid = waitpid(pid_, nullptr, WNOHANG);
-        if (pid == pid_ || (pid == -1 && errno == ECHILD))
+        for (auto i = 0; i < 10; ++i)
         {
-            pid_ = 0;
-            break;
-        }
-    }
+            std::this_thread::sleep_for(10ms);
 
-    if (pid_)
-    {
-        info() << "Killing child process";
-        kill(pid_, SIGKILL);
+            auto pid = waitpid(child_pid_, nullptr, WNOHANG);
+            if (pid == child_pid_ || (pid == -1 && errno == ECHILD))
+            {
+                child_pid_ = 0;
+                break;
+            }
+        }
+
+        if (child_pid_)
+        {
+            info() << "Killing child process";
+            kill(child_pid_, SIGKILL);
+        }
     }
 }
 
 void pty::handle_child_exit()
 {
     int status;
-    waitpid(pid_, &status, 0);
-    pid_ = 0;
+    waitpid(child_pid_, &status, 0);
+    child_pid_ = 0;
     
     int exit_code = 0;
     if (WIFEXITED(status))
@@ -102,5 +105,5 @@ void pty::handle_child_exit()
         exit_code = 128 + WTERMSIG(status);
 
     info() << "Child process exited with code " << exit_code;
-    if (cb_) cb_(exit_code);
+    if (child_cb_) child_cb_(exit_code);
 }
