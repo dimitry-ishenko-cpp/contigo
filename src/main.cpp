@@ -5,6 +5,7 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "pty.hpp"
 #include "tty.hpp"
 
 #include <asio.hpp>
@@ -39,7 +40,7 @@ try
         { "-v", "--version",                "Print version number and exit" },
         { "-h", "--help",                   "Show this help" },
 
-        { "login", pgm::mul | pgm::opt,     "Login program (with options) to start. Default: " + def_login },
+        { "login", pgm::mul | pgm::opt,     "Login program to launch. Default: " + def_login },
     };
 
     std::exception_ptr ep;
@@ -60,11 +61,25 @@ try
         asio::io_context io;
         auto ex = io.get_executor();
 
+        ////////////////////
         auto num = get_vt(args).value_or(tty::active(ex));
         auto action = args["--activate"] ? tty::activate : tty::dont_activate;
         tty tty{ex, num, action};
 
-        //
+        ////////////////////
+        std::string login = def_login;
+
+        auto values = args["login"].values();
+        if (values.size())
+        {
+            login = std::move(values.front());
+            values.erase(values.begin());
+        }
+
+        pty pty{ex, std::move(login), std::move(values)};
+
+        ////////////////////
+        io.run();
     }
 
     return 0;
