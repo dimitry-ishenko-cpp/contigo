@@ -32,7 +32,7 @@ struct command
     constexpr auto name() const { return Op; }
 };
 
-auto open(const asio::any_io_executor& ex, tty_num num)
+auto open(const asio::any_io_executor& ex, tty::num num)
 {
     auto path = "/dev/tty" + std::to_string(num);
 
@@ -45,11 +45,11 @@ auto open(const asio::any_io_executor& ex, tty_num num)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::tty(const asio::any_io_executor& ex, tty_num num, tty::action action) :
-    num_{num}, vt_{open(ex, num_)}, active_{vt_, num, action}, state_{vt_}, mode_{vt_}
+tty::tty(const asio::any_io_executor& ex, tty::num num, tty::action action) :
+    vt_{open(ex, num)}, active_{vt_, num, action}, state_{vt_}, mode_{vt_}
 { }
 
-tty_num tty::active(const asio::any_io_executor& ex)
+tty::num tty::active(const asio::any_io_executor& ex)
 {
     auto tty0 = open(ex, 0);
 
@@ -60,7 +60,7 @@ tty_num tty::active(const asio::any_io_executor& ex)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_active::scoped_active(asio::posix::stream_descriptor& vt, tty_num num, tty::action action) :
+tty::scoped_active::scoped_active(asio::posix::stream_descriptor& vt, tty::num num, tty::action action) :
     vt{vt}, old_num{tty::active(vt.get_executor())}
 {
     if (num != old_num && action == tty::activate)
@@ -75,13 +75,13 @@ tty::scoped_active::~scoped_active()
     if (active) activate(old_num);
 }
 
-void tty::scoped_active::activate(tty_num n)
+void tty::scoped_active::activate(tty::num num)
 {
-    info() << "Activating tty" << n;
-    command<VT_ACTIVATE, tty_num> activate{n};
+    info() << "Activating tty" << num;
+    command<VT_ACTIVATE, tty::num> activate{num};
     vt.io_control(activate);
 
-    command<VT_WAITACTIVE, tty_num> wait_active{n};
+    command<VT_WAITACTIVE, tty::num> wait_active{num};
     vt.io_control(wait_active);
 }
 

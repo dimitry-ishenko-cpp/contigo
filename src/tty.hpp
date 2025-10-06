@@ -13,33 +13,30 @@
 #include <termios.h>
 
 ////////////////////////////////////////////////////////////////////////////////
-using tty_num = unsigned;
-
 class tty
 {
 public:
     ////////////////////
+    using num = unsigned;
     enum action { dont_activate, activate };
 
-    tty(const asio::any_io_executor&, tty_num, action = dont_activate);
+    tty(const asio::any_io_executor&, num, action = dont_activate);
 
     ////////////////////
-    constexpr auto num() const noexcept { return num_; }
-
-    static tty_num active(const asio::any_io_executor&);
+    static num active(const asio::any_io_executor&);
 
 private:
     ////////////////////
     struct scoped_active
     {
         asio::posix::stream_descriptor& vt;
-        tty_num old_num;
+        tty::num old_num;
         bool active = false;
 
-        scoped_active(asio::posix::stream_descriptor&, tty_num num, tty::action);
+        scoped_active(asio::posix::stream_descriptor&, tty::num, tty::action);
         ~scoped_active();
 
-        void activate(tty_num);
+        void activate(tty::num);
     };
 
     struct scoped_raw_state
@@ -61,7 +58,6 @@ private:
     };
 
     ////////////////////
-    tty_num num_;
     asio::posix::stream_descriptor vt_;
 
     scoped_active active_;
