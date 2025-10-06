@@ -48,13 +48,13 @@ private:
         ~scoped_raw_state();
     };
 
-    struct scoped_graph_mode
+    struct scoped_graphic_mode
     {
         asio::posix::stream_descriptor& vt;
         unsigned old_mode;
 
-        scoped_graph_mode(asio::posix::stream_descriptor&);
-        ~scoped_graph_mode();
+        scoped_graphic_mode(asio::posix::stream_descriptor&);
+        ~scoped_graphic_mode();
     };
 
     ////////////////////
@@ -62,5 +62,5 @@ private:
 
     scoped_active active_;
     scoped_raw_state state_;
-    scoped_graph_mode mode_;
+    scoped_graphic_mode mode_;
 };

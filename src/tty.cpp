@@ -105,17 +105,17 @@ tty::scoped_raw_state::~scoped_raw_state()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_graph_mode::scoped_graph_mode(asio::posix::stream_descriptor& vt) : vt{vt}
+tty::scoped_graphic_mode::scoped_graphic_mode(asio::posix::stream_descriptor& vt) : vt{vt}
 {
     command<KDGETMODE, unsigned*> get_mode{&old_mode};
     vt.io_control(get_mode);
 
-    info() << "Switching to graphics mode";
+    info() << "Switching to graphic mode";
     command<KDSETMODE, unsigned> set_graph{KD_GRAPHICS};
     vt.io_control(set_graph);
 }
 
-tty::scoped_graph_mode::~scoped_graph_mode()
+tty::scoped_graphic_mode::~scoped_graphic_mode()
 {
     info() << "Restoring previous mode";
     command<KDSETMODE, unsigned> set_mode{old_mode};
