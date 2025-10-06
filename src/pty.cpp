@@ -1,0 +1,106 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2025 Dimitry Ishenko
+// Contact: dimitry (dot) ishenko (at) (gee) mail (dot) com
+//
+// Distributed under the GNU GPL license. See the LICENSE.md file for details.
+
+////////////////////////////////////////////////////////////////////////////////
+#include "error.hpp"
+#include "logging.hpp"
+#include "pty.hpp"
+
+#include <thread>
+
+#include <pty.h> // forkpty
+#include <sys/syscall.h> // pidfd_open, syscall
+#include <sys/wait.h> // waitpid
+#include <unistd.h> // execv
+
+using namespace std::chrono_literals;
+
+////////////////////////////////////////////////////////////////////////////////
+namespace 
+{
+
+inline int pidfd_open(pid_t pid, unsigned flags)
+{
+    return syscall(SYS_pidfd_open, pid, flags);
+}
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::string> args) :
+    pt_{ex}, fd_{ex}
+{
+    info() << "Spawning child process";
+
+    int pt;
+    pid_ = forkpty(&pt, nullptr, nullptr, nullptr);
+    if (pid_ < 0) throw posix_error{"forkpty"};
+
+    if (pid_ > 0) // parent
+    {
+        pt_.assign(pt);
+
+        // TODO: set up read callback
+
+        /////////////////////
+        auto fd = pidfd_open(pid_, 0);
+        if (fd < 0) throw posix_error{"pidfd_open"};
+
+        fd_.assign(fd);
+        fd_.async_wait(fd_.wait_read, [&](std::error_code ec){ if (!ec) handle_child_exit(); });
+    }
+    else start_child(std::move(pgm), std::move(args)); // child
+}
+
+void pty::start_child(std::string pgm, std::vector<std::string> args)
+{
+    std::vector<char*> argv = { pgm.data() };
+    for (auto&& arg : args) argv.push_back(arg.data());
+    argv.push_back(nullptr);
+
+    execv(argv[0], argv.data());
+    throw posix_error{"execv"};
+}
+
+void pty::stop_child()
+{
+    info() << "Terminating child process";
+    kill(pid_, SIGTERM);
+
+    for (auto i = 0; i < 10; ++i)
+    {
+        std::this_thread::sleep_for(10ms);
+
+        auto pid = waitpid(pid_, nullptr, WNOHANG);
+        if (pid == pid_ || (pid == -1 && errno == ECHILD))
+        {
+            pid_ = 0;
+            break;
+        }
+    }
+
+    if (pid_)
+    {
+        info() << "Killing child process";
+        kill(pid_, SIGKILL);
+    }
+}
+
+void pty::handle_child_exit()
+{
+    int status;
+    waitpid(pid_, &status, 0);
+    pid_ = 0;
+    
+    int exit_code = 0;
+    if (WIFEXITED(status))
+        exit_code = WEXITSTATUS(status);
+    else if (WIFSIGNALED(status))
+        exit_code = 128 + WTERMSIG(status);
+
+    info() << "Child process exited with code " << exit_code;
+    if (cb_) cb_(exit_code);
+}

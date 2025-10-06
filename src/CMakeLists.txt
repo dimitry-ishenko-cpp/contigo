@@ -20,6 +20,8 @@ add_executable(${name}
     error.hpp
     logging.hpp
     main.cpp
+    pty.cpp
+    pty.hpp
     tty.cpp
     tty.hpp
     vterm.cpp
