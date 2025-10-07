@@ -5,13 +5,13 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "logging.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
 
 #include <asio.hpp>
 #include <charconv>
 #include <filesystem>
-#include <iostream>
 #include <optional>
 #include <pgm/args.hpp>
 #include <stdexcept>
@@ -86,7 +86,7 @@ try
 }
 catch (const std::exception& e)
 {
-    std::cerr << e.what() << std::endl;
+    err() << e.what();
     return 1;
 };
 
@@ -121,11 +121,11 @@ R"()";
     auto epilogue =
 R"()";
 
-    std::cout << args.usage(name, preamble, prologue, epilogue) << std::endl;
+    info() << args.usage(name, preamble, prologue, epilogue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void show_version(std::string_view name)
 {
-    std::cout << name << " version " << VERSION << std::endl;
+    info() << name << " version " << VERSION;
 }
