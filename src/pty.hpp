@@ -36,7 +36,7 @@ public:
 
 private:
     ////////////////////
-    asio::posix::stream_descriptor pt_;
+    asio::posix::stream_descriptor pty_fd_;
     read_data_callback read_cb_;
     std::array<char, 1024> buffer_;
 
@@ -49,5 +49,5 @@ private:
 
     void start_child(std::string pgm, std::vector<std::string> args);
     void stop_child();
-    void handle_child_exit();
+    void sched_child_wait();
 };

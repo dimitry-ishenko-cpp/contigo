@@ -32,7 +32,7 @@ inline int pidfd_open(pid_t pid, unsigned flags)
 
 ////////////////////////////////////////////////////////////////////////////////
 pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::string> args) :
-    pt_{ex}, child_fd_{ex}
+    pty_fd_{ex}, child_fd_{ex}
 {
     info() << "Spawning child process";
 
@@ -42,27 +42,26 @@ pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::stri
 
     if (child_pid_ > 0) // parent
     {
-        pt_.assign(pt);
+        pty_fd_.assign(pt);
         sched_async_read();
 
-        /////////////////////
         auto fd = pidfd_open(child_pid_, 0);
         if (fd < 0) throw posix_error{"pidfd_open"};
 
         child_fd_.assign(fd);
-        child_fd_.async_wait(child_fd_.wait_read, [&](std::error_code ec){ if (!ec) handle_child_exit(); });
+        sched_child_wait();
     }
     else start_child(std::move(pgm), std::move(args));
 }
 
 void pty::write(std::span<const char> data)
 {
-    asio::write(pt_, asio::buffer(data));
+    asio::write(pty_fd_, asio::buffer(data));
 }
 
 void pty::sched_async_read()
 {
-    pt_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
+    pty_fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
     {
         if (!ec)
         {
@@ -110,18 +109,24 @@ void pty::stop_child()
     }
 }
 
-void pty::handle_child_exit()
+void pty::sched_child_wait()
 {
-    int status;
-    waitpid(child_pid_, &status, 0);
-    child_pid_ = 0;
-    
-    int exit_code = 0;
-    if (WIFEXITED(status))
-        exit_code = WEXITSTATUS(status);
-    else if (WIFSIGNALED(status))
-        exit_code = 128 + WTERMSIG(status);
+    child_fd_.async_wait(child_fd_.wait_read, [&](std::error_code ec)
+    {
+        if (!ec)
+        {
+            int status;
+            waitpid(child_pid_, &status, 0);
+            child_pid_ = 0;
+            
+            int exit_code = 0;
+            if (WIFEXITED(status))
+                exit_code = WEXITSTATUS(status);
+            else if (WIFSIGNALED(status))
+                exit_code = 128 + WTERMSIG(status);
 
-    info() << "Child process exited with code " << exit_code;
-    if (child_cb_) child_cb_(exit_code);
+            info() << "Child process exited with code " << exit_code;
+            if (child_cb_) child_cb_(exit_code);
+        }
+    });
 }
