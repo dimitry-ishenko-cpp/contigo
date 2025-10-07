@@ -9,6 +9,7 @@
 #include "logging.hpp"
 #include "pty.hpp"
 
+#include <asio.hpp>
 #include <thread>
 
 #include <pty.h> // forkpty
@@ -42,8 +43,7 @@ pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::stri
     if (child_pid_ > 0) // parent
     {
         pt_.assign(pt);
-
-        // TODO: set up read callback
+        sched_async_read();
 
         /////////////////////
         auto fd = pidfd_open(child_pid_, 0);
@@ -52,9 +52,27 @@ pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::stri
         child_fd_.assign(fd);
         child_fd_.async_wait(child_fd_.wait_read, [&](std::error_code ec){ if (!ec) handle_child_exit(); });
     }
-    else start_child(std::move(pgm), std::move(args)); // child
+    else start_child(std::move(pgm), std::move(args));
 }
 
+void pty::write(std::span<const char> data)
+{
+    asio::write(pt_, asio::buffer(data));
+}
+
+void pty::sched_async_read()
+{
+    pt_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
+    {
+        if (!ec)
+        {
+            if (read_cb_) read_cb_(std::span<const char>{buffer_.begin(), size});
+            sched_async_read();
+        }
+    });
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void pty::start_child(std::string pgm, std::vector<std::string> args)
 {
     std::vector<char*> argv = { pgm.data() };

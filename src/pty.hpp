@@ -7,9 +7,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include <array>
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
 #include <functional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -24,12 +26,21 @@ public:
     pty(const asio::any_io_executor&, std::string pgm, std::vector<std::string> args);
     ~pty() { stop_child(); }
 
+    void write(std::span<const char>);
+
+    using read_data_callback = std::function<void(std::span<const char>)>;
+    void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
+
     using child_exit_callback = std::function<void(int exit_code)>;
     void on_child_exit(child_exit_callback cb) { child_cb_ = std::move(cb); }
 
 private:
     ////////////////////
     asio::posix::stream_descriptor pt_;
+    read_data_callback read_cb_;
+    std::array<char, 1024> buffer_;
+
+    void sched_async_read();
 
     ////////////////////
     pid_t child_pid_;
