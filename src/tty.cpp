@@ -11,7 +11,7 @@
 
 #include <type_traits>
 
-#include <fcntl.h> // open()
+#include <fcntl.h> // open
 #include <linux/kd.h>
 #include <linux/vt.h>
 
@@ -46,7 +46,7 @@ auto open(const asio::any_io_executor& ex, tty::num num)
 
 ////////////////////////////////////////////////////////////////////////////////
 tty::tty(const asio::any_io_executor& ex, tty::num num, tty::action action) :
-    vt_{open(ex, num)}, active_{vt_, num, action}, state_{vt_}, mode_{vt_}
+    tty_fd_{open(ex, num)}, active_{tty_fd_, num, action}, state_{tty_fd_}, mode_{tty_fd_}
 { }
 
 tty::num tty::active(const asio::any_io_executor& ex)
@@ -61,7 +61,7 @@ tty::num tty::active(const asio::any_io_executor& ex)
 
 ////////////////////////////////////////////////////////////////////////////////
 tty::scoped_active::scoped_active(asio::posix::stream_descriptor& vt, tty::num num, tty::action action) :
-    vt{vt}, old_num{tty::active(vt.get_executor())}
+    fd{vt}, old_num{tty::active(vt.get_executor())}
 {
     if (num != old_num && action == tty::activate)
     {
@@ -79,14 +79,14 @@ void tty::scoped_active::activate(tty::num num)
 {
     info() << "Activating tty" << num;
     command<VT_ACTIVATE, tty::num> activate{num};
-    vt.io_control(activate);
+    fd.io_control(activate);
 
     command<VT_WAITACTIVE, tty::num> wait_active{num};
-    vt.io_control(wait_active);
+    fd.io_control(wait_active);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_raw_state::scoped_raw_state(asio::posix::stream_descriptor& vt) : vt{vt}
+tty::scoped_raw_state::scoped_raw_state(asio::posix::stream_descriptor& vt) : fd{vt}
 {
     if (tcgetattr(vt.native_handle(), &old_state) < 0) throw posix_error{"tcgetattr"};
 
@@ -101,11 +101,11 @@ tty::scoped_raw_state::scoped_raw_state(asio::posix::stream_descriptor& vt) : vt
 tty::scoped_raw_state::~scoped_raw_state()
 {
     info() << "Restoring previous state";
-    tcsetattr(vt.native_handle(), TCSANOW, &old_state);
+    tcsetattr(fd.native_handle(), TCSANOW, &old_state);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_graphic_mode::scoped_graphic_mode(asio::posix::stream_descriptor& vt) : vt{vt}
+tty::scoped_graphic_mode::scoped_graphic_mode(asio::posix::stream_descriptor& vt) : fd{vt}
 {
     command<KDGETMODE, unsigned*> get_mode{&old_mode};
     vt.io_control(get_mode);
@@ -120,5 +120,5 @@ tty::scoped_graphic_mode::~scoped_graphic_mode()
     info() << "Restoring previous mode";
     command<KDSETMODE, unsigned> set_mode{old_mode};
     std::error_code ec;
-    vt.io_control(set_mode, ec);
+    fd.io_control(set_mode, ec);
 }

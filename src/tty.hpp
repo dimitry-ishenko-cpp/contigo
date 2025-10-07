@@ -29,7 +29,7 @@ private:
     ////////////////////
     struct scoped_active
     {
-        asio::posix::stream_descriptor& vt;
+        asio::posix::stream_descriptor& fd;
         tty::num old_num;
         bool active = false;
 
@@ -41,7 +41,7 @@ private:
 
     struct scoped_raw_state
     {
-        asio::posix::stream_descriptor& vt;
+        asio::posix::stream_descriptor& fd;
         termios old_state;
 
         scoped_raw_state(asio::posix::stream_descriptor&);
@@ -50,7 +50,7 @@ private:
 
     struct scoped_graphic_mode
     {
-        asio::posix::stream_descriptor& vt;
+        asio::posix::stream_descriptor& fd;
         unsigned old_mode;
 
         scoped_graphic_mode(asio::posix::stream_descriptor&);
@@ -58,7 +58,7 @@ private:
     };
 
     ////////////////////
-    asio::posix::stream_descriptor vt_;
+    asio::posix::stream_descriptor tty_fd_;
 
     scoped_active active_;
     scoped_raw_state state_;
