@@ -9,6 +9,7 @@
 #include "logging.hpp"
 #include "tty.hpp"
 
+#include <asio.hpp>
 #include <type_traits>
 
 #include <fcntl.h> // open
@@ -47,7 +48,9 @@ auto open(const asio::any_io_executor& ex, tty::num num)
 ////////////////////////////////////////////////////////////////////////////////
 tty::tty(const asio::any_io_executor& ex, tty::num num, tty::action action) :
     tty_fd_{open(ex, num)}, active_{tty_fd_, num, action}, state_{tty_fd_}, mode_{tty_fd_}
-{ }
+{
+    sched_async_read();
+}
 
 tty::num tty::active(const asio::any_io_executor& ex)
 {
@@ -121,4 +124,17 @@ tty::scoped_graphic_mode::~scoped_graphic_mode()
     command<KDSETMODE, unsigned> set_mode{old_mode};
     std::error_code ec;
     fd.io_control(set_mode, ec);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void tty::sched_async_read()
+{
+    tty_fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
+    {
+        if (!ec)
+        {
+            if (read_cb_) read_cb_(std::span<const char>{buffer_.begin(), size});
+            sched_async_read();
+        }
+    });
 }

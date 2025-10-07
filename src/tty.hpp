@@ -7,8 +7,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include <array>
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
+#include <functional>
+#include <span>
 
 #include <termios.h>
 
@@ -21,6 +24,9 @@ public:
     enum action { dont_activate, activate };
 
     tty(const asio::any_io_executor&, num, action = dont_activate);
+
+    using read_data_callback = std::function<void(std::span<const char>)>;
+    void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
 
     ////////////////////
     static num active(const asio::any_io_executor&);
@@ -63,4 +69,9 @@ private:
     scoped_active active_;
     scoped_raw_state state_;
     scoped_graphic_mode mode_;
+
+    read_data_callback read_cb_;
+    std::array<char, 1024> buffer_;
+
+    void sched_async_read();
 };
