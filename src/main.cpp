@@ -61,6 +61,16 @@ try
         asio::io_context io;
         auto ex = io.get_executor();
 
+        asio::signal_set signals{ex, SIGINT, SIGTERM};
+        signals.async_wait([&](std::error_code ec, int signal)
+        {
+            if (!ec)
+            {
+                info() << "Received signal " << signal << " - exiting";
+                io.stop();
+            }
+        });
+
         ////////////////////
         auto num = get_vt(args).value_or(tty::active(ex));
         auto action = args["--activate"] ? tty::activate : tty::dont_activate;
