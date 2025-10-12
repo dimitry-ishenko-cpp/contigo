@@ -89,6 +89,8 @@ try
         pty pty{ex, std::move(login), std::move(values)};
         pty.on_child_exit([&](auto){ io.stop(); });
 
+        tty.on_read_data([&](auto data){ pty.write(data); });
+
         ////////////////////
         io.run();
     }
