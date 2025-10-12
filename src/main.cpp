@@ -87,6 +87,7 @@ try
         }
 
         pty pty{ex, std::move(login), std::move(values)};
+        pty.on_child_exit([&](auto){ io.stop(); });
 
         ////////////////////
         io.run();
