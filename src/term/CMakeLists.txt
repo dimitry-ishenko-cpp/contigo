@@ -7,6 +7,8 @@ pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 add_library(term STATIC
     pty.cpp
     pty.hpp
+    term.cpp
+    term.hpp
     tty.cpp
     tty.hpp
     vte.cpp

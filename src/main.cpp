@@ -6,9 +6,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #include "logging.hpp"
-#include "pty.hpp"
-#include "tty.hpp"
-#include "vte.hpp"
+#include "term.hpp"
 
 #include <asio.hpp>
 #include <charconv>
@@ -31,7 +29,7 @@ try
     namespace fs = std::filesystem;
     auto name = fs::path{argv[0]}.filename().string();
 
-    const std::string def_login = "/bin/login";
+    term_options term_options;
 
     pgm::args args
     {
@@ -41,7 +39,7 @@ try
         { "-v", "--version",                "Print version number and exit" },
         { "-h", "--help",                   "Show this help" },
 
-        { "login", pgm::mul | pgm::opt,     "Login program to launch. Default: " + def_login },
+        { "login", pgm::mul | pgm::opt,     "Login program to launch. Default: " + term_options.login },
     };
 
     std::exception_ptr ep;
@@ -73,28 +71,18 @@ try
         });
 
         ////////////////////
-        auto num = get_vt(args).value_or(tty::active(ex));
-        auto activate = !!args["--activate"];
-        auto tty_ = activate ? tty{ex, num, tty::activate} : tty{ex, num};
+        auto num = get_vt(args);
+        term_options.activate = !!args["--activate"];
 
-        ////////////////////
-        std::string login = def_login;
-
-        auto values = args["login"].values();
-        if (values.size())
+        term_options.args = args["login"].values();
+        if (term_options.args.size())
         {
-            login = std::move(values.front());
-            values.erase(values.begin());
+            term_options.login = std::move(term_options.args.front());
+            term_options.args.erase(term_options.args.begin());
         }
 
-        pty pty{ex, std::move(login), std::move(values)};
-        pty.on_child_exit([&](auto){ io.stop(); });
-
-        tty_.on_read_data([&](auto data){ pty.write(data); });
-
-        vte vte{24, 80}; // TODO: set vterm size
-        pty.on_read_data([&](auto data){ vte.write(data); });
-
+        auto term_ = num ? term{ex, *num, std::move(term_options)} : term{ex, std::move(term_options)};
+        term_.on_finished([&](auto){ io.stop(); });
 
         ////////////////////
         io.run();
