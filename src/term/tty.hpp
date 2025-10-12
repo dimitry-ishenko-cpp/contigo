@@ -21,9 +21,12 @@ class tty
 public:
     ////////////////////
     using num = unsigned;
-    enum action { dont_activate, activate };
 
-    tty(const asio::any_io_executor&, num, action = dont_activate);
+    struct activate_t { constexpr activate_t() = default; };
+    static constexpr activate_t activate{};
+
+    tty(const asio::any_io_executor&, num);
+    tty(const asio::any_io_executor&, num, activate_t);
 
     using read_data_callback = std::function<void(std::span<const char>)>;
     void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
@@ -39,10 +42,10 @@ private:
         tty::num old_num;
         bool active = false;
 
-        scoped_active(asio::posix::stream_descriptor&, tty::num, tty::action);
+        scoped_active(asio::posix::stream_descriptor&, tty::num, bool activate);
         ~scoped_active();
 
-        void activate(tty::num);
+        void make_active(tty::num);
     };
 
     struct scoped_raw_state

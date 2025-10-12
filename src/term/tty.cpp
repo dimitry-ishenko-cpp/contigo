@@ -46,8 +46,14 @@ auto open(const asio::any_io_executor& ex, tty::num num)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::tty(const asio::any_io_executor& ex, tty::num num, tty::action action) :
-    tty_fd_{open(ex, num)}, active_{tty_fd_, num, action}, state_{tty_fd_}, mode_{tty_fd_}
+tty::tty(const asio::any_io_executor& ex, tty::num num) :
+    tty_fd_{open(ex, num)}, active_{tty_fd_, num, false}, state_{tty_fd_}, mode_{tty_fd_}
+{
+    sched_async_read();
+}
+
+tty::tty(const asio::any_io_executor& ex, tty::num num, activate_t) :
+    tty_fd_{open(ex, num)}, active_{tty_fd_, num, true}, state_{tty_fd_}, mode_{tty_fd_}
 {
     sched_async_read();
 }
@@ -63,22 +69,22 @@ tty::num tty::active(const asio::any_io_executor& ex)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_active::scoped_active(asio::posix::stream_descriptor& vt, tty::num num, tty::action action) :
+tty::scoped_active::scoped_active(asio::posix::stream_descriptor& vt, tty::num num, bool activate) :
     fd{vt}, old_num{tty::active(vt.get_executor())}
 {
-    if (num != old_num && action == tty::activate)
+    if (num != old_num && activate)
     {
-        activate(num);
+        make_active(num);
         active = true;
     }
 }
 
 tty::scoped_active::~scoped_active()
 {
-    if (active) activate(old_num);
+    if (active) make_active(old_num);
 }
 
-void tty::scoped_active::activate(tty::num num)
+void tty::scoped_active::make_active(tty::num num)
 {
     info() << "Activating tty" << num;
     command<VT_ACTIVATE, tty::num> activate{num};

@@ -74,8 +74,8 @@ try
 
         ////////////////////
         auto num = get_vt(args).value_or(tty::active(ex));
-        auto action = args["--activate"] ? tty::activate : tty::dont_activate;
-        tty tty{ex, num, action};
+        auto activate = !!args["--activate"];
+        auto tty_ = activate ? tty{ex, num, tty::activate} : tty{ex, num};
 
         ////////////////////
         std::string login = def_login;
@@ -90,7 +90,7 @@ try
         pty pty{ex, std::move(login), std::move(values)};
         pty.on_child_exit([&](auto){ io.stop(); });
 
-        tty.on_read_data([&](auto data){ pty.write(data); });
+        tty_.on_read_data([&](auto data){ pty.write(data); });
 
         vterm vterm{24, 80}; // TODO: set vterm size
 
