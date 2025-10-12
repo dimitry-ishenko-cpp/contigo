@@ -8,6 +8,7 @@
 #include "logging.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
+#include "vterm.hpp"
 
 #include <asio.hpp>
 #include <charconv>
@@ -90,6 +91,10 @@ try
         pty.on_child_exit([&](auto){ io.stop(); });
 
         tty.on_read_data([&](auto data){ pty.write(data); });
+
+        vterm vterm{24, 80}; // TODO: set vterm size
+
+        pty.on_read_data([&](auto data){ vterm.write(data); });
 
         ////////////////////
         io.run();
