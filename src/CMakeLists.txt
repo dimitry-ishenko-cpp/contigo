@@ -1,33 +1,20 @@
-# src
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-add_definitions(-DASIO_STANDALONE)
-add_definitions(-DASIO_NO_DEPRECATED)
-add_definitions(-DVERSION="${PROJECT_VERSION}")
+project(src)
 
 find_package(pgm_args REQUIRED)
 find_package(PkgConfig REQUIRED)
-
 pkg_search_module(asio REQUIRED IMPORTED_TARGET asio)
-pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 
-set(name contigo)
-add_executable(${name}
+add_library(core INTERFACE
     error.hpp
     logging.hpp
-    main.cpp
-    pty.cpp
-    pty.hpp
-    tty.cpp
-    tty.hpp
-    vterm.cpp
-    vterm.hpp
 )
-target_include_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR})
-target_link_libraries(${name} PRIVATE pgm::args PkgConfig::asio PkgConfig::vterm)
+target_include_directories(core INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-install(TARGETS ${name} DESTINATION ${CMAKE_INSTALL_BINDIR})
+add_subdirectory(term)
+
+add_executable(contigo
+    main.cpp
+)
+target_link_libraries(contigo PRIVATE core pgm::args PkgConfig::asio term)
+
+install(TARGETS contigo DESTINATION ${CMAKE_INSTALL_BINDIR})
