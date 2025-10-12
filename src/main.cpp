@@ -8,7 +8,7 @@
 #include "logging.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
-#include "vterm.hpp"
+#include "vte.hpp"
 
 #include <asio.hpp>
 #include <charconv>
@@ -92,9 +92,9 @@ try
 
         tty_.on_read_data([&](auto data){ pty.write(data); });
 
-        vterm vterm{24, 80}; // TODO: set vterm size
+        vte vte{24, 80}; // TODO: set vterm size
+        pty.on_read_data([&](auto data){ vte.write(data); });
 
-        pty.on_read_data([&](auto data){ vterm.write(data); });
 
         ////////////////////
         io.run();

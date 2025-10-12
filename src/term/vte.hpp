@@ -17,7 +17,7 @@ struct VTermScreen;
 namespace detail { struct VTermScreenCell; }
 
 ////////////////////////////////////////////////////////////////////////////////
-class vterm
+class vte
 {
 public:
     ////////////////////
@@ -27,8 +27,8 @@ public:
     using rows_moved_callback = std::function<void(int, std::size_t, int distance)>;
 
     ////////////////////
-    explicit vterm(std::size_t, std::size_t);
-    ~vterm();
+    explicit vte(std::size_t, std::size_t);
+    ~vte();
 
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
     void on_rows_moved(rows_moved_callback cb) { move_cb_ = std::move(cb); }

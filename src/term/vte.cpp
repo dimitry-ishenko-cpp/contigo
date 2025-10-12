@@ -5,7 +5,7 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
-#include "vterm.hpp"
+#include "vte.hpp"
 
 #include <cstring> // std::memcpy
 #include <vterm.h>
@@ -15,12 +15,12 @@
 namespace detail { struct VTermScreenCell : ::VTermScreenCell { }; }
 
 ////////////////////////////////////////////////////////////////////////////////
-struct vterm::dispatch
+struct vte::dispatch
 {
 
 static int damage(VTermRect rect, void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     if (vt->row_cb_)
         for (auto row = rect.start_row; row < rect.end_row; ++row)
         {
@@ -40,42 +40,42 @@ static int damage(VTermRect rect, void* ctx)
 
 static int move_rect(VTermRect dst, VTermRect src, void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     if (vt->move_cb_) vt->move_cb_(src.start_row, src.end_row - src.start_row, dst.start_row - src.start_row);
     return true;
 }
 
 static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     // TODO
     return true;
 }
 
 static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     // TODO
     return true;
 }
 
 static int bell(void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     // TODO
     return true;
 }
 
 static int resize(int rows, int cols, void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     // TODO
     return true;
 }
 
 static int scroll_push_line(int cols, const VTermScreenCell* cells, void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     if (vt->scroll_.size() >= vt->scroll_size_) vt->scroll_.pop_front();
 
     std::size_t size = cols;
@@ -87,7 +87,7 @@ static int scroll_push_line(int cols, const VTermScreenCell* cells, void* ctx)
 
 static int scroll_pop_line(int cols, VTermScreenCell* cells, void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     if (vt->scroll_.empty()) return 0;
 
     std::size_t size = cols;
@@ -99,7 +99,7 @@ static int scroll_pop_line(int cols, VTermScreenCell* cells, void* ctx)
 
 static int scroll_clear(void* ctx)
 {
-    auto vt = static_cast<vterm*>(ctx);
+    auto vt = static_cast<vte*>(ctx);
     vt->scroll_.clear();
     return true;
 }
@@ -107,7 +107,7 @@ static int scroll_clear(void* ctx)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-vterm::vterm(std::size_t rows, std::size_t cols) :
+vte::vte(std::size_t rows, std::size_t cols) :
     vterm_{vterm_new(rows, cols), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}
 {
@@ -131,9 +131,9 @@ vterm::vterm(std::size_t rows, std::size_t cols) :
     vterm_screen_reset(screen_, true);
 }
 
-vterm::~vterm() { }
+vte::~vte() { }
 
-void vterm::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
-void vterm::flush() { vterm_screen_flush_damage(screen_); }
+void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
+void vte::flush() { vterm_screen_flush_damage(screen_); }
 
-void vterm::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }
+void vte::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }

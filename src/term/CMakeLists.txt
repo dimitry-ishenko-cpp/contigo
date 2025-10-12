@@ -9,8 +9,8 @@ add_library(term STATIC
     pty.hpp
     tty.cpp
     tty.hpp
-    vterm.cpp
-    vterm.hpp
+    vte.cpp
+    vte.hpp
 )
 target_include_directories(term PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(term PUBLIC core PkgConfig::asio PkgConfig::vterm)
