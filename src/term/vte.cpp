@@ -22,19 +22,22 @@ static int damage(VTermRect rect, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
     if (vt->row_cb_)
-        for (auto row = rect.start_row; row < rect.end_row; ++row)
+    {
+        VTermPos pos;
+        for (pos.row = rect.start_row; pos.row < rect.end_row; ++pos.row)
         {
             std::vector<cell> cells;
-            for (auto col = rect.start_col; col < rect.end_col; ++col)
+            for (pos.col = rect.start_col; pos.col < rect.end_col; ++pos.col)
             {
                 VTermScreenCell vc;
-                if (vterm_screen_get_cell(vt->screen_, VTermPos{row, col}, &vc))
+                if (vterm_screen_get_cell(vt->screen_, pos, &vc))
                 {
                     // TODO: fill cells
                 }
             }
-            vt->row_cb_(row, cells);
+            vt->row_cb_(pos.row, cells);
         }
+    }
     return true;
 }
 
