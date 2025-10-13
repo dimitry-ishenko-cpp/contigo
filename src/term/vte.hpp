@@ -22,9 +22,10 @@ class vte
 {
 public:
     ////////////////////
+    struct size { unsigned rows, cols; };
     struct cell { };
 
-    explicit vte(std::size_t, std::size_t);
+    explicit vte(size);
     ~vte();
 
     using row_changed_callback = std::function<void(int, std::span<const cell>)>;
