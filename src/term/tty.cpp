@@ -6,13 +6,13 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #include "error.hpp"
+#include "io.hpp"
 #include "logging.hpp"
 #include "tty.hpp"
 
 #include <asio.hpp>
-#include <type_traits>
+#include <string>
 
-#include <fcntl.h> // open
 #include <linux/kd.h>
 #include <linux/vt.h>
 
@@ -20,28 +20,7 @@
 namespace
 {
 
-template<int Op, typename T>
-struct command
-{
-    T val;
-    constexpr auto data()
-    {
-             if constexpr (std::is_fundamental_v<T>) return reinterpret_cast<void*>(val);
-        else if constexpr (std::is_pointer_v<T>) return static_cast<void*>(val);
-        else return static_cast<void*>(&val);
-    }
-    constexpr auto name() const { return Op; }
-};
-
-auto open(const asio::any_io_executor& ex, tty::num num)
-{
-    auto path = "/dev/tty" + std::to_string(num);
-
-    auto fd = ::open(path.data(), O_RDWR);
-    if (fd < 0) throw posix_error{"open"};
-
-    return asio::posix::stream_descriptor{ex, fd};
-}
+auto tty_path(tty::num num) { return "/dev/tty" + std::to_string(num); }
 
 enum signals
 {
@@ -53,7 +32,7 @@ enum signals
 
 ////////////////////////////////////////////////////////////////////////////////
 tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
-    fd_{open(ex, num)}, sigs_{ex, release, acquire},
+    fd_{open(ex, tty_path(num))}, sigs_{ex, release, acquire},
     active_{fd_, num, activate}, raw_{fd_}, process_{fd_}, graphic_{fd_}
 {
     sched_signal_callback();
@@ -62,7 +41,7 @@ tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
 
 tty::num tty::active(const asio::any_io_executor& ex)
 {
-    auto tty0 = open(ex, 0);
+    auto tty0 = open(ex, tty_path(0));
 
     command<VT_GETSTATE, vt_stat> get_state;
     tty0.io_control(get_state);
