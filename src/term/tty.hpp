@@ -74,7 +74,7 @@ private:
     scoped_graphic_mode mode_;
 
     read_data_callback read_cb_;
-    std::array<char, 1024> buffer_;
+    std::array<char, 4096> buffer_;
 
     void sched_async_read();
 };
