@@ -43,12 +43,20 @@ auto open(const asio::any_io_executor& ex, tty::num num)
     return asio::posix::stream_descriptor{ex, fd};
 }
 
+enum signals
+{
+    release = SIGUSR1,
+    acquire = SIGUSR2,
+};
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
-    fd_{open(ex, num)}, active_{fd_, num, activate}, raw_{fd_}, graphic_{fd_}
+    fd_{open(ex, num)}, sigs_{ex, release, acquire},
+    active_{fd_, num, activate}, raw_{fd_}, process_{fd_}, graphic_{fd_}
 {
+    sched_signal_callback();
     sched_async_read();
 }
 
@@ -108,6 +116,31 @@ tty::scoped_raw_state::~scoped_raw_state()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+tty::scoped_process_mode::scoped_process_mode(asio::posix::stream_descriptor& vt) : fd{vt}
+{
+    command<VT_SETMODE, vt_mode> mode{{
+        .mode  = VT_PROCESS,
+        .waitv = 0,
+        .relsig= release,
+        .acqsig= acquire,
+        .frsig = 0,
+    }};
+    fd.io_control(mode);
+}
+
+tty::scoped_process_mode::~scoped_process_mode()
+{
+    command<VT_SETMODE, vt_mode> mode{{
+        .mode = VT_AUTO,
+        .waitv = 0,
+        .relsig= 0,
+        .acqsig= 0,
+        .frsig = 0,
+    }};
+    fd.io_control(mode);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 tty::scoped_graphic_mode::scoped_graphic_mode(asio::posix::stream_descriptor& vt) : fd{vt}
 {
     command<KDGETMODE, unsigned*> get_mode{&old_mode};
@@ -127,6 +160,35 @@ tty::scoped_graphic_mode::~scoped_graphic_mode()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void tty::sched_signal_callback()
+{
+    sigs_.async_wait([&](std::error_code ec, int signal)
+    {
+        if (!ec)
+        {
+            command<VT_RELDISP, int> rel;
+            switch (signal)
+            {
+            case release:
+                if (release_cb_) release_cb_();
+
+                rel.val = 1;
+                fd_.io_control(rel);
+                break;
+
+            case acquire:
+                rel.val = VT_ACKACQ;
+                fd_.io_control(rel);
+
+                if (acquire_cb_) acquire_cb_();
+                break;
+            }
+
+            sched_signal_callback();
+        }
+    });
+}
+
 void tty::sched_async_read()
 {
     fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)

@@ -33,6 +33,9 @@ public:
     using finished_callback = pty::child_exit_callback;
     void on_finished(finished_callback cb) { pty_.on_child_exit(std::move(cb)); }
 
+    void on_acquire(tty::acquire_callback cb) { tty_.on_acquire(std::move(cb)); }
+    void on_release(tty::release_callback cb) { tty_.on_release(std::move(cb)); }
+
     void on_row_changed(vte::row_changed_callback cb) { vte_.on_row_changed(std::move(cb)); }
     void on_rows_moved(vte::rows_moved_callback cb) { vte_.on_rows_moved(std::move(cb)); }
 

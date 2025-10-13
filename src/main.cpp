@@ -84,6 +84,9 @@ try
         term term{ex, num, std::move(term_options)};
         term.on_finished([&](auto){ io.stop(); });
 
+        term.on_release([&]{ info() << "tty" << num << " was released"; });
+        term.on_acquire([&]{ info() << "tty" << num << " was acquired"; });
+
         ////////////////////
         io.run();
     }

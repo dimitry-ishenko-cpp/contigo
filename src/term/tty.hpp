@@ -10,6 +10,7 @@
 #include <array>
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
+#include <asio/signal_set.hpp>
 #include <functional>
 #include <span>
 
@@ -27,6 +28,12 @@ public:
 
     tty(const asio::any_io_executor& ex, tty::num num) : tty{ex, num, false} { } 
     tty(const asio::any_io_executor& ex, tty::num num, activate_t) : tty{ex, num, true} { }
+
+    using release_callback = std::function<void()>;
+    void on_release(release_callback cb) { release_cb_ = std::move(cb); }
+
+    using acquire_callback = std::function<void()>;
+    void on_acquire(acquire_callback cb) { acquire_cb_ = std::move(cb); }
 
     using read_data_callback = std::function<void(std::span<const char>)>;
     void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
@@ -60,6 +67,14 @@ private:
         ~scoped_raw_state();
     };
 
+    struct scoped_process_mode // VT_PROCESS
+    {
+        asio::posix::stream_descriptor& fd;
+
+        scoped_process_mode(asio::posix::stream_descriptor&);
+        ~scoped_process_mode();
+    };
+
     struct scoped_graphic_mode // KD_GRAPHICS
     {
         asio::posix::stream_descriptor& fd;
@@ -74,8 +89,16 @@ private:
 
     scoped_active active_;
     scoped_raw_state raw_;
+    scoped_process_mode process_;
     scoped_graphic_mode graphic_;
 
+    asio::signal_set sigs_;
+    void sched_signal_callback();
+
+    release_callback release_cb_;
+    acquire_callback acquire_cb_;
+
+    ////////////////////
     read_data_callback read_cb_;
     std::array<char, 4096> buffer_;
 
