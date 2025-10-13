@@ -32,6 +32,9 @@ static int damage(VTermRect rect, void* ctx)
                 VTermScreenCell vc;
                 if (vterm_screen_get_cell(vt->screen_, pos, &vc))
                 {
+                    vterm_state_convert_color_to_rgb(vt->state_, &vc.fg);
+                    vterm_state_convert_color_to_rgb(vt->state_, &vc.bg);
+
                     // TODO: fill cells
                 }
             }
@@ -112,7 +115,7 @@ static int scroll_clear(void* ctx)
 ////////////////////////////////////////////////////////////////////////////////
 vte::vte(std::size_t rows, std::size_t cols) :
     vterm_{vterm_new(rows, cols), &vterm_free},
-    screen_{vterm_obtain_screen(&*vterm_)}
+    screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)}
 {
     vterm_set_utf8(&*vterm_, true);
 

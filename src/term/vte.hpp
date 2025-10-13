@@ -15,6 +15,7 @@
 struct VTerm;
 struct VTermScreen;
 namespace detail { struct VTermScreenCell; }
+struct VTermState;
 
 ////////////////////////////////////////////////////////////////////////////////
 class vte
@@ -43,6 +44,7 @@ private:
     ////////////////////
     std::unique_ptr<VTerm, void(*)(VTerm*)> vterm_;
     VTermScreen* screen_;
+    VTermState* state_;
 
     std::size_t scroll_size_ = 1000;
     std::deque<std::unique_ptr<detail::VTermScreenCell[]>> scroll_;
