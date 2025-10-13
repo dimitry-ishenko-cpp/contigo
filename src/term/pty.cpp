@@ -32,7 +32,7 @@ inline int pidfd_open(pid_t pid, unsigned flags)
 
 ////////////////////////////////////////////////////////////////////////////////
 pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::string> args) :
-    pty_fd_{ex}, child_fd_{ex}
+    fd_{ex}, child_fd_{ex}
 {
     info() << "Spawning child process";
 
@@ -42,7 +42,7 @@ pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::stri
 
     if (child_pid_ > 0) // parent
     {
-        pty_fd_.assign(pt);
+        fd_.assign(pt);
         sched_async_read();
 
         auto fd = pidfd_open(child_pid_, 0);
@@ -56,12 +56,12 @@ pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::stri
 
 void pty::write(std::span<const char> data)
 {
-    asio::write(pty_fd_, asio::buffer(data));
+    asio::write(fd_, asio::buffer(data));
 }
 
 void pty::sched_async_read()
 {
-    pty_fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
+    fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
     {
         if (!ec)
         {
