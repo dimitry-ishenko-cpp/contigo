@@ -32,12 +32,14 @@ public:
 
     ////////////////////
     term(const asio::any_io_executor&, tty::num, term_options = {});
-    explicit term(const asio::any_io_executor&, term_options = {});
 
     void on_finished(finished_callback cb) { pty_.on_child_exit(std::move(cb)); }
 
     void on_row_changed(vte::row_changed_callback cb) { vte_.on_row_changed(std::move(cb)); }
     void on_rows_moved(vte::rows_moved_callback cb) { vte_.on_rows_moved(std::move(cb)); }
+
+    ////////////////////
+    static tty::num active(const asio::any_io_executor& ex) { return tty::active(ex); }
 
 private:
     ////////////////////

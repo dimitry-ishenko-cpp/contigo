@@ -15,7 +15,3 @@ term::term(const asio::any_io_executor& ex, tty::num num, const term_options opt
     tty_.on_read_data([&](auto data){ pty_.write(data); });
     pty_.on_read_data([&](auto data){ vte_.write(data); });
 }
-
-term::term(const asio::any_io_executor& ex, term_options options) :
-    term{ex, tty::active(ex), std::move(options)}
-{ }

@@ -71,7 +71,7 @@ try
         });
 
         ////////////////////
-        auto num = get_vt(args);
+        auto num = get_vt(args).value_or(term::active(ex));
         term_options.activate = !!args["--activate"];
 
         term_options.args = args["login"].values();
@@ -81,8 +81,8 @@ try
             term_options.args.erase(term_options.args.begin());
         }
 
-        auto term_ = num ? term{ex, *num, std::move(term_options)} : term{ex, std::move(term_options)};
-        term_.on_finished([&](auto){ io.stop(); });
+        term term{ex, num, std::move(term_options)};
+        term.on_finished([&](auto){ io.stop(); });
 
         ////////////////////
         io.run();
