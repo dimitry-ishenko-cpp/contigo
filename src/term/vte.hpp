@@ -23,16 +23,16 @@ public:
     ////////////////////
     struct cell { };
 
-    using row_changed_callback = std::function<void(int, std::span<const cell>)>;
-    using rows_moved_callback = std::function<void(int, std::size_t, int distance)>;
-
-    ////////////////////
     explicit vte(std::size_t, std::size_t);
     ~vte();
 
+    using row_changed_callback = std::function<void(int, std::span<const cell>)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
+
+    using rows_moved_callback = std::function<void(int, std::size_t, int distance)>;
     void on_rows_moved(rows_moved_callback cb) { move_cb_ = std::move(cb); }
 
+    ////////////////////
     void write(std::span<const char>);
     void flush();
 
