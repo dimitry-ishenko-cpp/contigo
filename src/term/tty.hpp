@@ -25,8 +25,8 @@ public:
     struct activate_t { constexpr activate_t() = default; };
     static constexpr activate_t activate{};
 
-    tty(const asio::any_io_executor&, num);
-    tty(const asio::any_io_executor&, num, activate_t);
+    tty(const asio::any_io_executor& ex, tty::num num) : tty{ex, num, false} { } 
+    tty(const asio::any_io_executor& ex, tty::num num, activate_t) : tty{ex, num, true} { }
 
     using read_data_callback = std::function<void(std::span<const char>)>;
     void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
@@ -36,7 +36,10 @@ public:
 
 private:
     ////////////////////
-    struct scoped_active
+    tty(const asio::any_io_executor&, tty::num, bool activate);
+
+    ////////////////////
+    struct scoped_active // VT_ACTIVATE
     {
         asio::posix::stream_descriptor& fd;
         tty::num old_num;
@@ -48,7 +51,7 @@ private:
         void make_active(tty::num);
     };
 
-    struct scoped_raw_state
+    struct scoped_raw_state // termios
     {
         asio::posix::stream_descriptor& fd;
         termios old_state;
@@ -57,7 +60,7 @@ private:
         ~scoped_raw_state();
     };
 
-    struct scoped_graphic_mode
+    struct scoped_graphic_mode // KD_GRAPHICS
     {
         asio::posix::stream_descriptor& fd;
         unsigned old_mode;
@@ -67,11 +70,11 @@ private:
     };
 
     ////////////////////
-    asio::posix::stream_descriptor tty_fd_;
+    asio::posix::stream_descriptor fd_;
 
     scoped_active active_;
-    scoped_raw_state state_;
-    scoped_graphic_mode mode_;
+    scoped_raw_state raw_;
+    scoped_graphic_mode graphic_;
 
     read_data_callback read_cb_;
     std::array<char, 4096> buffer_;

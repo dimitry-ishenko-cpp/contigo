@@ -46,14 +46,8 @@ auto open(const asio::any_io_executor& ex, tty::num num)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::tty(const asio::any_io_executor& ex, tty::num num) :
-    tty_fd_{open(ex, num)}, active_{tty_fd_, num, false}, state_{tty_fd_}, mode_{tty_fd_}
-{
-    sched_async_read();
-}
-
-tty::tty(const asio::any_io_executor& ex, tty::num num, activate_t) :
-    tty_fd_{open(ex, num)}, active_{tty_fd_, num, true}, state_{tty_fd_}, mode_{tty_fd_}
+tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
+    fd_{open(ex, num)}, active_{fd_, num, activate}, raw_{fd_}, graphic_{fd_}
 {
     sched_async_read();
 }
@@ -135,7 +129,7 @@ tty::scoped_graphic_mode::~scoped_graphic_mode()
 ////////////////////////////////////////////////////////////////////////////////
 void tty::sched_async_read()
 {
-    tty_fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
+    fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
     {
         if (!ec)
         {
