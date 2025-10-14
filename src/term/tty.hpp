@@ -26,7 +26,7 @@ public:
     struct activate_t { constexpr activate_t() = default; };
     static constexpr activate_t activate{};
 
-    tty(const asio::any_io_executor& ex, tty::num num) : tty{ex, num, false} { } 
+    tty(const asio::any_io_executor& ex, tty::num num) : tty{ex, num, false} { }
     tty(const asio::any_io_executor& ex, tty::num num, activate_t) : tty{ex, num, true} { }
 
     using release_callback = std::function<void()>;
@@ -46,51 +46,51 @@ private:
     tty(const asio::any_io_executor&, tty::num, bool activate);
 
     ////////////////////
-    struct scoped_active // VT_ACTIVATE
+    struct scoped_active_vt // VT_ACTIVATE
     {
         asio::posix::stream_descriptor& fd;
         tty::num old_num;
         bool active = false;
 
-        scoped_active(asio::posix::stream_descriptor&, tty::num, bool activate);
-        ~scoped_active();
+        scoped_active_vt(asio::posix::stream_descriptor&, tty::num, bool activate);
+        ~scoped_active_vt();
 
         void make_active(tty::num);
     };
 
-    struct scoped_raw_state // termios
+    struct scoped_attrs // termios
     {
         asio::posix::stream_descriptor& fd;
-        termios old_state;
+        termios old_attrs;
 
-        scoped_raw_state(asio::posix::stream_descriptor&);
-        ~scoped_raw_state();
+        scoped_attrs(asio::posix::stream_descriptor&);
+        ~scoped_attrs();
     };
 
-    struct scoped_process_mode // VT_PROCESS
+    struct scoped_vt_mode // VT_SETMODE
     {
         asio::posix::stream_descriptor& fd;
 
-        scoped_process_mode(asio::posix::stream_descriptor&);
-        ~scoped_process_mode();
+        scoped_vt_mode(asio::posix::stream_descriptor&);
+        ~scoped_vt_mode();
     };
 
-    struct scoped_graphic_mode // KD_GRAPHICS
+    struct scoped_kd_mode // KDSETMODE
     {
         asio::posix::stream_descriptor& fd;
         unsigned old_mode;
 
-        scoped_graphic_mode(asio::posix::stream_descriptor&);
-        ~scoped_graphic_mode();
+        scoped_kd_mode(asio::posix::stream_descriptor&);
+        ~scoped_kd_mode();
     };
 
     ////////////////////
     asio::posix::stream_descriptor fd_;
 
-    scoped_active active_;
-    scoped_raw_state raw_;
-    scoped_process_mode process_;
-    scoped_graphic_mode graphic_;
+    scoped_active_vt active_;
+    scoped_attrs attrs_;
+    scoped_vt_mode vt_mode_;
+    scoped_kd_mode kd_mode_;
 
     asio::signal_set sigs_;
     void sched_signal_callback();

@@ -33,7 +33,7 @@ enum signals
 ////////////////////////////////////////////////////////////////////////////////
 tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
     fd_{open(ex, tty_path(num))}, sigs_{ex, release, acquire},
-    active_{fd_, num, activate}, raw_{fd_}, process_{fd_}, graphic_{fd_}
+    active_{fd_, num, activate}, attrs_{fd_}, vt_mode_{fd_}, kd_mode_{fd_}
 {
     sched_signal_callback();
     sched_async_read();
@@ -50,7 +50,7 @@ tty::num tty::active(const asio::any_io_executor& ex)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_active::scoped_active(asio::posix::stream_descriptor& vt, tty::num num, bool activate) :
+tty::scoped_active_vt::scoped_active_vt(asio::posix::stream_descriptor& vt, tty::num num, bool activate) :
     fd{vt}, old_num{tty::active(vt.get_executor())}
 {
     if (num != old_num && activate)
@@ -60,12 +60,12 @@ tty::scoped_active::scoped_active(asio::posix::stream_descriptor& vt, tty::num n
     }
 }
 
-tty::scoped_active::~scoped_active()
+tty::scoped_active_vt::~scoped_active_vt()
 {
     if (active) make_active(old_num);
 }
 
-void tty::scoped_active::make_active(tty::num num)
+void tty::scoped_active_vt::make_active(tty::num num)
 {
     info() << "Activating tty" << num;
     command<VT_ACTIVATE, tty::num> activate{num};
@@ -76,27 +76,28 @@ void tty::scoped_active::make_active(tty::num num)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_raw_state::scoped_raw_state(asio::posix::stream_descriptor& vt) : fd{vt}
+tty::scoped_attrs::scoped_attrs(asio::posix::stream_descriptor& vt) : fd{vt}
 {
-    if (tcgetattr(vt.native_handle(), &old_state) < 0) throw posix_error{"tcgetattr"};
+    if (tcgetattr(vt.native_handle(), &old_attrs) < 0) throw posix_error{"tcgetattr"};
 
-    info() << "Switching to raw state";
-    termios tio = old_state;
+    info() << "Switching tty to raw mode";
+    termios tio = old_attrs;
     cfmakeraw(&tio);
     tio.c_cc[VMIN] = 1;
     tio.c_cc[VTIME] = 0;
     if (tcsetattr(vt.native_handle(), TCSANOW, &tio) < 0) throw posix_error{"tcsetattr"};
 }
 
-tty::scoped_raw_state::~scoped_raw_state()
+tty::scoped_attrs::~scoped_attrs()
 {
-    info() << "Restoring previous state";
-    tcsetattr(fd.native_handle(), TCSANOW, &old_state);
+    info() << "Restoring tty attrs";
+    tcsetattr(fd.native_handle(), TCSANOW, &old_attrs);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_process_mode::scoped_process_mode(asio::posix::stream_descriptor& vt) : fd{vt}
+tty::scoped_vt_mode::scoped_vt_mode(asio::posix::stream_descriptor& vt) : fd{vt}
 {
+    info() << "Enabling process switch mode";
     command<VT_SETMODE, vt_mode> mode{{
         .mode  = VT_PROCESS,
         .waitv = 0,
@@ -107,8 +108,9 @@ tty::scoped_process_mode::scoped_process_mode(asio::posix::stream_descriptor& vt
     fd.io_control(mode);
 }
 
-tty::scoped_process_mode::~scoped_process_mode()
+tty::scoped_vt_mode::~scoped_vt_mode()
 {
+    info() << "Restoring auto switch mode";
     command<VT_SETMODE, vt_mode> mode{{
         .mode = VT_AUTO,
         .waitv = 0,
@@ -120,17 +122,17 @@ tty::scoped_process_mode::~scoped_process_mode()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_graphic_mode::scoped_graphic_mode(asio::posix::stream_descriptor& vt) : fd{vt}
+tty::scoped_kd_mode::scoped_kd_mode(asio::posix::stream_descriptor& vt) : fd{vt}
 {
     command<KDGETMODE, unsigned*> get_mode{&old_mode};
     vt.io_control(get_mode);
 
-    info() << "Switching to graphic mode";
+    info() << "Switching to graphics mode";
     command<KDSETMODE, unsigned> set_graph{KD_GRAPHICS};
     vt.io_control(set_graph);
 }
 
-tty::scoped_graphic_mode::~scoped_graphic_mode()
+tty::scoped_kd_mode::~scoped_kd_mode()
 {
     info() << "Restoring previous mode";
     command<KDSETMODE, unsigned> set_mode{old_mode};
