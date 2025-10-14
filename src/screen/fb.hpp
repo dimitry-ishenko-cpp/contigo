@@ -27,6 +27,9 @@ public:
     constexpr auto res() const noexcept { return size{info_.vinfo.xres, info_.vinfo.yres}; }
     constexpr auto dpi() const noexcept { return info_.dpi; }
 
+    ////////////////////
+    void present() { info_.update(); }
+
 private:
     ////////////////////
     struct scoped_screen_info
@@ -39,6 +42,8 @@ private:
 
         scoped_screen_info(asio::posix::stream_descriptor&);
         ~scoped_screen_info();
+
+        void update();
     };
 
     struct scoped_mmap_ptr

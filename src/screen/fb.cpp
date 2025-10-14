@@ -43,10 +43,7 @@ fb::scoped_screen_info::scoped_screen_info(asio::posix::stream_descriptor& fb) :
         info() << "Requesting 32-bit true-color mode";
 
         vinfo.bits_per_pixel = 32;
-        vinfo.activate = FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
-
-        command<FBIOPUT_VSCREENINFO, void*> put_vinfo{&vinfo};
-        fd.io_control(put_vinfo);
+        update();
 
         // recheck again
         fd.io_control(get_finfo);
@@ -79,6 +76,13 @@ fb::scoped_screen_info::~scoped_screen_info()
 {
     info() << "Restoring previous screen info";
     command<FBIOPUT_VSCREENINFO, void*> put_vinfo{&old_vinfo};
+    fd.io_control(put_vinfo);
+}
+
+void fb::scoped_screen_info::update()
+{
+    command<FBIOPUT_VSCREENINFO, void*> put_vinfo{&vinfo};
+    vinfo.activate = FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
     fd.io_control(put_vinfo);
 }
 
