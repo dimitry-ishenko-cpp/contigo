@@ -5,6 +5,7 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(asio REQUIRED IMPORTED_TARGET asio)
 
 add_library(core INTERFACE
+    color.hpp
     error.hpp
     io.hpp
     logging.hpp
