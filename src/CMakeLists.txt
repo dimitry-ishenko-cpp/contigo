@@ -12,11 +12,12 @@ add_library(core INTERFACE
 )
 target_include_directories(core INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_subdirectory(screen)
 add_subdirectory(term)
 
 add_executable(contigo
     main.cpp
 )
-target_link_libraries(contigo PRIVATE core pgm::args PkgConfig::asio term)
+target_link_libraries(contigo PRIVATE core pgm::args PkgConfig::asio screen term)
 
 install(TARGETS contigo DESTINATION ${CMAKE_INSTALL_BINDIR})
