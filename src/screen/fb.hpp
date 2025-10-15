@@ -48,7 +48,7 @@ private:
 
     struct scoped_mmap_ptr
     {
-        xrgb32* data;
+        color* data;
         std::size_t size;
         std::size_t stride;
 

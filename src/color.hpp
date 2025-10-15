@@ -12,18 +12,25 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma pack(push, 1)
 
-struct xrgb32
+
+struct color
 {
+    using depth = std::uint8_t;
+
     union
     {
+        struct { depth b, g, r; };
         std::uint32_t c;
-        struct { std::uint8_t b, g, r; };
     };
 
-    constexpr xrgb32() = default;
-    constexpr xrgb32(std::uint8_t r, std::uint8_t g, std::uint8_t b) : b{b}, g{g}, r{r} { }
+    constexpr color() = default;
+    constexpr color(depth r, depth g, depth b) : b{b}, g{g}, r{r} { }
 };
 
 #pragma pack(pop)
 
-using color = xrgb32;
+constexpr color black{  0,   0,   0};
+constexpr color red  {255,   0,   0};
+constexpr color green{  0, 255,   0};
+constexpr color blue {  0,   0, 255};
+constexpr color white{255, 255, 255};
