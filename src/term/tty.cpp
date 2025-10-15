@@ -151,6 +151,7 @@ void tty::sched_signal_callback()
             switch (signal)
             {
             case release:
+                info() << "Releasing tty";
                 if (release_cb_) release_cb_();
 
                 rel.val = 1;
@@ -158,6 +159,7 @@ void tty::sched_signal_callback()
                 break;
 
             case acquire:
+                info() << "Acquiring tty";
                 rel.val = VT_ACKACQ;
                 fd_.io_control(rel);
 
