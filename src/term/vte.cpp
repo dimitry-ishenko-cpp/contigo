@@ -113,8 +113,8 @@ static int scroll_clear(void* ctx)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-vte::vte(vte::size size) :
-    vterm_{vterm_new(size.rows, size.cols), &vterm_free},
+vte::vte(size size) :
+    vterm_{vterm_new(size.h, size.w), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)}
 {
     vterm_set_utf8(&*vterm_, true);

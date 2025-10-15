@@ -7,6 +7,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "types.hpp"
+
 #include <deque>
 #include <functional>
 #include <memory>
@@ -22,7 +24,6 @@ class vte
 {
 public:
     ////////////////////
-    struct size { unsigned rows, cols; };
     struct cell { };
 
     explicit vte(size);

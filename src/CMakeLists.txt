@@ -9,6 +9,7 @@ add_library(core INTERFACE
     error.hpp
     io.hpp
     logging.hpp
+    types.hpp
 )
 target_include_directories(core INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
