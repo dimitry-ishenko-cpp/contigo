@@ -10,7 +10,7 @@
 #include "logging.hpp"
 #include "tty.hpp"
 
-#include <asio.hpp>
+#include <asio/buffer.hpp>
 #include <string>
 
 #include <linux/kd.h>
