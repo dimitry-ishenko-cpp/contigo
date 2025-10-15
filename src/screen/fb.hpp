@@ -20,14 +20,11 @@ class fb
 public:
     ////////////////////
     using num = unsigned;
-    struct size { unsigned x, y; };
 
     fb(const asio::any_io_executor& ex, fb::num);
 
-    constexpr auto res() const noexcept { return size{info_.vinfo.xres, info_.vinfo.yres}; }
     constexpr auto dpi() const noexcept { return info_.dpi; }
 
-    ////////////////////
     void present() { info_.update(); }
 
 private:
