@@ -6,6 +6,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #include "logging.hpp"
+#include "screen.hpp"
 #include "term.hpp"
 
 #include <asio.hpp>
@@ -17,7 +18,8 @@
 #include <string>
 #include <string_view>
 
-std::optional<unsigned> get_vt(const pgm::args&);
+std::optional<tty::num> get_vt(const pgm::args&);
+std::optional<fb::num> get_fb(const pgm::args&);
 
 void show_usage(const pgm::args&, std::string_view name);
 void show_version(std::string_view name);
@@ -31,10 +33,16 @@ try
 
     term_options term_options;
 
+    constexpr fb::num def_fb = 0;
+    screen_options screen_options;
+
     pgm::args args
     {
         { "-t", "--vt", "/dev/ttyN|ttyN|N", "Virtual terminal to use. If omitted, use the current one." },
         { "-c", "--activate",               "Activate given terminal before starting."},
+
+        { "-b", "--fb", "/dev/fbN|fbN|N",   "Framebuffer to use. Default: fb" + std::to_string(def_fb) },
+        { "-p", "--dpi", "N",               "Override DPI value reported by the screen." },
 
         { "-v", "--version",                "Print version number and exit" },
         { "-h", "--help",                   "Show this help" },
@@ -71,7 +79,7 @@ try
         });
 
         ////////////////////
-        auto num = get_vt(args).value_or(term::active(ex));
+        auto tty = get_vt(args).value_or(term::active(ex));
         term_options.activate = !!args["--activate"];
 
         term_options.args = args["login"].values();
@@ -81,13 +89,18 @@ try
             term_options.args.erase(term_options.args.begin());
         }
 
-        term term{ex, num, std::move(term_options)};
+        term term{ex, tty, std::move(term_options)};
         term.on_finished([&](auto){ io.stop(); });
 
-        term.on_release([&]{ info() << "tty" << num << " was released"; });
-        term.on_acquire([&]{ info() << "tty" << num << " was acquired"; });
+        ////////////////////
+        auto fb = get_fb(args).value_or(def_fb);
+        screen screen{ex, fb};
 
         ////////////////////
+        term.on_release([&]{ screen.disable(); });
+        term.on_acquire([&]{ screen.enable(); });
+        screen.enable();
+
         io.run();
     }
 
@@ -100,7 +113,7 @@ catch (const std::exception& e)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::optional<unsigned> get_vt(const pgm::args& args)
+std::optional<tty::num> get_vt(const pgm::args& args)
 {
     if (auto vt = args["--vt"])
     {
@@ -112,6 +125,24 @@ std::optional<unsigned> get_vt(const pgm::args& args)
 
         if (ec != std::errc{} || end != val.end()) throw std::invalid_argument{
             "Invalid terminal - " + args["--vt"].value()
+        };
+        return num;
+    }
+    else return std::nullopt;
+}
+
+std::optional<fb::num> get_fb(const pgm::args& args)
+{
+    if (auto vt = args["--fb"])
+    {
+        std::string_view val = vt.value();
+        auto off = val.starts_with("/dev/fb") ? 7 : val.starts_with("fb") ? 2 : 0;
+
+        unsigned num;
+        auto [end, ec] = std::from_chars(val.begin() + off, val.end(), num);
+
+        if (ec != std::errc{} || end != val.end()) throw std::invalid_argument{
+            "Invalid framebuffer - " + args["--fb"].value()
         };
         return num;
     }

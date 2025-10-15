@@ -6,6 +6,8 @@ pkg_search_module(asio REQUIRED IMPORTED_TARGET asio)
 add_library(screen STATIC
     fb.cpp
     fb.hpp
+    screen.cpp
+    screen.hpp
 )
 target_include_directories(screen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(screen PUBLIC core PkgConfig::asio)
