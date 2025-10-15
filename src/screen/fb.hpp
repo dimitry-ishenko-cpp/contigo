@@ -50,9 +50,8 @@ private:
     {
         color* data;
         std::size_t size;
-        std::size_t stride;
 
-        scoped_mmap_ptr(asio::posix::stream_descriptor&, std::size_t size_bytes, std::size_t stride_bytes);
+        scoped_mmap_ptr(asio::posix::stream_descriptor&, std::size_t);
         ~scoped_mmap_ptr();
     };
 

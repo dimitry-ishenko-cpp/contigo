@@ -25,7 +25,7 @@ auto fbdev_path(fb::num num) { return "/dev/fb" + std::to_string(num); }
 
 ////////////////////////////////////////////////////////////////////////////////
 fb::fb(const asio::any_io_executor& ex, fb::num num) :
-    fd_{open(ex, fbdev_path(num))}, info_{fd_}, fb_{fd_, info_.finfo.smem_len, info_.finfo.line_length}
+    fd_{open(ex, fbdev_path(num))}, info_{fd_}, fb_{fd_, info_.finfo.smem_len}
 { }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -87,11 +87,10 @@ void fb::scoped_screen_info::update()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-fb::scoped_mmap_ptr::scoped_mmap_ptr(asio::posix::stream_descriptor& fd, std::size_t size_bytes, std::size_t stride_bytes) :
-    size{size_bytes / sizeof(*data)}, stride{stride_bytes / sizeof(*data)}
+fb::scoped_mmap_ptr::scoped_mmap_ptr(asio::posix::stream_descriptor& fd, std::size_t size) : size{size}
 {
     info() << "Mapping screen to memory";
-    data = static_cast<decltype(data)>( mmap(nullptr, size_bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd.native_handle(), 0) );
+    data = static_cast<decltype(data)>( mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd.native_handle(), 0) );
     if (data == MAP_FAILED) throw posix_error{"mmap"};
 }
 
