@@ -9,7 +9,8 @@
 #include "logging.hpp"
 #include "pty.hpp"
 
-#include <asio.hpp>
+#include <asio/buffer.hpp>
+#include <asio/write.hpp>
 #include <thread>
 
 #include <pty.h> // forkpty
