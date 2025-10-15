@@ -11,6 +11,8 @@
 
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
+#include <functional>
+#include <thread>
 
 #include <linux/fb.h>
 
@@ -24,6 +26,9 @@ public:
     fb(const asio::any_io_executor& ex, fb::num);
 
     constexpr auto dpi() const noexcept { return info_.dpi; }
+
+    using frame_sync_callback = std::function<void()>;
+    void on_frame_sync(frame_sync_callback cb) { sync_cb_ = std::move(cb); }
 
     void present() { info_.update(); }
 
@@ -56,4 +61,7 @@ private:
     asio::posix::stream_descriptor fd_;
     scoped_screen_info info_;
     scoped_mmap_ptr fb_;
+
+    std::jthread thread_;
+    frame_sync_callback sync_cb_;
 };

@@ -9,6 +9,7 @@
 #include "io.hpp"
 #include "logging.hpp"
 
+#include <asio/post.hpp>
 #include <string>
 #include <sstream>
 #include <stdexcept>
@@ -26,7 +27,21 @@ auto fbdev_path(fb::num num) { return "/dev/fb" + std::to_string(num); }
 ////////////////////////////////////////////////////////////////////////////////
 fb::fb(const asio::any_io_executor& ex, fb::num num) :
     fd_{open(ex, fbdev_path(num))}, info_{fd_}, fb_{fd_, info_.finfo.smem_len}
-{ }
+{
+    thread_ = std::jthread{[&](std::stop_token st)
+    {
+        while (!st.stop_requested())
+        {
+            command<FBIO_WAITFORVSYNC, int> wait;
+            std::error_code ec;
+
+            fd_.io_control(wait, ec);
+            if (ec) break;
+
+            if (sync_cb_) asio::post(fd_.get_executor(), sync_cb_);
+        }
+    }};
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 fb::scoped_screen_info::scoped_screen_info(asio::posix::stream_descriptor& fb) : fd{fb}
