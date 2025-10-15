@@ -51,7 +51,7 @@ tty::num tty::active(const asio::any_io_executor& ex)
 
 ////////////////////////////////////////////////////////////////////////////////
 tty::scoped_active_vt::scoped_active_vt(asio::posix::stream_descriptor& vt, tty::num num, bool activate) :
-    fd{vt}, old_num{tty::active(vt.get_executor())}
+    fd{vt}, old_num{tty::active(vt.get_executor())}, num{num}
 {
     if (num != old_num && activate)
     {
@@ -62,7 +62,11 @@ tty::scoped_active_vt::scoped_active_vt(asio::posix::stream_descriptor& vt, tty:
 
 tty::scoped_active_vt::~scoped_active_vt()
 {
-    if (active) make_active(old_num);
+    if (active)
+    {
+        auto new_num = tty::active(fd.get_executor());
+        if (new_num == num) make_active(old_num);
+    }
 }
 
 void tty::scoped_active_vt::make_active(tty::num num)

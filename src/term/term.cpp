@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "term.hpp"
 
-term::term(const asio::any_io_executor& ex, tty::num num, const term_options options) :
+term::term(const asio::any_io_executor& ex, tty::num num, term_options options) :
     tty_{ options.activate ? tty{ex, num, tty::activate} : tty{ex, num} },
     pty_{ ex, std::move(options.login), std::move(options.args) },
     vte_{ vte::size{24, 80} }

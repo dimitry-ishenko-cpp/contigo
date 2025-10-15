@@ -49,7 +49,7 @@ private:
     struct scoped_active_vt // VT_ACTIVATE
     {
         asio::posix::stream_descriptor& fd;
-        tty::num old_num;
+        tty::num old_num, num;
         bool active = false;
 
         scoped_active_vt(asio::posix::stream_descriptor&, tty::num, bool activate);
