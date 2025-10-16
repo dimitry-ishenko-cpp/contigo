@@ -44,7 +44,7 @@ void term::draw()
 {
     if (enabled_)
     {
-        fb_->present();
+        fb_->update();
 
         // TODO: copy shadow to fb
     }

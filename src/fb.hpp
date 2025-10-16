@@ -33,7 +33,7 @@ public:
     using frame_sync_callback = std::function<void()>;
     void on_frame_sync(frame_sync_callback cb) { sync_cb_ = std::move(cb); }
 
-    void present() { info_.update(); }
+    void update() { info_.update(); }
 
 private:
     ////////////////////
