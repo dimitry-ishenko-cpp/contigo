@@ -6,7 +6,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #include "logging.hpp"
-#include "screen.hpp"
 #include "term.hpp"
 
 #include <asio.hpp>
@@ -30,23 +29,20 @@ try
     namespace fs = std::filesystem;
     auto name = fs::path{argv[0]}.filename().string();
 
-    term_options term_options;
-
-    constexpr fb::num def_fb = 0;
-    screen_options screen_options;
+    term_options options;
 
     pgm::args args
     {
         { "-t", "--vt", "/dev/ttyN|ttyN|N", "Virtual terminal to use. If omitted, use the current one." },
         { "-c", "--activate",               "Activate given terminal before starting."},
 
-        { "-b", "--fb", "/dev/fbN|fbN|N",   "Framebuffer to use. Default: fb" + std::to_string(def_fb) },
+        { "-b", "--fb", "/dev/fbN|fbN|N",   "Framebuffer to use. Default: fb" + std::to_string(options.fb_num) },
         { "-p", "--dpi", "N",               "Override DPI value reported by the screen." },
 
         { "-v", "--version",                "Print version number and exit" },
         { "-h", "--help",                   "Show this help" },
 
-        { "login", pgm::mul | pgm::opt,     "Login program to launch. Default: " + term_options.login },
+        { "login", pgm::mul | pgm::opt,     "Login program to launch. Default: " + options.login },
     };
 
     std::exception_ptr ep;
@@ -78,27 +74,25 @@ try
         });
 
         ////////////////////
-        term_options.tty_num = get_num(args["--vt"], tty::path, tty::name, "terminal").value_or(term::active(ex));
-        term_options.tty_activate = !!args["--activate"];
+        auto tty = get_num(args["--vt"], tty::path, tty::name, "terminal path or number");
+        options.tty_num = tty.value_or(term::active(ex));
+        options.tty_activate = !!args["--activate"];
 
-        term_options.args = args["login"].values();
-        if (term_options.args.size())
+        options.args = args["login"].values();
+        if (options.args.size())
         {
-            term_options.login = std::move(term_options.args.front());
-            term_options.args.erase(term_options.args.begin());
+            options.login = std::move(options.args.front());
+            options.args.erase(options.args.begin());
         }
 
-        term term{ex, std::move(term_options)};
+        auto fb = get_num(args["--fb"], fb::path, fb::name, "framebuffer path or number");
+        if (fb) options.fb_num = *fb;
+
+        auto dpi = get_num(args["--dpi"], {}, {}, "DPI value");
+        if (dpi) options.dpi = *dpi;
+
+        term term{ex, std::move(options)};
         term.on_finished([&](auto){ io.stop(); });
-
-        ////////////////////
-        auto fb = get_num(args["--fb"], fb::path, fb::name, "framebuffer").value_or(def_fb);
-        screen screen{ex, fb};
-
-        ////////////////////
-        term.on_release([&]{ screen.disable(); });
-        term.on_acquire([&]{ screen.enable(); });
-        screen.enable();
 
         io.run();
     }

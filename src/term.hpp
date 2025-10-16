@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "fb.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
 #include "vte.hpp"
@@ -22,6 +23,9 @@ struct term_options
     tty::num tty_num;
     bool tty_activate = false;
 
+    fb::num fb_num = 0;
+    std::optional<unsigned> dpi;
+
     std::string login = "/bin/login";
     std::vector<std::string> args;
 };
@@ -35,12 +39,6 @@ public:
     using finished_callback = pty::child_exit_callback;
     void on_finished(finished_callback cb) { pty_->on_child_exit(std::move(cb)); }
 
-    void on_acquire(tty::acquire_callback cb) { tty_->on_acquire(std::move(cb)); }
-    void on_release(tty::release_callback cb) { tty_->on_release(std::move(cb)); }
-
-    void on_row_changed(vte::row_changed_callback cb) { vte_->on_row_changed(std::move(cb)); }
-    void on_rows_moved(vte::rows_moved_callback cb) { vte_->on_rows_moved(std::move(cb)); }
-
     void resize(const size& size) { vte_->resize(size); }
 
     ////////////////////
@@ -49,6 +47,17 @@ public:
 private:
     ////////////////////
     std::unique_ptr<tty> tty_;
+    std::unique_ptr<fb >  fb_;
     std::unique_ptr<vte> vte_;
     std::unique_ptr<pty> pty_;
+
+    ////////////////////
+    bool enabled_ = true;
+    void enable();
+    void disable();
+
+    ////////////////////
+    unsigned dpi_;
+
+    void draw();
 };
