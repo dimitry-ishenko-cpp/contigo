@@ -58,6 +58,13 @@ static int bell(void* ctx)
     return true;
 }
 
+static int resize(int rows, int cols, void* ctx)
+{
+    auto vt = static_cast<vte*>(ctx);
+    // TODO: resize scrollback
+    return true;
+}
+
 static int scroll_push_line(int cols, const VTermScreenCell* cells, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
@@ -103,6 +110,7 @@ vte::vte(const size& size) :
         .movecursor  = dispatch::move_cursor,
         .settermprop = dispatch::set_prop,
         .bell        = dispatch::bell,
+        .resize      = dispatch::resize,
         .sb_pushline = dispatch::scroll_push_line,
         .sb_popline  = dispatch::scroll_pop_line,
         .sb_clear    = dispatch::scroll_clear,
