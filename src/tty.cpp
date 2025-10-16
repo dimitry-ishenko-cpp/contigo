@@ -6,7 +6,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #include "error.hpp"
-#include "io.hpp"
+#include "file.hpp"
 #include "logging.hpp"
 #include "tty.hpp"
 

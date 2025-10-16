@@ -10,7 +10,7 @@ add_subdirectory(screen)
 add_executable(contigo
     color.hpp
     error.hpp
-    io.hpp
+    file.hpp
     logging.hpp
     pty.cpp
     pty.hpp
