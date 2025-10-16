@@ -45,7 +45,7 @@ public:
     using row_changed_callback = std::function<void(int, std::span<const cell>)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
-    using rows_moved_callback = std::function<void(int, std::size_t, int distance)>;
+    using rows_moved_callback = std::function<void(int row, unsigned rows, int distance)>;
     void on_rows_moved(rows_moved_callback cb) { move_cb_ = std::move(cb); }
 
     ////////////////////
