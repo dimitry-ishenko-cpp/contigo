@@ -21,8 +21,11 @@ class fb
 {
 public:
     ////////////////////
+    static constexpr auto name = "fb";
+    static constexpr auto path = "/dev/fb";
     using num = unsigned;
 
+    ////////////////////
     fb(const asio::any_io_executor& ex, fb::num);
 
     constexpr auto dpi() const noexcept { return info_.dpi; }

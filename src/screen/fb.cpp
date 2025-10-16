@@ -18,16 +18,9 @@
 #include <linux/fb.h>
 #include <sys/mman.h>
 
-namespace
-{
-
-auto fbdev_path(fb::num num) { return "/dev/fb" + std::to_string(num); }
-
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 fb::fb(const asio::any_io_executor& ex, fb::num num) :
-    fd_{open(ex, fbdev_path(num))}, info_{fd_}, fb_{fd_, info_.finfo.smem_len}
+    fd_{open(ex, fb::path + std::to_string(num))}, info_{fd_}, fb_{fd_, info_.finfo.smem_len}
 {
     thread_ = std::jthread{[&](std::stop_token st)
     {
