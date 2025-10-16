@@ -18,8 +18,7 @@
 #include <string>
 #include <string_view>
 
-std::optional<tty::num> get_vt(const pgm::args&);
-std::optional<fb::num> get_fb(const pgm::args&);
+std::optional<unsigned> get_num(const pgm::argval&, std::string_view prefix1, std::string_view prefix2, const std::string& name);
 
 void show_usage(const pgm::args&, std::string_view name);
 void show_version(std::string_view name);
@@ -79,7 +78,7 @@ try
         });
 
         ////////////////////
-        auto tty = get_vt(args).value_or(term::active(ex));
+        auto tty = get_num(args["--vt"], tty::path, tty::name, "terminal").value_or(term::active(ex));
         term_options.activate = !!args["--activate"];
 
         term_options.args = args["login"].values();
@@ -93,7 +92,7 @@ try
         term.on_finished([&](auto){ io.stop(); });
 
         ////////////////////
-        auto fb = get_fb(args).value_or(def_fb);
+        auto fb = get_num(args["--fb"], fb::path, fb::name, "framebuffer").value_or(def_fb);
         screen screen{ex, fb};
 
         ////////////////////
@@ -116,36 +115,21 @@ catch (const std::exception& e)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::optional<tty::num> get_vt(const pgm::args& args)
+std::optional<unsigned> get_num(const pgm::argval& argval, std::string_view prefix1, std::string_view prefix2, const std::string& name)
 {
-    if (auto vt = args["--vt"])
+    if (argval)
     {
-        std::string_view val = vt.value();
-        auto off = val.starts_with("/dev/tty") ? 8 : val.starts_with("tty") ? 3 : 0;
+        std::string_view val = argval.value();
+
+        auto off = 0;
+        if (val.starts_with(prefix1)) off = prefix1.size();
+        else if (val.starts_with(prefix2)) off = prefix2.size();
 
         unsigned num;
         auto [end, ec] = std::from_chars(val.begin() + off, val.end(), num);
 
         if (ec != std::errc{} || end != val.end()) throw std::invalid_argument{
-            "Invalid terminal - " + args["--vt"].value()
-        };
-        return num;
-    }
-    else return std::nullopt;
-}
-
-std::optional<fb::num> get_fb(const pgm::args& args)
-{
-    if (auto vt = args["--fb"])
-    {
-        std::string_view val = vt.value();
-        auto off = val.starts_with("/dev/fb") ? 7 : val.starts_with("fb") ? 2 : 0;
-
-        unsigned num;
-        auto [end, ec] = std::from_chars(val.begin() + off, val.end(), num);
-
-        if (ec != std::errc{} || end != val.end()) throw std::invalid_argument{
-            "Invalid framebuffer - " + args["--fb"].value()
+            "Invalid " + name + " - " + val.data()
         };
         return num;
     }
