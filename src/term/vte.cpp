@@ -23,23 +23,9 @@ static int damage(VTermRect rect, void* ctx)
     auto vt = static_cast<vte*>(ctx);
     if (vt->row_cb_)
     {
-        VTermPos pos;
-        for (pos.row = rect.start_row; pos.row < rect.end_row; ++pos.row)
-        {
-            std::vector<cell> cells;
-            for (pos.col = rect.start_col; pos.col < rect.end_col; ++pos.col)
-            {
-                VTermScreenCell vc;
-                if (vterm_screen_get_cell(vt->screen_, pos, &vc))
-                {
-                    vterm_state_convert_color_to_rgb(vt->state_, &vc.fg);
-                    vterm_state_convert_color_to_rgb(vt->state_, &vc.bg);
-
-                    // TODO: fill cells
-                }
-            }
-            vt->row_cb_(pos.row, cells);
-        }
+        int rows, cols;
+        vterm_get_size(&*vt->vterm_, &rows, &cols);
+        for (auto row = rect.start_row; row < rect.end_row; ++row) vt->change_row(row, cols);
     }
     return true;
 }
@@ -113,7 +99,7 @@ static int scroll_clear(void* ctx)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-vte::vte(size size) :
+vte::vte(const size& size) :
     vterm_{vterm_new(size.h, size.w), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)}
 {
@@ -143,3 +129,21 @@ void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.d
 void vte::flush() { vterm_screen_flush_damage(screen_); }
 
 void vte::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }
+
+void vte::change_row(int row, unsigned cols)
+{
+    std::vector<cell> cells{cols};
+
+    auto cell = cells.begin();
+    for (VTermPos pos{row, 0}; pos.col < cols; ++pos.col, ++cell)
+    {
+        VTermScreenCell vc;
+        if (vterm_screen_get_cell(screen_, pos, &vc))
+        {
+            vterm_state_convert_color_to_rgb(state_, &vc.fg);
+            vterm_state_convert_color_to_rgb(state_, &vc.bg);
+        }
+    }
+
+    row_cb_(row, cells);
+}

@@ -26,7 +26,7 @@ public:
     ////////////////////
     struct cell { };
 
-    explicit vte(size);
+    explicit vte(const size&);
     ~vte();
 
     using row_changed_callback = std::function<void(int, std::span<const cell>)>;
@@ -53,6 +53,8 @@ private:
 
     row_changed_callback row_cb_;
     rows_moved_callback move_cb_;
+
+    void change_row(int row, unsigned cols);
 
     ////////////////////
     struct dispatch;
