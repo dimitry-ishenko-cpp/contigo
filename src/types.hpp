@@ -10,3 +10,5 @@
 ////////////////////////////////////////////////////////////////////////////////
 struct pos  { int x, y; };
 struct size { unsigned w, h; };
+
+enum class under { none, one, two, error };
