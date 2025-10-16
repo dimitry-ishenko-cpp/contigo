@@ -5,6 +5,7 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "command.hpp"
 #include "error.hpp"
 #include "file.hpp"
 #include "logging.hpp"
