@@ -48,6 +48,6 @@ public:
 private:
     ////////////////////
     std::unique_ptr<tty> tty_;
-    std::unique_ptr<pty> pty_;
     std::unique_ptr<vte> vte_;
+    std::unique_ptr<pty> pty_;
 };
