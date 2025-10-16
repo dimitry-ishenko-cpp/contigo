@@ -96,8 +96,6 @@ vte::vte(const size& size) :
     vterm_{vterm_new(size.h, size.w), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)}
 {
-    vterm_set_utf8(&*vterm_, true);
-
     static const VTermScreenCallbacks callbacks
     {
         .damage      = dispatch::damage,
@@ -109,9 +107,15 @@ vte::vte(const size& size) :
         .sb_popline  = dispatch::scroll_pop_line,
         .sb_clear    = dispatch::scroll_clear,
     };
-    vterm_screen_set_callbacks(screen_, &callbacks, this);
 
+    vterm_set_utf8(&*vterm_, true);
+
+    vterm_screen_set_callbacks(screen_, &callbacks, this);
     vterm_screen_set_damage_merge(screen_, VTERM_DAMAGE_ROW);
+
+    vterm_screen_enable_reflow(screen_, true);
+    vterm_screen_enable_altscreen(screen_, true);
+
     vterm_screen_reset(screen_, true);
 }
 
