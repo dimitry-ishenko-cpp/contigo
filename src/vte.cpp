@@ -139,8 +139,6 @@ void vte::redraw()
     vterm_set_size(&*vterm_, rows, cols);
 }
 
-void vte::resize(const size& size) { vterm_set_size(&*vterm_, size.h, size.w); }
-
 void vte::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }
 
 void vte::change_row(int row, unsigned cols)

@@ -53,7 +53,6 @@ public:
     void commit();
 
     void redraw();
-    void resize(const size&);
 
     void scroll_size(std::size_t);
     constexpr auto scroll_size() const noexcept { return scroll_size_; }

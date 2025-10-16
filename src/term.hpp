@@ -39,8 +39,6 @@ public:
     using finished_callback = pty::child_exit_callback;
     void on_finished(finished_callback cb) { pty_->on_child_exit(std::move(cb)); }
 
-    void resize(const size& size) { vte_->resize(size); }
-
     ////////////////////
     static tty::num active(const asio::any_io_executor& ex) { return tty::active(ex); }
 
