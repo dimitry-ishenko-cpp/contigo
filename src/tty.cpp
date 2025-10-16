@@ -21,8 +21,6 @@
 namespace
 {
 
-auto tty_path(tty::num num) { return "/dev/tty" + std::to_string(num); }
-
 enum signals
 {
     release = SIGUSR1,
@@ -33,7 +31,7 @@ enum signals
 
 ////////////////////////////////////////////////////////////////////////////////
 tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
-    fd_{open(ex, tty_path(num))}, sigs_{ex, release, acquire},
+    fd_{open(ex, tty::path + std::to_string(num))}, sigs_{ex, release, acquire},
     active_{fd_, num, activate}, attrs_{fd_}, vt_mode_{fd_}, kd_mode_{fd_}
 {
     sched_signal_callback();
@@ -42,7 +40,7 @@ tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
 
 tty::num tty::active(const asio::any_io_executor& ex)
 {
-    auto tty0 = open(ex, tty_path(0));
+    auto tty0 = open(ex, tty::path + std::to_string(0));
 
     command<VT_GETSTATE, vt_stat> get_state;
     tty0.io_control(get_state);

@@ -21,11 +21,14 @@ class tty
 {
 public:
     ////////////////////
+    static constexpr auto name = "tty";
+    static constexpr auto path = "/dev/tty";
     using num = unsigned;
 
     struct activate_t { constexpr activate_t() = default; };
     static constexpr activate_t activate{};
 
+    ////////////////////
     tty(const asio::any_io_executor& ex, tty::num num) : tty{ex, num, false} { }
     tty(const asio::any_io_executor& ex, tty::num num, activate_t) : tty{ex, num, true} { }
 
