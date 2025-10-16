@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "color.hpp"
 #include "types.hpp"
 
 #include <deque>
@@ -24,8 +25,20 @@ class vte
 {
 public:
     ////////////////////
-    struct cell { };
+    struct cell
+    {
+        char32_t ch[6];
+        unsigned width;
 
+        bool bold;
+        bool italic;
+        bool strike;
+        under underline;
+
+        color fg, bg;
+    };
+
+    ////////////////////
     explicit vte(const size&);
     ~vte();
 
