@@ -132,12 +132,16 @@ vte::~vte() { }
 void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void vte::commit() { vterm_screen_flush_damage(screen_); }
 
-void vte::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }
-
-void vte::resize(const size& size)
+void vte::redraw()
 {
-    vterm_set_size(&*vterm_, size.h, size.w);
+    int rows, cols;
+    vterm_get_size(&*vterm_, &rows, &cols);
+    vterm_set_size(&*vterm_, rows, cols);
 }
+
+void vte::resize(const size& size) { vterm_set_size(&*vterm_, size.h, size.w); }
+
+void vte::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }
 
 void vte::change_row(int row, unsigned cols)
 {

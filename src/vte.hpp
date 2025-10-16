@@ -52,6 +52,7 @@ public:
     void write(std::span<const char>);
     void commit();
 
+    void redraw();
     void resize(const size&);
 
     void scroll_size(std::size_t);
