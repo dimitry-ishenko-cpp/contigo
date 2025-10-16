@@ -101,6 +101,9 @@ try
         term.on_acquire([&]{ screen.enable(); });
         screen.enable();
 
+        term.on_row_changed([](int row, auto cells){ info() << "row " << row << " size " << cells.size(); });
+        term.resize(size{120, 40});
+
         io.run();
     }
 

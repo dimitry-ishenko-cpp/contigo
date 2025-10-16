@@ -3,22 +3,26 @@ project(src)
 find_package(pgm_args REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(asio REQUIRED IMPORTED_TARGET asio)
+pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 
-add_library(core INTERFACE
+add_subdirectory(screen)
+
+add_executable(contigo
     color.hpp
     error.hpp
     io.hpp
     logging.hpp
+    pty.cpp
+    pty.hpp
+    term.cpp
+    term.hpp
+    tty.cpp
+    tty.hpp
     types.hpp
-)
-target_include_directories(core INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-
-add_subdirectory(screen)
-add_subdirectory(term)
-
-add_executable(contigo
+    vte.cpp
+    vte.hpp
     main.cpp
 )
-target_link_libraries(contigo PRIVATE core pgm::args PkgConfig::asio screen term)
+target_link_libraries(contigo PRIVATE pgm::args PkgConfig::asio PkgConfig::vterm screen)
 
 install(TARGETS contigo DESTINATION ${CMAKE_INSTALL_BINDIR})

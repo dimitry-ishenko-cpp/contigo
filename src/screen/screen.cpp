@@ -5,7 +5,7 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
-#include "logging.hpp"
+#include "../logging.hpp"
 #include "screen.hpp"
 
 screen::screen(const asio::any_io_executor& ex, fb::num num, screen_options options) :

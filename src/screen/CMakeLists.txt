@@ -10,4 +10,4 @@ add_library(screen STATIC
     screen.hpp
 )
 target_include_directories(screen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(screen PUBLIC core PkgConfig::asio)
+target_link_libraries(screen PUBLIC PkgConfig::asio)
