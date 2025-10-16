@@ -78,8 +78,8 @@ try
         });
 
         ////////////////////
-        auto tty = get_num(args["--vt"], tty::path, tty::name, "terminal").value_or(term::active(ex));
-        term_options.activate = !!args["--activate"];
+        term_options.tty_num = get_num(args["--vt"], tty::path, tty::name, "terminal").value_or(term::active(ex));
+        term_options.tty_activate = !!args["--activate"];
 
         term_options.args = args["login"].values();
         if (term_options.args.size())
@@ -88,7 +88,7 @@ try
             term_options.args.erase(term_options.args.begin());
         }
 
-        term term{ex, tty, std::move(term_options)};
+        term term{ex, std::move(term_options)};
         term.on_finished([&](auto){ io.stop(); });
 
         ////////////////////

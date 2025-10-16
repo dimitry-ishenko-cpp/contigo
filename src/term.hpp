@@ -19,7 +19,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 struct term_options
 {
-    bool activate = false;
+    tty::num tty_num;
+    bool tty_activate = false;
 
     std::string login = "/bin/login";
     std::vector<std::string> args;
@@ -29,7 +30,7 @@ class term
 {
 public:
     ////////////////////
-    term(const asio::any_io_executor&, tty::num, term_options = {});
+    term(const asio::any_io_executor&, term_options);
 
     using finished_callback = pty::child_exit_callback;
     void on_finished(finished_callback cb) { pty_->on_child_exit(std::move(cb)); }

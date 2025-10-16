@@ -7,9 +7,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "term.hpp"
 
-term::term(const asio::any_io_executor& ex, tty::num num, term_options options)
+term::term(const asio::any_io_executor& ex, term_options options)
 {
-    tty_ = std::make_unique<tty>(ex, num, options.activate);
+    tty_ = std::make_unique<tty>(ex, options.tty_num, options.tty_activate);
     vte_ = std::make_unique<vte>(size{80, 24});
     pty_ = std::make_unique<pty>(ex, std::move(options.login), std::move(options.args));
 
