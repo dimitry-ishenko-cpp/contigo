@@ -7,13 +7,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "command.hpp"
 #include "error.hpp"
-#include "file.hpp"
 #include "logging.hpp"
 #include "tty.hpp"
 
 #include <asio/buffer.hpp>
 #include <string>
 
+#include <fcntl.h> // open
 #include <linux/kd.h>
 #include <linux/vt.h>
 
@@ -27,12 +27,23 @@ enum signals
     acquire = SIGUSR2,
 };
 
+inline auto open_device(const asio::any_io_executor& ex, tty::num num)
+{
+    auto path = tty::path + std::to_string(num);
+
+    auto fd = ::open(path.data(), O_RDWR);
+    if (fd < 0) throw posix_error{"open"};
+
+    return asio::posix::stream_descriptor{ex, fd};
+}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
-    fd_{open(ex, tty::path + std::to_string(num))}, sigs_{ex, release, acquire},
-    active_{fd_, num, activate}, attrs_{fd_}, vt_mode_{fd_}, kd_mode_{fd_}
+tty::tty(const asio::any_io_executor &ex, tty::num num, bool activate) :
+    fd_{open_device(ex, num)},
+    active_{fd_, num, activate}, attrs_{fd_}, vt_mode_{fd_}, kd_mode_{fd_},
+    sigs_{ex, release, acquire}
 {
     sched_signal_callback();
     sched_async_read();
@@ -40,7 +51,7 @@ tty::tty(const asio::any_io_executor& ex, tty::num num, bool activate) :
 
 tty::num tty::active(const asio::any_io_executor& ex)
 {
-    auto tty0 = open(ex, tty::path + std::to_string(0));
+    auto tty0 = open_device(ex, 0);
 
     command<VT_GETSTATE, vt_stat> get_state;
     tty0.io_control(get_state);

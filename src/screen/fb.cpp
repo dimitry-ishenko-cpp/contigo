@@ -5,9 +5,9 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "../error.hpp"
 #include "fb.hpp"
 #include "../command.hpp"
-#include "../file.hpp"
 #include "../logging.hpp"
 
 #include <asio/post.hpp>
@@ -15,12 +15,29 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <fcntl.h> // open
 #include <linux/fb.h>
 #include <sys/mman.h>
 
 ////////////////////////////////////////////////////////////////////////////////
+namespace
+{
+
+inline auto open_device(const asio::any_io_executor& ex, fb::num num)
+{
+    auto path = fb::path + std::to_string(num);
+
+    auto fd = ::open(path.data(), O_RDWR);
+    if (fd < 0) throw posix_error{"open"};
+
+    return asio::posix::stream_descriptor{ex, fd};
+}
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
 fb::fb(const asio::any_io_executor& ex, fb::num num) :
-    fd_{open(ex, fb::path + std::to_string(num))}, info_{fd_}, fb_{fd_, info_.finfo.smem_len}
+    fd_{open_device(ex, num)}, info_{fd_}, fb_{fd_, info_.finfo.smem_len}
 {
     thread_ = std::jthread{[&](std::stop_token st)
     {
