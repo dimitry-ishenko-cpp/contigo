@@ -50,7 +50,7 @@ public:
 
     ////////////////////
     void write(std::span<const char>);
-    void flush();
+    void commit();
 
     void resize(const size&);
 

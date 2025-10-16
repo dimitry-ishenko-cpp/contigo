@@ -118,7 +118,7 @@ vte::vte(const size& size) :
 vte::~vte() { }
 
 void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
-void vte::flush() { vterm_screen_flush_damage(screen_); }
+void vte::commit() { vterm_screen_flush_damage(screen_); }
 
 void vte::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }
 
