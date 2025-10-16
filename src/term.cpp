@@ -19,6 +19,9 @@ term::term(const asio::any_io_executor& ex, term_options options)
     dpi_ = options.dpi.value_or(fb_->dpi());
 
     vte_ = std::make_unique<vte>(size{80, 24});
+    vte_->on_row_changed([&](int row, std::span<const vte::cell> cells){ draw_row(row, cells); });
+    vte_->on_rows_moved([&](int row, unsigned rows, int distance){ move_rows(row, rows, distance); });
+    vte_->redraw();
 
     pty_ = std::make_unique<pty>(ex, std::move(options.login), std::move(options.args));
 
@@ -38,6 +41,14 @@ void term::disable()
 {
     info() << "Disabling screen rendering";
     enabled_ = false;
+}
+
+void term::draw_row(int row, std::span<const vte::cell> cells)
+{
+}
+
+void term::move_rows(int row, unsigned rows, int distance)
+{
 }
 
 void term::draw()
