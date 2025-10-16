@@ -29,8 +29,7 @@ public:
     static constexpr activate_t activate{};
 
     ////////////////////
-    tty(const asio::any_io_executor& ex, tty::num num) : tty{ex, num, false} { }
-    tty(const asio::any_io_executor& ex, tty::num num, activate_t) : tty{ex, num, true} { }
+    tty(const asio::any_io_executor& ex, tty::num num, bool active);
 
     using release_callback = std::function<void()>;
     void on_release(release_callback cb) { release_cb_ = std::move(cb); }
@@ -42,12 +41,11 @@ public:
     void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
 
     ////////////////////
+    tty(const asio::any_io_executor &ex, tty::num num, bool activate, release_callback, acquire_callback, read_data_callback);
+
     static num active(const asio::any_io_executor&);
 
 private:
-    ////////////////////
-    tty(const asio::any_io_executor&, tty::num, bool activate);
-
     ////////////////////
     struct scoped_active_vt // VT_ACTIVATE
     {
