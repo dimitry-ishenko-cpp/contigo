@@ -58,13 +58,6 @@ static int bell(void* ctx)
     return true;
 }
 
-static int resize(int rows, int cols, void* ctx)
-{
-    auto vt = static_cast<vte*>(ctx);
-    // TODO
-    return true;
-}
-
 static int scroll_push_line(int cols, const VTermScreenCell* cells, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
@@ -112,7 +105,6 @@ vte::vte(const size& size) :
         .movecursor  = dispatch::move_cursor,
         .settermprop = dispatch::set_prop,
         .bell        = dispatch::bell,
-        .resize      = dispatch::resize,
         .sb_pushline = dispatch::scroll_push_line,
         .sb_popline  = dispatch::scroll_pop_line,
         .sb_clear    = dispatch::scroll_clear,
@@ -129,6 +121,11 @@ void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.d
 void vte::flush() { vterm_screen_flush_damage(screen_); }
 
 void vte::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }
+
+void vte::resize(const size& size)
+{
+    vterm_set_size(&*vterm_, size.h, size.w);
+}
 
 void vte::change_row(int row, unsigned cols)
 {

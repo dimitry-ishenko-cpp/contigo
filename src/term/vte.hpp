@@ -39,6 +39,8 @@ public:
     void write(std::span<const char>);
     void flush();
 
+    void resize(const size&);
+
     void scroll_size(std::size_t);
     constexpr auto scroll_size() const noexcept { return scroll_size_; }
 
@@ -48,13 +50,13 @@ private:
     VTermScreen* screen_;
     VTermState* state_;
 
-    std::size_t scroll_size_ = 1000;
-    std::deque<std::unique_ptr<detail::VTermScreenCell[]>> scroll_;
-
     row_changed_callback row_cb_;
     rows_moved_callback move_cb_;
 
     void change_row(int row, unsigned cols);
+
+    std::size_t scroll_size_ = 1000;
+    std::deque<std::unique_ptr<detail::VTermScreenCell[]>> scroll_;
 
     ////////////////////
     struct dispatch;

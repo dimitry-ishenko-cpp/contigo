@@ -39,6 +39,8 @@ public:
     void on_row_changed(vte::row_changed_callback cb) { vte_.on_row_changed(std::move(cb)); }
     void on_rows_moved(vte::rows_moved_callback cb) { vte_.on_rows_moved(std::move(cb)); }
 
+    void resize(const size& size) { vte_.resize(size); }
+
     ////////////////////
     static tty::num active(const asio::any_io_executor& ex) { return tty::active(ex); }
 
