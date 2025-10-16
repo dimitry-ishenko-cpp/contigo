@@ -92,7 +92,7 @@ try
         if (dpi) options.dpi = *dpi;
 
         term term{ex, std::move(options)};
-        term.on_finished([&](auto){ io.stop(); });
+        term.on_exit([&](auto){ io.stop(); });
 
         io.run();
     }
