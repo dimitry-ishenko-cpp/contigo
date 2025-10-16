@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "../color.hpp"
+#include "color.hpp"
 
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>

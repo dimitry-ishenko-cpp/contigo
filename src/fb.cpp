@@ -5,10 +5,10 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
-#include "../error.hpp"
+#include "command.hpp"
+#include "error.hpp"
 #include "fb.hpp"
-#include "../command.hpp"
-#include "../logging.hpp"
+#include "logging.hpp"
 
 #include <asio/post.hpp>
 #include <string>

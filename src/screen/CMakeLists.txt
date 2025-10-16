@@ -4,8 +4,6 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(asio REQUIRED IMPORTED_TARGET asio)
 
 add_library(screen STATIC
-    fb.cpp
-    fb.hpp
     screen.cpp
     screen.hpp
 )

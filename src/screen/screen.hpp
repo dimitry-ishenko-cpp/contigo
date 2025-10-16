@@ -11,7 +11,7 @@
 #include <asio/posix/stream_descriptor.hpp>
 #include <optional>
 
-#include "fb.hpp"
+#include "../fb.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 struct screen_options
