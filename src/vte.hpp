@@ -8,7 +8,7 @@
 #pragma once
 
 #include "cell.hpp"
-#include "types.hpp"
+#include "geom.hpp"
 
 #include <deque>
 #include <functional>

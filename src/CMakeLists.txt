@@ -10,17 +10,17 @@ add_executable(term
     color.hpp
     command.hpp
     error.hpp
+    geom.hpp
     logging.hpp
+    main.cpp
     pty.cpp
     pty.hpp
     term.cpp
     term.hpp
     tty.cpp
     tty.hpp
-    types.hpp
     vte.cpp
     vte.hpp
-    main.cpp
 )
 target_link_libraries(term PRIVATE pgm::args PkgConfig::asio PkgConfig::vterm)
 
