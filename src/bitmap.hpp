@@ -24,7 +24,7 @@ public:
     bitmap(struct dim dim, unsigned stride) :
         dim_{dim}, stride_{stride}, data_{std::make_unique<T[]>(dim.h * stride)}
     { }
-    bitmap(struct dim dim) : bitmap{dim, dim.w} { }
+    explicit bitmap(struct dim dim) : bitmap{dim, dim.w} { }
 
     constexpr auto dim() const noexcept { return dim_; }
     constexpr auto stride() const noexcept { return stride_; }
