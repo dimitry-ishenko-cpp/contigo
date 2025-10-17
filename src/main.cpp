@@ -36,9 +36,6 @@ try
         { "-t", "--vt", "/dev/ttyN|ttyN|N", "Virtual terminal to use. If omitted, use the current one." },
         { "-c", "--activate",               "Activate given terminal before starting."},
 
-        { "-b", "--fb", "/dev/fbN|fbN|N",   "Framebuffer to use. Default: fb" + std::to_string(options.fb_num) },
-        { "-p", "--dpi", "N",               "Override DPI value reported by the screen." },
-
         { "-v", "--version",                "Print version number and exit" },
         { "-h", "--help",                   "Show this help" },
 
@@ -84,12 +81,6 @@ try
             options.login = std::move(options.args.front());
             options.args.erase(options.args.begin());
         }
-
-        auto fb = get_num(args["--fb"], fb::path, fb::name, "framebuffer path or number");
-        if (fb) options.fb_num = *fb;
-
-        auto dpi = get_num(args["--dpi"], {}, {}, "DPI value");
-        if (dpi) options.dpi = *dpi;
 
         term term{ex, std::move(options)};
         term.on_exit([&](auto){ io.stop(); });

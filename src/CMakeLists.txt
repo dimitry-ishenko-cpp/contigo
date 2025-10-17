@@ -9,8 +9,6 @@ add_executable(contigo
     color.hpp
     command.hpp
     error.hpp
-    fb.cpp
-    fb.hpp
     logging.hpp
     pty.cpp
     pty.hpp

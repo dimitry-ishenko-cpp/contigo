@@ -7,7 +7,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "fb.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
 #include "vte.hpp"
@@ -22,9 +21,6 @@ struct term_options
 {
     tty::num tty_num;
     bool tty_activate = false;
-
-    fb::num fb_num = 0;
-    std::optional<unsigned> dpi;
 
     std::string login = "/bin/login";
     std::vector<std::string> args;
@@ -45,7 +41,6 @@ public:
 private:
     ////////////////////
     std::unique_ptr<tty> tty_;
-    std::unique_ptr<fb >  fb_;
     std::unique_ptr<vte> vte_;
     std::unique_ptr<pty> pty_;
 
@@ -59,6 +54,4 @@ private:
 
     void draw_row(int row, std::span<const vte::cell>);
     void move_rows(int row, unsigned rows, int distance);
-
-    void draw();
 };
