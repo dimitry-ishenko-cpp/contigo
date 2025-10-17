@@ -99,8 +99,8 @@ static int scroll_clear(void* ctx)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-vte::vte(const size& size) :
-    vterm_{vterm_new(size.h, size.w), &vterm_free},
+vte::vte(dim dim) :
+    vterm_{vterm_new(dim.h, dim.w), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)}
 {
     static const VTermScreenCallbacks callbacks

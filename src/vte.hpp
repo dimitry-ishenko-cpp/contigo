@@ -25,7 +25,7 @@ class vte
 {
 public:
     ////////////////////
-    explicit vte(const size&);
+    explicit vte(dim);
     ~vte();
 
     using row_changed_callback = std::function<void(int, std::span<const cell>)>;

@@ -14,7 +14,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     tty_->on_acquire([&]{ enable(); });
     tty_->on_release([&]{ disable(); });
 
-    vte_ = std::make_unique<vte>(size{80, 24});
+    vte_ = std::make_unique<vte>(dim{80, 24});
     vte_->on_row_changed([&](int row, std::span<const cell> cells){ draw_row(row, cells); });
     vte_->on_rows_moved([&](int row, unsigned rows, int distance){ move_rows(row, rows, distance); });
     vte_->redraw();

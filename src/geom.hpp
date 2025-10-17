@@ -8,5 +8,5 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////////////////////////
-struct pos  { int x, y; };
-struct size { unsigned w, h; };
+struct pos { int x, y; };
+struct dim { unsigned w, h; };
