@@ -1,11 +1,11 @@
-project(src)
+##
 
 find_package(pgm_args REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(asio REQUIRED IMPORTED_TARGET asio)
 pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 
-add_executable(contigo
+add_executable(term
     color.hpp
     command.hpp
     error.hpp
@@ -21,6 +21,6 @@ add_executable(contigo
     vte.hpp
     main.cpp
 )
-target_link_libraries(contigo PRIVATE pgm::args PkgConfig::asio PkgConfig::vterm)
+target_link_libraries(term PRIVATE pgm::args PkgConfig::asio PkgConfig::vterm)
 
-install(TARGETS contigo DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS term DESTINATION ${CMAKE_INSTALL_BINDIR})
