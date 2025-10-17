@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "pango.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
 #include "vte.hpp"
@@ -21,6 +22,9 @@ struct term_options
 {
     tty::num tty_num;
     bool tty_activate = false;
+
+    std::string font = "monospace, 20";
+    std::optional<unsigned> dpi;
 
     std::string login = "/bin/login";
     std::vector<std::string> args;
@@ -41,6 +45,8 @@ public:
 private:
     ////////////////////
     std::unique_ptr<tty> tty_;
+    // TODO drm
+    std::unique_ptr<pango> pango_;
     std::unique_ptr<vte> vte_;
     std::unique_ptr<pty> pty_;
 
