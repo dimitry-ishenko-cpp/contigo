@@ -6,6 +6,7 @@ pkg_search_module(asio REQUIRED IMPORTED_TARGET asio)
 pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 
 add_executable(term
+    cell.hpp
     color.hpp
     command.hpp
     error.hpp

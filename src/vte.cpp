@@ -154,13 +154,13 @@ void vte::change_row(int row, unsigned cols)
             vterm_state_convert_color_to_rgb(state_, &vc.fg);
             vterm_state_convert_color_to_rgb(state_, &vc.bg);
 
-            std::memcpy(cell->ch, vc.chars, sizeof(vc.chars));
+            std::memcpy(cell->chars, vc.chars, sizeof(vc.chars));
             cell->width = vc.width;
 
             cell->bold  = vc.attrs.bold;
             cell->italic= vc.attrs.italic;
             cell->strike= vc.attrs.strike;
-            cell->underline = static_cast<under>(vc.attrs.underline);
+            cell->under = static_cast<under_t>(vc.attrs.underline);
 
             cell->fg = color{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
             cell->bg = color{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};

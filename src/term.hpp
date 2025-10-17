@@ -52,6 +52,6 @@ private:
     ////////////////////
     unsigned dpi_;
 
-    void draw_row(int row, std::span<const vte::cell>);
+    void draw_row(int row, std::span<const cell>);
     void move_rows(int row, unsigned rows, int distance);
 };

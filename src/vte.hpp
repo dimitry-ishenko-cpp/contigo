@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "color.hpp"
+#include "cell.hpp"
 #include "types.hpp"
 
 #include <deque>
@@ -24,20 +24,6 @@ struct VTermState;
 class vte
 {
 public:
-    ////////////////////
-    struct cell
-    {
-        char32_t ch[6];
-        unsigned width;
-
-        bool bold;
-        bool italic;
-        bool strike;
-        under underline;
-
-        color fg, bg;
-    };
-
     ////////////////////
     explicit vte(const size&);
     ~vte();
