@@ -12,23 +12,23 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma pack(push, 1)
 
-
 struct color
 {
-    using depth = std::uint8_t;
+    using value_type = std::uint8_t;
 
     union
     {
-        struct { depth b, g, r; };
+        struct { value_type b, g, r; };
         std::uint32_t c;
     };
 
     constexpr color() = default;
-    constexpr color(depth r, depth g, depth b) : b{b}, g{g}, r{r} { }
+    constexpr color(value_type r, value_type g, value_type b) : b{b}, g{g}, r{r} { }
 };
 
 #pragma pack(pop)
 
+////////////////////////////////////////////////////////////////////////////////
 constexpr color black{  0,   0,   0};
 constexpr color red  {255,   0,   0};
 constexpr color green{  0, 255,   0};
