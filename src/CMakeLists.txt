@@ -3,6 +3,7 @@
 find_package(pgm_args REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(asio REQUIRED IMPORTED_TARGET asio)
+pkg_search_module(pangoft2 REQUIRED IMPORTED_TARGET pangoft2)
 pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 
 add_executable(term
@@ -14,6 +15,8 @@ add_executable(term
     geom.hpp
     logging.hpp
     main.cpp
+    pango.cpp
+    pango.hpp
     pty.cpp
     pty.hpp
     term.cpp
@@ -23,6 +26,6 @@ add_executable(term
     vte.cpp
     vte.hpp
 )
-target_link_libraries(term PRIVATE pgm::args PkgConfig::asio PkgConfig::vterm)
+target_link_libraries(term PRIVATE pgm::args PkgConfig::asio PkgConfig::pangoft2 PkgConfig::vterm)
 
 install(TARGETS term DESTINATION ${CMAKE_INSTALL_BINDIR})
