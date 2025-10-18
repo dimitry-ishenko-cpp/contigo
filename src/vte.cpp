@@ -10,10 +10,6 @@
 #include <cstring> // std::memcpy
 #include <vterm.h>
 
-// VTermScreenCell is declared as an anonymous struct by libvterm, so we have to
-// resort to the below if we want to keep EPA happy
-namespace detail { struct VTermScreenCell : ::VTermScreenCell { }; }
-
 ////////////////////////////////////////////////////////////////////////////////
 struct vte::dispatch
 {
@@ -68,31 +64,21 @@ static int resize(int rows, int cols, void* ctx)
 static int scroll_push_line(int cols, const VTermScreenCell* cells, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    if (vt->scroll_.size() >= vt->scroll_size_) vt->scroll_.pop_front();
-
-    std::size_t size = cols;
-    vt->scroll_.emplace_back(std::make_unique<detail::VTermScreenCell[]>(size));
-    std::memcpy(vt->scroll_.back().get(), cells, size * sizeof(VTermScreenCell));
-
+    // TODO
     return true;
 }
 
 static int scroll_pop_line(int cols, VTermScreenCell* cells, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    if (vt->scroll_.empty()) return 0;
-
-    std::size_t size = cols;
-    std::memcpy(cells, vt->scroll_.back().get(), size * sizeof(VTermScreenCell));
-
-    vt->scroll_.pop_back();
+    // TODO
     return true;
 }
 
 static int scroll_clear(void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    vt->scroll_.clear();
+    // TODO
     return true;
 }
 
@@ -138,8 +124,6 @@ void vte::redraw()
     vterm_get_size(&*vterm_, &rows, &cols);
     vterm_set_size(&*vterm_, rows, cols);
 }
-
-void vte::scroll_size(std::size_t max) { while (scroll_.size() > max) scroll_.pop_front(); }
 
 void vte::change_row(int row, unsigned cols)
 {

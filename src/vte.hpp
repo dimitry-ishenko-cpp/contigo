@@ -10,14 +10,12 @@
 #include "cell.hpp"
 #include "geom.hpp"
 
-#include <deque>
 #include <functional>
 #include <memory>
 #include <span>
 
 struct VTerm;
 struct VTermScreen;
-namespace detail { struct VTermScreenCell; }
 struct VTermState;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -40,9 +38,6 @@ public:
 
     void redraw();
 
-    void scroll_size(std::size_t);
-    constexpr auto scroll_size() const noexcept { return scroll_size_; }
-
 private:
     ////////////////////
     std::unique_ptr<VTerm, void(*)(VTerm*)> vterm_;
@@ -53,9 +48,6 @@ private:
     rows_moved_callback move_cb_;
 
     void change_row(int row, unsigned cols);
-
-    std::size_t scroll_size_ = 1000;
-    std::deque<std::unique_ptr<detail::VTermScreenCell[]>> scroll_;
 
     ////////////////////
     struct dispatch;
