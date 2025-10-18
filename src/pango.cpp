@@ -63,13 +63,13 @@ pango::pango(std::string_view font, int dpi) :
     pango_font_metrics metrics_{pango_font_get_metrics(&*font_, nullptr), &pango_font_metrics_unref};
     if (!metrics_) throw std::runtime_error{"Failed to get font metrics"};
 
-    cell_dim_.w = PANGO_PIXELS(pango_font_metrics_get_approximate_char_width(&*metrics_));
-    cell_dim_.h = PANGO_PIXELS(pango_font_metrics_get_height(&*metrics_));
+    cell_dim_.width = PANGO_PIXELS(pango_font_metrics_get_approximate_char_width(&*metrics_));
+    cell_dim_.height = PANGO_PIXELS(pango_font_metrics_get_height(&*metrics_));
 
     auto name = pango_font_description_get_family(&*font_desc_);
     auto size = PANGO_PIXELS(pango_font_description_get_size(&*font_desc_));
 
-    info() << "Using font: " << name << ", size: " << size << " pt, cell: " << cell_dim_.w << "x" << cell_dim_.h << " px";
+    info() << "Using font: " << name << ", size: " << size << " pt, cell: " << cell_dim_.width << "x" << cell_dim_.height << " px";
 }
 
 bitmap<color> pango::render(std::span<cell> cells)

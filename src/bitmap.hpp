@@ -22,15 +22,15 @@ class bitmap
 public:
     ////////////////////
     bitmap(struct dim dim, unsigned stride) :
-        dim_{dim}, stride_{stride}, data_{std::make_unique<T[]>(dim.h * stride)}
+        dim_{dim}, stride_{stride}, data_{std::make_unique<T[]>(dim_.height * stride_)}
     { }
-    explicit bitmap(struct dim dim) : bitmap{dim, dim.w} { }
+    explicit bitmap(struct dim dim) : bitmap{dim, dim.width} { }
 
     constexpr auto dim() const noexcept { return dim_; }
     constexpr auto stride() const noexcept { return stride_; }
 
     constexpr auto data() noexcept { return data_.get(); }
 
-    constexpr auto size() const noexcept { return dim_.h * stride_; }
+    constexpr auto size() const noexcept { return dim_.height * stride_; }
     constexpr auto size_bytes() const noexcept { return size() * sizeof(T); }
 };

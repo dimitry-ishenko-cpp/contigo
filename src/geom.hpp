@@ -9,4 +9,4 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 struct pos { int x, y; };
-struct dim { unsigned w, h; };
+struct dim { unsigned width, height; };
