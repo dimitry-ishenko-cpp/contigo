@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <pango/pangoft2.h>
 
+#define pango_pixels PANGO_PIXELS
+
 ////////////////////////////////////////////////////////////////////////////////
 namespace
 {
@@ -23,22 +25,22 @@ auto create_ft_lib()
     return ft_lib{lib, &FT_Done_FreeType};
 }
 
-auto create_pango_fontmap(int dpi)
+auto create_font_map(int dpi)
 {
-    pango_fontmap fontmap{pango_ft2_font_map_new(), &g_object_unref};
-    if (!fontmap) throw std::runtime_error{"Failed to create fontmap"};
-    pango_ft2_font_map_set_resolution(PANGO_FT2_FONT_MAP(&*fontmap), dpi, dpi);
-    return fontmap;
+    pango_font_map font_map{pango_ft2_font_map_new(), &g_object_unref};
+    if (!font_map) throw std::runtime_error{"Failed to create fontmap"};
+    pango_ft2_font_map_set_resolution(PANGO_FT2_FONT_MAP(&*font_map), dpi, dpi);
+    return font_map;
 }
 
-auto create_pango_context(pango_fontmap& fontmap)
+auto create_context(pango_font_map& fontmap)
 {
     pango_context context{pango_font_map_create_context(&*fontmap), &g_object_unref};
     if (!context) throw std::runtime_error{"Failed to create pango context"};
     return context;
 }
 
-auto create_pango_font_desc(std::string_view font)
+auto create_font_desc(std::string_view font)
 {
     pango_font_desc desc{pango_font_description_from_string(font.data()), &pango_font_description_free};
     if (!desc) throw std::runtime_error{"Failed to create font description"};
@@ -48,31 +50,46 @@ auto create_pango_font_desc(std::string_view font)
 using pango_font = std::unique_ptr<PangoFont, void(*)(void*)>;
 using pango_font_metrics = std::unique_ptr<PangoFontMetrics, void(*)(PangoFontMetrics*)>;
 
+auto get_metrics(pango_font_map& fontmap, pango_context& context, pango_font_desc& font_desc)
+{
+    pango_font font{pango_font_map_load_font(&*fontmap, &*context, &*font_desc), &g_object_unref};
+    if (!font) throw std::runtime_error{"Failed to load font"};
+
+    pango_font_metrics metrics{pango_font_get_metrics(&*font, nullptr), &pango_font_metrics_unref};
+    if (!metrics) throw std::runtime_error{"Failed to get font metrics"};
+
+    unsigned width = pango_pixels(pango_font_metrics_get_approximate_char_width(&*metrics));
+    unsigned height = pango_pixels(pango_font_metrics_get_height(&*metrics));
+
+    return dim{width, height};
+}
+
+auto string(PangoStyle style)
+{
+    switch (style)
+    {
+    case PANGO_STYLE_NORMAL: return "normal";
+    case PANGO_STYLE_OBLIQUE: return "oblique";
+    case PANGO_STYLE_ITALIC: return "italic";
+    default: return "???";
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-pango::pango(std::string_view font, int dpi) :
-    ft_lib_{create_ft_lib()},
-    fontmap_{create_pango_fontmap(dpi)},
-    context_{create_pango_context(fontmap_)},
-    font_desc_{create_pango_font_desc(font)}
+pango::pango(std::string_view font, int dpi) : ft_lib_{create_ft_lib()},
+    font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font)},
+    dim_cell_{get_metrics(font_map_, context_, font_desc_)}
 {
-    pango_font font_{pango_font_map_load_font(&*fontmap_, &*context_, &*font_desc_), &g_object_unref};
-    if (!font_) throw std::runtime_error{"Failed to load font"};
+    auto desc = &*font_desc_;
+    auto name = pango_font_description_get_family(desc);
+    auto style= string(pango_font_description_get_style(desc));
+    auto wght = pango_font_description_get_weight(desc);
+    auto size = pango_pixels(pango_font_description_get_size(desc));
 
-    pango_font_metrics metrics_{pango_font_get_metrics(&*font_, nullptr), &pango_font_metrics_unref};
-    if (!metrics_) throw std::runtime_error{"Failed to get font metrics"};
-
-    cell_dim_.width = PANGO_PIXELS(pango_font_metrics_get_approximate_char_width(&*metrics_));
-    cell_dim_.height = PANGO_PIXELS(pango_font_metrics_get_height(&*metrics_));
-
-    auto name = pango_font_description_get_family(&*font_desc_);
-    auto size = PANGO_PIXELS(pango_font_description_get_size(&*font_desc_));
-
-    info() << "Using font: " << name << ", size: " << size << " pt, cell: " << cell_dim_.width << "x" << cell_dim_.height << " px";
+    info() << "Using font: " << name << ", " << style << ", " << wght << ", size: " << size << ", cell: " << dim_cell_.width << "x" << dim_cell_.height;
 }
 
-bitmap<xrgb> pango::render(std::span<const cell> cells)
+bitmap<xrgb> pango::render_row(std::span<const cell> cells)
 {
     // TODO
     return bitmap<xrgb>{dim{0, 0}};

@@ -20,7 +20,7 @@ struct FT_LibraryRec_;
 using ft_lib = std::unique_ptr<FT_LibraryRec_, int(*)(FT_LibraryRec_*)>;
 
 struct _PangoFontMap;
-using pango_fontmap = std::unique_ptr<_PangoFontMap, void(*)(void*)>;
+using pango_font_map = std::unique_ptr<_PangoFontMap, void(*)(void*)>;
 
 struct _PangoContext;
 using pango_context = std::unique_ptr<_PangoContext, void(*)(void*)>;
@@ -35,16 +35,16 @@ public:
     ////////////////////
     pango(std::string_view font, int dpi);
 
-    constexpr auto cell_dim() const noexcept { return cell_dim_; }
+    constexpr auto dim_cell() const noexcept { return dim_cell_; }
 
-    bitmap<xrgb> render(std::span<const cell>);
+    bitmap<xrgb> render_row(std::span<const cell>);
 
 private:
     ////////////////////
     ft_lib ft_lib_;
-    pango_fontmap fontmap_;
+    pango_font_map font_map_;
     pango_context context_;
     pango_font_desc font_desc_;
 
-    dim cell_dim_;
+    dim dim_cell_;
 };
