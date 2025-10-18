@@ -7,7 +7,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "color.hpp"
 #include "geom.hpp"
+
+#include <algorithm>
 #include <memory>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -21,11 +24,20 @@ class bitmap
 
 public:
     ////////////////////
-    bitmap(struct dim dim, unsigned stride) :
+    static constexpr auto bits_per_pixel() { return ::bits_per_pixel<C>; }
+    static constexpr auto num_colors() { return ::num_colors<C>; }
+
+    constexpr bitmap(struct dim dim, unsigned stride) :
         dim_{dim}, stride_{stride}, data_{std::make_unique<C[]>(dim_.height * stride_)}
     { }
-    explicit bitmap(struct dim dim) : bitmap{dim, dim.width} { }
+    constexpr explicit bitmap(struct dim dim) : bitmap{dim, dim.width} { }
 
+    constexpr bitmap(struct dim dim, unsigned stride, const C& color) :
+        bitmap{dim, stride}
+    { std::fill_n(data(), size(), color); }
+    constexpr bitmap(struct dim dim, const C& color) : bitmap{dim, dim.width, color} { }
+
+    ////////////////////
     constexpr auto width() const noexcept { return dim_.width; }
     constexpr auto height() const noexcept { return dim_.height; }
 
