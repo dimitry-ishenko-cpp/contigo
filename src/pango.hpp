@@ -37,7 +37,7 @@ public:
 
     constexpr auto cell_dim() const noexcept { return cell_dim_; }
 
-    bitmap<color> render(std::span<cell>);
+    bitmap<color> render(std::span<const cell>);
 
 private:
     ////////////////////
