@@ -23,11 +23,11 @@ struct xrgb
 };
 #pragma pack(pop)
 
-template<typename T>
-inline auto bits_per_pixel = sizeof(T) * std::numeric_limits<T>::digits;
+template<typename C>
+inline auto bits_per_pixel = sizeof(C) * std::numeric_limits<C>::digits;
 
 template<>
 inline auto bits_per_pixel<xrgb> = (sizeof(xrgb) - sizeof(xrgb::x)) * std::numeric_limits<mono>::digits;
 
-template<typename T>
-inline auto num_colors = 1 << bits_per_pixel<T>;
+template<typename C>
+inline auto num_colors = 1 << bits_per_pixel<C>;
