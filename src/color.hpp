@@ -8,29 +8,26 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 
 ////////////////////////////////////////////////////////////////////////////////
+using mono = std::uint8_t;
+
 #pragma pack(push, 1)
-
-struct color
+struct xrgb
 {
-    using value_type = std::uint8_t;
+    mono b, g, r, x;
 
-    union
-    {
-        struct { value_type b, g, r; };
-        std::uint32_t c;
-    };
-
-    constexpr color() = default;
-    constexpr color(value_type r, value_type g, value_type b) : b{b}, g{g}, r{r} { }
+    constexpr xrgb() = default;
+    constexpr xrgb(mono r, mono g, mono b) : b{b}, g{g}, r{r}, x{} { }
 };
-
 #pragma pack(pop)
 
-////////////////////////////////////////////////////////////////////////////////
-constexpr color black{  0,   0,   0};
-constexpr color red  {255,   0,   0};
-constexpr color green{  0, 255,   0};
-constexpr color blue {  0,   0, 255};
-constexpr color white{255, 255, 255};
+template<typename T>
+inline auto bits_per_pixel = sizeof(T) * std::numeric_limits<T>::digits;
+
+template<>
+inline auto bits_per_pixel<xrgb> = (sizeof(xrgb) - sizeof(xrgb::x)) * std::numeric_limits<mono>::digits;
+
+template<typename T>
+inline auto num_colors = 1 << bits_per_pixel<T>;

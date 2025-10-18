@@ -72,8 +72,8 @@ pango::pango(std::string_view font, int dpi) :
     info() << "Using font: " << name << ", size: " << size << " pt, cell: " << cell_dim_.width << "x" << cell_dim_.height << " px";
 }
 
-bitmap<color> pango::render(std::span<const cell> cells)
+bitmap<xrgb> pango::render(std::span<const cell> cells)
 {
     // TODO
-    return bitmap<color>{dim{0, 0}};
+    return bitmap<xrgb>{dim{0, 0}};
 }
