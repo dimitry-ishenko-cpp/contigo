@@ -26,6 +26,9 @@ public:
     { }
     explicit bitmap(struct dim dim) : bitmap{dim, dim.width} { }
 
+    constexpr auto width() const noexcept { return dim_.width; }
+    constexpr auto height() const noexcept { return dim_.height; }
+
     constexpr auto dim() const noexcept { return dim_; }
     constexpr auto stride() const noexcept { return stride_; }
 
