@@ -33,13 +33,16 @@ try
 
     pgm::args args
     {
-        { "-t", "--vt", "/dev/ttyN|ttyN|N", "Virtual terminal to use. If omitted, use the current one." },
-        { "-c", "--activate",               "Activate given terminal before starting."},
+        { "-t", "--tty", "/dev/ttyN|ttyN|N",    "If specified, use ttyN. Otherwise, use the current one." },
+        { "-a", "--activate",                   "Activate given tty before starting.\n"},
 
-        { "-v", "--version",                "Print version number and exit" },
-        { "-h", "--help",                   "Show this help" },
+        { "-f", "--font", "name",               "Use specified font. Default: '" + options.font + "'" },
+        { "-p", "--dpi", "N",                   "Override DPI value reported by the screen.\n" },
 
-        { "login", pgm::mul | pgm::opt,     "Login program to launch. Default: " + options.login },
+        { "-v", "--version",                    "Print version number and exit" },
+        { "-h", "--help",                       "Show this help" },
+
+        { "login", pgm::mul | pgm::opt,         "Launch specified login program. Default: " + options.login },
     };
 
     std::exception_ptr ep;
@@ -71,9 +74,15 @@ try
         });
 
         ////////////////////
-        auto tty = get_num(args["--vt"], tty::path, tty::name, "terminal path or number");
+        auto tty = get_num(args["--tty"], tty::path, tty::name, "tty path or number");
         options.tty_num = tty.value_or(term::active(ex));
         options.tty_activate = !!args["--activate"];
+
+        auto font = args["--font"];
+        if (font) options.font = font.value();
+
+        auto dpi = get_num(args["--dpi"], {}, {}, "DPI value");
+        if (dpi) options.dpi = *dpi;
 
         options.args = args["login"].values();
         if (options.args.size())
