@@ -31,3 +31,10 @@ inline auto bits_per_pixel<xrgb> = (sizeof(xrgb) - sizeof(xrgb::x)) * std::numer
 
 template<typename C>
 inline auto num_colors = 1 << bits_per_pixel<C>;
+
+////////////////////////////////////////////////////////////////////////////////
+constexpr xrgb black{  0,   0,   0};
+constexpr xrgb red  {255,   0,   0};
+constexpr xrgb green{  0, 255,   0};
+constexpr xrgb blue {  0,   0, 255};
+constexpr xrgb white{255, 255, 255};
