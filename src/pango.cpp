@@ -114,7 +114,7 @@ auto new_attr_strike(bool strike)
 {
     return pango_attr_strikethrough_new(strike);
 }
-auto new_attr_under(under_t under)
+auto new_attr_under(underline under)
 {
     return pango_attr_underline_new(
         (under == under_single) ? PANGO_UNDERLINE_SINGLE :
@@ -245,7 +245,7 @@ bitmap<xrgb> pango::render_row(std::span<const cell> cells)
         auto attrs = create_attrs();
 
         attr_state<bool> bold, italic, strike;
-        attr_state<under_t> under;
+        attr_state<underline> under;
 
         int col = 0;
         for (auto&& cell : cells)

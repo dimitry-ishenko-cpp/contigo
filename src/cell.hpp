@@ -10,7 +10,7 @@
 #include "color.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
-enum under_t { under_none, under_single, under_double, under_error };
+enum underline { under_none, under_single, under_double, under_error };
 
 struct cell
 {
@@ -22,7 +22,7 @@ struct cell
     bool bold;
     bool italic;
     bool strike;
-    under_t under;
+    underline under;
 
     xrgb fg, bg;
 };
