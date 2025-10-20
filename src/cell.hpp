@@ -14,7 +14,7 @@ enum underline { under_none, under_single, under_double, under_error };
 
 struct cell
 {
-    static constexpr std::size_t max_chars = 6;
+    static constexpr unsigned max_chars = 6;
 
     char32_t chars[max_chars];
     unsigned width;
