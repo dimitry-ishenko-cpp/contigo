@@ -45,8 +45,10 @@ void term::disable()
 
 void term::draw_row(int row, std::span<const cell> cells)
 {
+    // TODO
 }
 
 void term::move_rows(int row, unsigned rows, int distance)
 {
+    // TODO
 }
