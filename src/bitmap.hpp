@@ -36,4 +36,11 @@ public:
         dim_{dim}, data_{std::make_unique<color[]>(size())}
     { }
     bitmap(struct dim dim, const color& c) : bitmap{dim} { std::ranges::fill(pix(), c); }
+
+    ////////////////////
+    void alpha_blend(const color& c, std::span<shade> mask)
+    {
+        auto mx = mask.data();
+        for (auto&& px : pix()) px.alpha_blend(c, *mx++);
+    };
 };
