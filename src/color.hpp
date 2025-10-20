@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 
@@ -32,6 +33,13 @@ struct color
         b = (c.b * mask + b * (255 - mask)) / 255;
         g = (c.g * mask + g * (255 - mask)) / 255;
         r = (c.r * mask + r * (255 - mask)) / 255;
+    }
+    
+    constexpr void max_blend(const color& c)
+    {
+        b = std::max(b, c.b);
+        g = std::max(g, c.g);
+        r = std::max(r, c.r);
     }
 };
 #pragma pack(pop)
