@@ -11,30 +11,24 @@
 #include <limits>
 
 ////////////////////////////////////////////////////////////////////////////////
-using mono = std::uint8_t;
-
 #pragma pack(push, 1)
-struct xrgb
+struct color
 {
-    mono b, g, r, x;
+    using shade = std::uint8_t;
 
-    constexpr xrgb() = default;
-    constexpr xrgb(mono r, mono g, mono b) : b{b}, g{g}, r{r}, x{} { }
+    shade b, g, r, x;
+
+    constexpr color() = default;
+    constexpr color(shade r, shade g, shade b) : b{b}, g{g}, r{r}, x{} { }
+
+    constexpr static auto bits_per_pixel = (sizeof(r) + sizeof(g) + sizeof(b)) * std::numeric_limits<color>::digits;
+    constexpr static auto num_colors = 1 << bits_per_pixel;
 };
 #pragma pack(pop)
 
-template<typename C>
-inline auto bits_per_pixel = sizeof(C) * std::numeric_limits<C>::digits;
-
-template<>
-inline auto bits_per_pixel<xrgb> = (sizeof(xrgb) - sizeof(xrgb::x)) * std::numeric_limits<mono>::digits;
-
-template<typename C>
-inline auto num_colors = 1 << bits_per_pixel<C>;
-
 ////////////////////////////////////////////////////////////////////////////////
-constexpr xrgb black{  0,   0,   0};
-constexpr xrgb red  {255,   0,   0};
-constexpr xrgb green{  0, 255,   0};
-constexpr xrgb blue {  0,   0, 255};
-constexpr xrgb white{255, 255, 255};
+constexpr color black{  0,   0,   0};
+constexpr color red  {255,   0,   0};
+constexpr color green{  0, 255,   0};
+constexpr color blue {  0,   0, 255};
+constexpr color white{255, 255, 255};

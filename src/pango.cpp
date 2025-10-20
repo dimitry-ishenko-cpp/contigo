@@ -74,22 +74,22 @@ auto create_layout(pango_context& context, pango_font_desc& font_desc)
     return layout;
 }
 
-bitmap<mono> render_line0(pango_layout& layout, dim dim, unsigned base)
+auto render_line0(pango_layout& layout, dim dim, unsigned base)
 {
-    bitmap<mono> mask{dim};
+    auto buffer = std::make_unique<color::shade[]>(dim.width * dim.height);
 
     FT_Bitmap ft_mask;
-    ft_mask.rows  = mask.height();
-    ft_mask.width = mask.width();
-    ft_mask.pitch = mask.stride();
-    ft_mask.buffer= mask.data();
-    ft_mask.num_grays = mask.num_colors();
+    ft_mask.rows  = dim.height;
+    ft_mask.width = dim.width;
+    ft_mask.pitch = dim.width;
+    ft_mask.buffer= buffer.get();
+    ft_mask.num_grays = 256;
     ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
 
     auto line = pango_layout_get_line_readonly(&*layout, 0);
     pango_ft2_render_layout_line(&ft_mask, line, 0, base);
 
-    return mask;
+    return buffer;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -229,12 +229,12 @@ pango::pango(std::string_view font, int dpi) : ft_lib_{create_ft_lib()},
     info() << "Using font: " << name << ", " << style << ", " << weight << ", size: " << size << ", cell: " << dim_.width << "x" << dim_.height;
 }
 
-bitmap<xrgb> pango::render_row(std::span<const cell> cells)
+bitmap pango::render_row(std::span<const cell> cells)
 {
     unsigned width = 0;
     for (auto&& cell : cells) width += cell.width;
 
-    bitmap<xrgb> bitmap{dim{width * dim_.width, dim_.height}};
+    bitmap bitmap{dim{width * dim_.width, dim_.height}};
 
     if (width)
     {

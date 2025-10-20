@@ -24,5 +24,5 @@ struct cell
     bool strike;
     underline under;
 
-    xrgb fg, bg;
+    color fg, bg;
 };

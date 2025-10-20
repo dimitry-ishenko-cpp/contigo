@@ -9,7 +9,6 @@
 
 #include "bitmap.hpp"
 #include "cell.hpp"
-#include "color.hpp"
 #include "geom.hpp"
 
 #include <memory>
@@ -35,7 +34,7 @@ public:
     ////////////////////
     pango(std::string_view font, int dpi);
 
-    bitmap<xrgb> render_row(std::span<const cell>);
+    bitmap render_row(std::span<const cell>);
 
 private:
     ////////////////////

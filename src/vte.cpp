@@ -146,8 +146,8 @@ void vte::change_row(int row, unsigned cols)
             cell->strike= vc.attrs.strike;
             cell->under = static_cast<underline>(vc.attrs.underline);
 
-            cell->fg = xrgb{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
-            cell->bg = xrgb{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};
+            cell->fg = color{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
+            cell->bg = color{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};
         }
     }
 
