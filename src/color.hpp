@@ -20,11 +20,19 @@ struct color
 {
     shade b, g, r, x;
 
+    constexpr static auto bits_per_pixel = (sizeof(r) + sizeof(g) + sizeof(b)) * std::numeric_limits<color>::digits;
+    constexpr static auto num_colors = 1 << bits_per_pixel;
+
+    ////////////////////
     constexpr color() = default;
     constexpr color(shade r, shade g, shade b) : b{b}, g{g}, r{r}, x{} { }
 
-    constexpr static auto bits_per_pixel = (sizeof(r) + sizeof(g) + sizeof(b)) * std::numeric_limits<color>::digits;
-    constexpr static auto num_colors = 1 << bits_per_pixel;
+    constexpr void alpha_blend(const color& c, shade mask)
+    {
+        b = (c.b * mask + b * (255 - mask)) / 255;
+        g = (c.g * mask + g * (255 - mask)) / 255;
+        r = (c.r * mask + r * (255 - mask)) / 255;
+    }
 };
 #pragma pack(pop)
 
