@@ -11,11 +11,13 @@
 #include <limits>
 
 ////////////////////////////////////////////////////////////////////////////////
+using shade = std::uint8_t;
+constexpr auto shade_bits_per_pixel = sizeof(shade) * std::numeric_limits<shade>::digits;
+constexpr auto shade_num_colors = 1 << shade_bits_per_pixel;
+
 #pragma pack(push, 1)
 struct color
 {
-    using shade = std::uint8_t;
-
     shade b, g, r, x;
 
     constexpr color() = default;

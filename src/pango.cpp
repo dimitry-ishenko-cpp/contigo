@@ -76,14 +76,14 @@ auto create_layout(pango_context& context, pango_font_desc& font_desc)
 
 auto render_line0(pango_layout& layout, dim dim, unsigned base)
 {
-    auto buffer = std::make_unique<color::shade[]>(dim.width * dim.height);
+    auto buffer = std::make_unique<shade[]>(dim.width * dim.height);
 
     FT_Bitmap ft_mask;
     ft_mask.rows  = dim.height;
     ft_mask.width = dim.width;
     ft_mask.pitch = dim.width;
     ft_mask.buffer= buffer.get();
-    ft_mask.num_grays = 256;
+    ft_mask.num_grays = shade_num_colors;
     ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
 
     auto line = pango_layout_get_line_readonly(&*layout, 0);
