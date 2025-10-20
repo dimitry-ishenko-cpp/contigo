@@ -14,11 +14,16 @@ term::term(const asio::any_io_executor& ex, term_options options)
     tty_->on_acquire([&]{ enable(); });
     tty_->on_release([&]{ disable(); });
 
-    // TODO drm
+    // TODO create drm, and get real res and dpi
+    dim res{1920, 1080};
+    unsigned dpi = 96;
 
-    pango_ = std::make_unique<pango>(options.font, options.dpi.value_or(96));
+    pango_ = std::make_unique<pango>(options.font, res, options.dpi.value_or(dpi));
 
-    vte_ = std::make_unique<vte>(dim{80, 24});
+    auto dim_cell = pango_->dim_cell();
+    dim dim_vte{ res.width / dim_cell.width, res.height / dim_cell.height };
+
+    vte_ = std::make_unique<vte>(dim_vte);
     vte_->on_row_changed([&](int row, std::span<const cell> cells){ draw_row(row, cells); });
     vte_->on_rows_moved([&](int row, unsigned rows, int distance){ move_rows(row, rows, distance); });
     vte_->redraw();
