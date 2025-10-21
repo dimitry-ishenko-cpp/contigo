@@ -7,12 +7,12 @@ pkg_search_module(pangoft2 REQUIRED IMPORTED_TARGET pangoft2)
 pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 
 add_executable(term
-    bitmap.hpp
     cell.hpp
     color.hpp
     command.hpp
     error.hpp
     geom.hpp
+    image.hpp
     logging.hpp
     main.cpp
     pango.cpp

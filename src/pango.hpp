@@ -7,9 +7,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "bitmap.hpp"
 #include "cell.hpp"
 #include "geom.hpp"
+#include "image.hpp"
 
 #include <memory>
 #include <span>
