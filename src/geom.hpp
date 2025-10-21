@@ -10,3 +10,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 struct pos { int x, y; };
 struct dim { unsigned width, height; };
+
+constexpr void clip_within(dim rect, pos* pos, dim* dim)
+{
+    if (pos->x < 0)
+    {
+        dim->width = (dim->width > -pos->x) ? dim->width + pos->x : 0;
+        pos->x = 0;
+    }
+
+    if (pos->y < 0)
+    {
+        dim->height = (dim->height > -pos->y) ? dim->height + pos->y : 0;
+        pos->y = 0;
+    }
+
+    if (pos->x + dim->width > rect.width) dim->width = (pos->x < rect.width) ? rect.width - pos->x : 0;
+    if (pos->y + dim->height > rect.height) dim->height = (pos->y < rect.height) ? rect.height - pos->y : 0;
+}
