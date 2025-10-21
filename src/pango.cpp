@@ -69,6 +69,7 @@ auto get_dim_cell(pango_font_map& font_map, pango_context& context, pango_font_d
 
 ////////////////////////////////////////////////////////////////////////////////
 using pango_layout = std::unique_ptr<PangoLayout, void(*)(void*)>;
+using pango_attrs = std::unique_ptr<PangoAttrList, void(*)(PangoAttrList*)>;
 
 auto create_layout(pango_context& context, pango_font_desc& font_desc)
 {
@@ -76,29 +77,6 @@ auto create_layout(pango_context& context, pango_font_desc& font_desc)
     pango_layout_set_font_description(&*layout, &*font_desc);
     return layout;
 }
-
-auto render_line0(pango_layout& layout, dim dim, unsigned base, const color& fg, const color& bg)
-{
-    image<shade> mask{dim};
-
-    FT_Bitmap ft_mask;
-    ft_mask.rows = dim.height;
-    ft_mask.width = dim.width;
-    ft_mask.pitch = dim.width * sizeof(shade);
-    ft_mask.buffer = mask.data();
-    ft_mask.num_grays = num_colors<shade>;
-    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
-
-    auto line = pango_layout_get_line_readonly(&*layout, 0);
-    pango_ft2_render_layout_line(&ft_mask, line, 0, base);
-
-    image<color> image{dim, bg};
-    alpha_blend(image, pos{0, 0}, mask, fg);
-    return image;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-using pango_attrs = std::unique_ptr<PangoAttrList, void(*)(PangoAttrList*)>;
 
 auto create_attrs()
 {
@@ -128,12 +106,32 @@ auto new_attr_under(underline under)
     );
 }
 
+////////////////////////////////////////////////////////////////////////////////
 template<typename A>
 struct attr_state
 {
-    unsigned col;
+    unsigned loc = 0;
     A val{};
 };
+
+void render_background(image<color>& line, std::span<const cell> cells, unsigned cell_width)
+{
+    unsigned x = 0;
+    attr_state<color> bg;
+
+    for (auto&& cell : cells)
+    {
+        if (x == 0)
+            bg.val = cell.bg;
+        else if (cell.bg != bg.val)
+        {
+            fill(line, pos(bg.loc, 0), dim{x - bg.loc, line.height()}, bg.val);
+            bg.loc = x;
+            bg.val = cell.bg;
+        }
+        x += cell.width * cell_width;
+    }
+}
 
 template<typename A>
 void maybe_insert(pango_attrs& attrs, attr_state<A>& state, A new_val, unsigned new_col, auto(*new_attr_fn)(A))
@@ -143,13 +141,31 @@ void maybe_insert(pango_attrs& attrs, attr_state<A>& state, A new_val, unsigned 
         if (state.val != A{})
         {
             auto attr = new_attr_fn(state.val);
-            attr->start_index = state.col;
+            attr->start_index = state.loc;
             attr->end_index = new_col;
             pango_attr_list_insert(&*attrs, attr);
         }
         state.val = new_val;
-        state.col = new_col;
+        state.loc = new_col;
     }
+}
+
+void render_layout(image<color>& background, pango_layout& layout, unsigned base, const color& fg)
+{
+    image<shade> mask{background.dim()};
+
+    FT_Bitmap ft_mask;
+    ft_mask.rows = mask.height();
+    ft_mask.width = mask.width();
+    ft_mask.pitch = mask.width() * sizeof(shade);
+    ft_mask.buffer = mask.data();
+    ft_mask.num_grays = num_colors<shade>;
+    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
+
+    auto line = pango_layout_get_line_readonly(&*layout, 0);
+    pango_ft2_render_layout_line(&ft_mask, line, 0, base);
+
+    alpha_blend(background, pos{0, 0}, mask, fg);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,6 +249,10 @@ pango::pango(std::string_view font, dim res, int dpi) : ft_lib_{create_ft_lib()}
 
 image<color> pango::render(std::span<const cell> cells)
 {
+    image<color> line{dim{res_.width, cell_.height}};
+
+    render_background(line, cells, cell_.width);
+
     auto layout = create_layout(context_, font_desc_);
     auto base = pango_pixels(pango_layout_get_baseline(&*layout));
 
@@ -265,5 +285,7 @@ image<color> pango::render(std::span<const cell> cells)
     pango_layout_set_text(&*layout, text.data(), -1);
     pango_layout_set_attributes(&*layout, &*attrs);
 
-    return render_line0(layout, dim{res_.width, cell_.height}, base, white, black);
+    render_layout(line, layout, base, white);
+
+    return line;
 }
