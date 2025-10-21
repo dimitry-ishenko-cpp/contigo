@@ -43,13 +43,15 @@ inline auto num_colors = 1 << bits_per_pixel<C>;
 
 ////////////////////////////////////////////////////////////////////////////////
 template<typename C>
-constexpr C alpha_blend(C bg, C fg, shade mask)
+constexpr void alpha_blend(C& bg, C fg, shade mask)
 {
-    return (fg * mask + bg * (255 - mask)) / 255;
+    bg = (fg * mask + bg * (255 - mask)) / 255;
 }
 
 template<>
-constexpr color alpha_blend<color>(color bg, color fg, shade mask)
+constexpr void alpha_blend<color>(color& bg, color fg, shade mask)
 {
-    return {alpha_blend(bg.r, fg.r, mask), alpha_blend(bg.g, fg.g, mask), alpha_blend(bg.b, fg.b, mask)};
+     alpha_blend(bg.b, fg.b, mask);
+     alpha_blend(bg.g, fg.g, mask);
+     alpha_blend(bg.r, fg.r, mask);
 }

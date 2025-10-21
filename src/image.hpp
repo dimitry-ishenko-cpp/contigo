@@ -11,7 +11,6 @@
 #include "geom.hpp"
 
 #include <algorithm>
-#include <functional>
 #include <memory>
 #include <span>
 
@@ -38,8 +37,8 @@ public:
     constexpr auto span() const noexcept { return std::span{data(), size()}; }
 
     ////////////////////
-    image(::dim dim) : dim_{dim}, data_{std::make_unique<C[]>(size())} { }
-    image(::dim dim, C c) : image{dim} { std::ranges::fill(span(), c); }
+    image(struct dim dim) : dim_{dim}, data_{std::make_unique<C[]>(size())} { }
+    image(struct dim dim, C c) : image{dim} { std::ranges::fill(span(), c); }
 };
 
 template<typename C>
@@ -68,11 +67,9 @@ void alpha_blend(image<C>& img, pos pos, const image<shade>& mask, C c)
     auto px = img.data() + pos.y * img.width() + pos.x;
     auto mx = mask.data() + off.y * mask.width() + off.x;
 
-    for (; dim.height; --dim.height, px += img.width(), mx += mask.width())
-    {
-        using namespace std::placeholders;
-        auto px_end = px + dim.width;
-        auto mx_end = mx + dim.width;
-        std::ranges::transform(px, px_end, mx, mx_end, std::bind(&alpha_blend, _1, _2, c));
-    }
+    auto pd = img.width() - dim.width;
+    auto md = mask.width() - dim.width;
+
+    for (auto h = dim.height; h; --h, px += pd, mx += md)
+        for (auto w = dim.width; w; --w, ++px, ++mx) alpha_blend(*px, c, *mx);
 }
