@@ -229,12 +229,12 @@ pango::pango(std::string_view font, dim res, int dpi) : ft_lib_{create_ft_lib()}
     info() << "Using font: " << name << ", " << style << ", " << weight << ", size: " << size << ", cell: " << cell_.width << "x" << cell_.height;
 }
 
-bitmap pango::render_row(std::span<const cell> cells)
+image<color> pango::render(std::span<const cell> cells)
 {
     unsigned width = 0;
     for (auto&& cell : cells) width += cell.width;
 
-    bitmap bitmap{dim{width * cell_.width, cell_.height}};
+    image<color> bitmap{dim{width * cell_.width, cell_.height}};
 
     if (width)
     {
@@ -247,7 +247,7 @@ bitmap pango::render_row(std::span<const cell> cells)
         attr_state<bool> bold, italic, strike;
         attr_state<underline> under;
 
-        int col = 0;
+        unsigned col = 0;
         for (auto&& cell : cells)
         {
             char chars[cell::max_chars];

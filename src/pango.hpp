@@ -35,7 +35,7 @@ public:
     pango(std::string_view font, dim res, int dpi);
 
     constexpr auto dim_cell() const noexcept { return cell_; }
-    bitmap render_row(std::span<const cell>);
+    image<color> render(std::span<const cell>);
 
 private:
     ////////////////////

@@ -7,46 +7,49 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <limits>
 
 ////////////////////////////////////////////////////////////////////////////////
 using shade = std::uint8_t;
-constexpr auto shade_bits_per_pixel = sizeof(shade) * std::numeric_limits<shade>::digits;
-constexpr auto shade_num_colors = 1 << shade_bits_per_pixel;
 
 #pragma pack(push, 1)
 struct color
 {
     shade b, g, r, x;
 
-    constexpr static auto bits_per_pixel = (sizeof(r) + sizeof(g) + sizeof(b)) * std::numeric_limits<color>::digits;
-    constexpr static auto num_colors = 1 << bits_per_pixel;
-
-    ////////////////////
     constexpr color() = default;
     constexpr color(shade r, shade g, shade b) : b{b}, g{g}, r{r}, x{} { }
-
-    constexpr void alpha_blend(const color& c, shade mask)
-    {
-        b = (c.b * mask + b * (255 - mask)) / 255;
-        g = (c.g * mask + g * (255 - mask)) / 255;
-        r = (c.r * mask + r * (255 - mask)) / 255;
-    }
-    
-    constexpr void max_blend(const color& c)
-    {
-        b = std::max(b, c.b);
-        g = std::max(g, c.g);
-        r = std::max(r, c.r);
-    }
 };
 #pragma pack(pop)
 
-////////////////////////////////////////////////////////////////////////////////
+constexpr bool operator==(color x, color y) noexcept { return x.b == y.b && x.g == y.g && x.r == y.r; }
+
 constexpr color black{  0,   0,   0};
 constexpr color red  {255,   0,   0};
 constexpr color green{  0, 255,   0};
 constexpr color blue {  0,   0, 255};
 constexpr color white{255, 255, 255};
+
+////////////////////////////////////////////////////////////////////////////////
+template<typename C>
+inline auto bits_per_pixel = sizeof(C) * std::numeric_limits<C>::digits;
+
+template<>
+inline auto bits_per_pixel<color> = (sizeof(color) - sizeof(color::x)) * std::numeric_limits<color>::digits;
+
+template<typename C>
+inline auto num_colors = 1 << bits_per_pixel<C>;
+
+////////////////////////////////////////////////////////////////////////////////
+template<typename C>
+constexpr C alpha_blend(C bg, C fg, shade mask)
+{
+    return (fg * mask + bg * (255 - mask)) / 255;
+}
+
+template<>
+constexpr color alpha_blend<color>(color bg, color fg, shade mask)
+{
+    return {alpha_blend(bg.r, fg.r, mask), alpha_blend(bg.g, fg.g, mask), alpha_blend(bg.b, fg.b, mask)};
+}
