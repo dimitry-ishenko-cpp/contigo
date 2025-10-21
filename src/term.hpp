@@ -55,6 +55,6 @@ private:
     void enable();
     void disable();
 
-    void draw_row(int row, std::span<const cell>);
-    void move_rows(int row, unsigned rows, int distance);
+    void change(int row, std::span<const cell>);
+    void move(int row, unsigned rows, int distance);
 };

@@ -24,8 +24,8 @@ term::term(const asio::any_io_executor& ex, term_options options)
     auto dim_vte = dim{res.width / dim_cell.width, res.height / dim_cell.height};
 
     vte_ = std::make_unique<vte>(dim_vte);
-    vte_->on_row_changed([&](int row, std::span<const cell> cells){ draw_row(row, cells); });
-    vte_->on_rows_moved([&](int row, unsigned rows, int distance){ move_rows(row, rows, distance); });
+    vte_->on_row_changed([&](int row, std::span<const cell> cells){ change(row, cells); });
+    vte_->on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
     vte_->redraw();
 
     pty_ = std::make_unique<pty>(ex, std::move(options.login), std::move(options.args));
@@ -48,12 +48,12 @@ void term::disable()
     enabled_ = false;
 }
 
-void term::draw_row(int row, std::span<const cell> cells)
+void term::change(int row, std::span<const cell> cells)
 {
     // TODO
 }
 
-void term::move_rows(int row, unsigned rows, int distance)
+void term::move(int row, unsigned rows, int distance)
 {
     // TODO
 }
