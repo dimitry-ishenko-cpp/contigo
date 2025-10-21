@@ -114,61 +114,6 @@ struct attr_state
     A val{};
 };
 
-void render_background(image<color>& line, std::span<const cell> cells, unsigned cell_width)
-{
-    unsigned x = 0;
-    attr_state<color> bg;
-
-    for (auto&& cell : cells)
-    {
-        if (x == 0)
-            bg.val = cell.bg;
-        else if (cell.bg != bg.val)
-        {
-            fill(line, pos(bg.loc, 0), dim{x - bg.loc, line.height()}, bg.val);
-            bg.loc = x;
-            bg.val = cell.bg;
-        }
-        x += cell.width * cell_width;
-    }
-}
-
-template<typename A>
-void maybe_insert(pango_attrs& attrs, attr_state<A>& state, A new_val, unsigned new_col, auto(*new_attr_fn)(A))
-{
-    if (state.val != new_val)
-    {
-        if (state.val != A{})
-        {
-            auto attr = new_attr_fn(state.val);
-            attr->start_index = state.loc;
-            attr->end_index = new_col;
-            pango_attr_list_insert(&*attrs, attr);
-        }
-        state.val = new_val;
-        state.loc = new_col;
-    }
-}
-
-void render_layout(image<color>& background, pango_layout& layout, unsigned base, const color& fg)
-{
-    image<shade> mask{background.dim()};
-
-    FT_Bitmap ft_mask;
-    ft_mask.rows = mask.height();
-    ft_mask.width = mask.width();
-    ft_mask.pitch = mask.width() * sizeof(shade);
-    ft_mask.buffer = mask.data();
-    ft_mask.num_grays = num_colors<shade>;
-    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
-
-    auto line = pango_layout_get_line_readonly(&*layout, 0);
-    pango_ft2_render_layout_line(&ft_mask, line, 0, base);
-
-    alpha_blend(background, pos{0, 0}, mask, fg);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 void ucs4_to_utf8(char* out, const char32_t* in)
 {
     for (; *in; ++in)
@@ -198,6 +143,92 @@ void ucs4_to_utf8(char* out, const char32_t* in)
         }
     }
     *out = '\0';
+}
+
+template<typename A>
+void maybe_insert(pango_attrs& attrs, attr_state<A>& state, A new_val, unsigned new_col, auto(*new_attr_fn)(A))
+{
+    if (state.val != new_val)
+    {
+        if (state.val != A{})
+        {
+            auto attr = new_attr_fn(state.val);
+            attr->start_index = state.loc;
+            attr->end_index = new_col;
+            pango_attr_list_insert(&*attrs, attr);
+        }
+        state.val = new_val;
+        state.loc = new_col;
+    }
+}
+
+void render_background(image<color>& line, std::span<const cell> cells, unsigned cell_width)
+{
+    unsigned x = 0;
+    attr_state<color> bg;
+
+    for (auto&& cell : cells)
+    {
+        if (x == 0)
+            bg.val = cell.bg;
+        else if (cell.bg != bg.val)
+        {
+            fill(line, pos(bg.loc, 0), dim{x - bg.loc, line.height()}, bg.val);
+            bg.loc = x;
+            bg.val = cell.bg;
+        }
+        x += cell.width * cell_width;
+    }
+}
+
+void render_text(image<color>& line, pango_context& context, pango_font_desc& font_desc, std::span<const cell> cells, int x, color fg)
+{
+    auto layout = create_layout(context, font_desc);
+    auto base = pango_pixels(pango_layout_get_baseline(&*layout));
+
+    std::string text;
+    auto attrs = create_attrs();
+
+    attr_state<bool> bold, italic, strike;
+    attr_state<underline> under;
+
+    unsigned col = 0;
+    for (auto&& cell : cells)
+    {
+        char chars[cell::max_chars];
+        ucs4_to_utf8(chars, cell.chars);
+        text += chars;
+
+        maybe_insert(attrs, bold, cell.bold, col, &new_attr_bold);
+        maybe_insert(attrs, italic, cell.italic, col, &new_attr_italic);
+        maybe_insert(attrs, strike, cell.strike, col, &new_attr_strike);
+        maybe_insert(attrs, under, cell.under, col, &new_attr_under);
+
+        ++col;
+    }
+
+    maybe_insert(attrs, bold, false, col, &new_attr_bold);
+    maybe_insert(attrs, italic, false, col, &new_attr_italic);
+    maybe_insert(attrs, strike, false, col, &new_attr_strike);
+    maybe_insert(attrs, under, under_none, col, &new_attr_under);
+
+    pango_layout_set_text(&*layout, text.data(), -1);
+    pango_layout_set_attributes(&*layout, &*attrs);
+    auto line0 = pango_layout_get_line_readonly(&*layout, 0);
+
+    image<shade> mask{dim{line.width() - x, line.height()}};
+
+    FT_Bitmap ft_mask;
+    ft_mask.rows = mask.height();
+    ft_mask.width = mask.width();
+    ft_mask.pitch = mask.width() * sizeof(shade);
+    ft_mask.buffer = mask.data();
+    ft_mask.num_grays = num_colors<shade>;
+    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
+
+    pango_ft2_render_layout_line(&ft_mask, line0, 0, base);
+
+    alpha_blend(line, pos{x, 0}, mask, fg);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -253,39 +284,27 @@ image<color> pango::render(std::span<const cell> cells)
 
     render_background(line, cells, cell_.width);
 
-    auto layout = create_layout(context_, font_desc_);
-    auto base = pango_pixels(pango_layout_get_baseline(&*layout));
+    unsigned x = 0;
+    attr_state<color> fg;
+    attr_state<unsigned> len;
 
-    std::string text;
-    auto attrs = create_attrs();
-
-    attr_state<bool> bold, italic, strike;
-    attr_state<underline> under;
-
-    unsigned col = 0;
     for (auto&& cell : cells)
     {
-        char chars[cell::max_chars];
-        ucs4_to_utf8(chars, cell.chars);
-        text += chars;
+        if (x == 0)
+            fg.val = cell.fg;
+        else if (cell.fg != fg.val)
+        {
+            render_text(line, context_, font_desc_, cells.subspan(len.loc, len.val), fg.loc, fg.val);
 
-        maybe_insert(attrs, bold, cell.bold, col, &new_attr_bold);
-        maybe_insert(attrs, italic, cell.italic, col, &new_attr_italic);
-        maybe_insert(attrs, strike, cell.strike, col, &new_attr_strike);
-        maybe_insert(attrs, under, cell.under, col, &new_attr_under);
+            fg.loc = x;
+            fg.val = cell.fg;
 
-        ++col;
+            len.loc += len.val;
+            len.val = 0;
+        }
+        x += cell.width + cell_.width;
+        ++len.val;
     }
-
-    maybe_insert(attrs, bold, false, col, &new_attr_bold);
-    maybe_insert(attrs, italic, false, col, &new_attr_italic);
-    maybe_insert(attrs, strike, false, col, &new_attr_strike);
-    maybe_insert(attrs, under, under_none, col, &new_attr_under);
-
-    pango_layout_set_text(&*layout, text.data(), -1);
-    pango_layout_set_attributes(&*layout, &*attrs);
-
-    render_layout(line, layout, base, white);
 
     return line;
 }
