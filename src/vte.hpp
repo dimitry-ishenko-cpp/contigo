@@ -47,7 +47,7 @@ private:
     row_changed_callback row_cb_;
     rows_moved_callback move_cb_;
 
-    void change_row(int row, unsigned cols);
+    void change(int row, unsigned cols);
 
     ////////////////////
     struct dispatch;

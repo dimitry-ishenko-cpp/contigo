@@ -21,7 +21,7 @@ static int damage(VTermRect rect, void* ctx)
     {
         int rows, cols;
         vterm_get_size(&*vt->vterm_, &rows, &cols);
-        for (auto row = rect.start_row; row < rect.end_row; ++row) vt->change_row(row, cols);
+        for (auto row = rect.start_row; row < rect.end_row; ++row) vt->change(row, cols);
     }
     return true;
 }
@@ -125,7 +125,7 @@ void vte::redraw()
     vterm_set_size(&*vterm_, rows, cols);
 }
 
-void vte::change_row(int row, unsigned cols)
+void vte::change(int row, unsigned cols)
 {
     std::vector<cell> cells{cols};
 
