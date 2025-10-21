@@ -21,7 +21,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     pango_ = std::make_unique<pango>(options.font, res, options.dpi.value_or(dpi));
 
     auto dim_cell = pango_->dim_cell();
-    dim dim_vte{ res.width / dim_cell.width, res.height / dim_cell.height };
+    auto dim_vte = dim{res.width / dim_cell.width, res.height / dim_cell.height};
 
     vte_ = std::make_unique<vte>(dim_vte);
     vte_->on_row_changed([&](int row, std::span<const cell> cells){ draw_row(row, cells); });
