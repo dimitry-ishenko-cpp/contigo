@@ -5,6 +5,7 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "logging.hpp"
 #include "vte.hpp"
 
 #include <cstring> // std::memcpy
@@ -37,6 +38,7 @@ static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
     // TODO
+    // info() << "cursor: " << old_pos.col << "," << old_pos.row << " => " << pos.col << "," << pos.row;
     return true;
 }
 
@@ -44,6 +46,42 @@ static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
     // TODO
+    
+    static auto to_bool = [](VTermValue* val){ return val->boolean ? "on" : "off"; };
+    static auto to_string = [](VTermValue* val){ return std::string{val->string.str, val->string.len}; };
+    static auto to_cursor_shape = [](VTermValue* val){
+        switch (val->number)
+        {
+            case VTERM_PROP_CURSORSHAPE_BLOCK: return "block";
+            case VTERM_PROP_CURSORSHAPE_UNDERLINE: return "underline";
+            case VTERM_PROP_CURSORSHAPE_BAR_LEFT: return "bar-left";
+            default: return "???";
+        }
+    };
+    static auto to_mouse = [](VTermValue* val){
+        switch (val->number)
+        {
+            case VTERM_PROP_MOUSE_NONE: return "none";
+            case VTERM_PROP_MOUSE_CLICK: return "click";
+            case VTERM_PROP_MOUSE_DRAG: return "drag";
+            case VTERM_PROP_MOUSE_MOVE: return "move";
+            default: return "???";
+        }
+    };
+
+    switch (prop)
+    {
+        case VTERM_PROP_CURSORVISIBLE: info() << "cursor visible = " << to_bool(val); break;
+        case VTERM_PROP_CURSORBLINK  : info() << "cursor blink = " << to_bool(val); break;
+        case VTERM_PROP_ALTSCREEN    : info() << "alt screen = " << to_bool(val); break;
+        case VTERM_PROP_TITLE        : info() << "title = " << to_string(val); break;
+        case VTERM_PROP_ICONNAME     : info() << "icon name = " << to_string(val); break;
+        case VTERM_PROP_REVERSE      : info() << "reverse = " << to_bool(val); break;
+        case VTERM_PROP_CURSORSHAPE  : info() << "cursor shape = " << to_cursor_shape(val); break;
+        case VTERM_PROP_MOUSE        : info() << "mouse = " << to_mouse(val); break;
+        case VTERM_PROP_FOCUSREPORT  : info() << "focus report = " << to_bool(val); break;
+        default: break;
+    }
     return true;
 }
 
@@ -51,6 +89,7 @@ static int bell(void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
     // TODO
+    info() << "bell";
     return true;
 }
 
@@ -58,6 +97,7 @@ static int resize(int rows, int cols, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
     // TODO: resize scrollback
+    info() << "resize: " << cols << "x" << rows;
     return true;
 }
 
