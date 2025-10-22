@@ -5,6 +5,7 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "drm.hpp"
 #include "logging.hpp"
 #include "term.hpp"
 #include "tty.hpp"
@@ -37,6 +38,7 @@ try
         { "-t", "--tty", "ttyN|N",      "Use specified tty; otherwise, use the current one." },
         { "-a", "--activate",           "Activate given tty before starting.\n"},
 
+        { "-g", "--gpu", "cardN|N",     "Use specified graphics adapter; if none given, use the first detected." },
         { "-p", "--dpi", "N",           "Override DPI value reported by the screen." },
         { "-f", "--font", "name",       "Use specified font. Default: '" + options.font + "'\n" },
 
@@ -78,6 +80,9 @@ try
         auto tty = get_num(args["--tty"], tty::path, tty::name, "tty path or number");
         options.tty_num = tty.value_or(tty::active(ex));
         options.tty_activate = !!args["--activate"];
+
+        auto gpu = get_num(args["--gpu"], drm::path, drm::name, "GPU path or number");
+        options.drm_num = gpu.value_or(drm::any());
 
         auto dpi = get_num(args["--dpi"], {}, {}, "DPI value");
         if (dpi) options.dpi = *dpi;

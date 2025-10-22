@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "drm.hpp"
 #include "pango.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
@@ -23,8 +24,9 @@ struct term_options
     tty::num tty_num;
     bool tty_activate = false;
 
-    std::string font = "monospace, 20";
+    drm::num drm_num;
     std::optional<unsigned> dpi;
+    std::string font = "monospace, 20";
 
     std::string login = "/bin/login";
     std::vector<std::string> args;
@@ -42,7 +44,7 @@ public:
 private:
     ////////////////////
     std::unique_ptr<tty> tty_;
-    // TODO drm
+    std::unique_ptr<drm> drm_;
     std::unique_ptr<pango> pango_;
     std::unique_ptr<vte> vte_;
     std::unique_ptr<pty> pty_;
