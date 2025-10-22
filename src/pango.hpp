@@ -27,12 +27,24 @@ using pango_context = std::unique_ptr<_PangoContext, void(*)(void*)>;
 struct _PangoFontDescription;
 using pango_font_desc = std::unique_ptr<_PangoFontDescription, void(*)(_PangoFontDescription*)>;
 
+struct _PangoFont;
+using pango_font = std::unique_ptr<_PangoFont, void(*)(void*)>;
+
+struct _PangoFontMetrics;
+using pango_font_metrics = std::unique_ptr<_PangoFontMetrics, void(*)(_PangoFontMetrics*)>;
+
+struct _PangoLayout;
+using pango_layout = std::unique_ptr<_PangoLayout, void(*)(void*)>;
+
+struct _PangoAttrList;
+using pango_attrs = std::unique_ptr<_PangoAttrList, void(*)(_PangoAttrList*)>;
+
 ////////////////////////////////////////////////////////////////////////////////
 class pango
 {
 public:
     ////////////////////
-    pango(std::string_view font, dim res, int dpi);
+    pango(std::string_view font_desc, dim res, int dpi);
 
     constexpr auto dim_cell() const noexcept { return cell_; }
     image<color> render(std::span<const cell>);
@@ -45,4 +57,9 @@ private:
     pango_font_desc font_desc_;
 
     dim res_, cell_;
+
+    pango_layout layout_;
+    int baseline_;
+
+    void render_text(image<color>&, pos, dim, std::span<const cell>, color);
 };

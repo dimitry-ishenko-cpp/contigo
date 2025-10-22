@@ -43,17 +43,14 @@ auto create_context(pango_font_map& fontmap)
     return context;
 }
 
-auto create_font_desc(std::string_view font)
+auto create_font_desc(std::string_view font_desc)
 {
-    pango_font_desc desc{pango_font_description_from_string(font.data()), &pango_font_description_free};
+    pango_font_desc desc{pango_font_description_from_string(font_desc.data()), &pango_font_description_free};
     if (!desc) throw std::runtime_error{"Failed to create font description"};
     return desc;
 }
 
-using pango_font = std::unique_ptr<PangoFont, void(*)(void*)>;
-using pango_font_metrics = std::unique_ptr<PangoFontMetrics, void(*)(PangoFontMetrics*)>;
-
-auto get_dim_cell(pango_font_map& font_map, pango_context& context, pango_font_desc& font_desc)
+auto get_metrics(pango_font_map& font_map, pango_context& context, pango_font_desc& font_desc)
 {
     pango_font font{pango_font_map_load_font(&*font_map, &*context, &*font_desc), &g_object_unref};
     if (!font) throw std::runtime_error{"Failed to load font"};
@@ -61,15 +58,8 @@ auto get_dim_cell(pango_font_map& font_map, pango_context& context, pango_font_d
     pango_font_metrics metrics{pango_font_get_metrics(&*font, nullptr), &pango_font_metrics_unref};
     if (!metrics) throw std::runtime_error{"Failed to get font metrics"};
 
-    unsigned width = pango_pixels(pango_font_metrics_get_approximate_char_width(&*metrics));
-    unsigned height = pango_pixels(pango_font_metrics_get_height(&*metrics));
-
-    return dim{width, height};
+    return metrics;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-using pango_layout = std::unique_ptr<PangoLayout, void(*)(void*)>;
-using pango_attrs = std::unique_ptr<PangoAttrList, void(*)(PangoAttrList*)>;
 
 auto create_layout(pango_context& context, pango_font_desc& font_desc)
 {
@@ -85,117 +75,54 @@ auto create_attrs()
     return attrs;
 }
 
-auto new_attr_bold(bool bold)
+void maybe_insert_bold(pango_attrs& attrs, unsigned from, unsigned to, bool bold)
 {
-    return pango_attr_weight_new(bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL);
-}
-auto new_attr_italic(bool italic)
-{
-    return pango_attr_style_new(italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
-}
-auto new_attr_strike(bool strike)
-{
-    return pango_attr_strikethrough_new(strike);
-}
-auto new_attr_under(underline under)
-{
-    return pango_attr_underline_new(
-        (under == under_single) ? PANGO_UNDERLINE_SINGLE :
-        (under == under_double) ? PANGO_UNDERLINE_DOUBLE :
-        (under == under_error ) ? PANGO_UNDERLINE_ERROR  : PANGO_UNDERLINE_NONE
-    );
-}
-
-////////////////////////////////////////////////////////////////////////////////
-template<typename A>
-struct attr_state
-{
-    unsigned loc = 0;
-    A val{};
-};
-
-template<typename A>
-void maybe_insert(pango_attrs& attrs, attr_state<A>& state, A new_val, unsigned new_col, auto(*new_attr_fn)(A))
-{
-    if (state.val != new_val)
+    if (bold)
     {
-        if (state.val != A{})
-        {
-            auto attr = new_attr_fn(state.val);
-            attr->start_index = state.loc;
-            attr->end_index = new_col;
-            pango_attr_list_insert(&*attrs, attr);
-        }
-        state.val = new_val;
-        state.loc = new_col;
+        auto attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
+        attr->start_index = from;
+        attr->end_index = to;
+        pango_attr_list_insert(&*attrs, attr);
     }
 }
 
-void render_background(image<color>& line, std::span<const cell> cells, unsigned cell_width)
+void maybe_insert_italic(pango_attrs& attrs, unsigned from, unsigned to, bool italic)
 {
-    unsigned x = 0;
-    attr_state<color> bg;
-
-    for (auto&& cell : cells)
+    if (italic)
     {
-        if (x == 0)
-            bg.val = cell.bg;
-        else if (cell.bg != bg.val)
-        {
-            fill(line, pos(bg.loc, 0), dim{x - bg.loc, line.height()}, bg.val);
-            bg.loc = x;
-            bg.val = cell.bg;
-        }
-        x += cell.width * cell_width;
+        auto attr = pango_attr_style_new(PANGO_STYLE_ITALIC);
+        attr->start_index = from;
+        attr->end_index = to;
+        pango_attr_list_insert(&*attrs, attr);
     }
 }
 
-void render_text(image<color>& line, pango_context& context, pango_font_desc& font_desc, std::span<const cell> cells, int x, color fg)
+void maybe_insert_strike(pango_attrs& attrs, unsigned from, unsigned to, bool strike)
 {
-    auto layout = create_layout(context, font_desc);
-    auto base = pango_pixels(pango_layout_get_baseline(&*layout));
-
-    std::string text;
-    auto attrs = create_attrs();
-
-    attr_state<bool> bold, italic, strike;
-    attr_state<underline> under;
-
-    unsigned col = 0;
-    for (auto&& cell : cells)
+    if (strike)
     {
-        text += cell.chars;
+        auto attr = pango_attr_strikethrough_new(true);
+        attr->start_index = from;
+        attr->end_index = to;
+        pango_attr_list_insert(&*attrs, attr);
+    }
+}
 
-        maybe_insert(attrs, bold, cell.bold, col, &new_attr_bold);
-        maybe_insert(attrs, italic, cell.italic, col, &new_attr_italic);
-        maybe_insert(attrs, strike, cell.strike, col, &new_attr_strike);
-        maybe_insert(attrs, under, cell.under, col, &new_attr_under);
-
-        ++col;
+void maybe_insert_under(pango_attrs& attrs, unsigned from, unsigned to, underline under)
+{
+    PangoUnderline val;
+    switch (under)
+    {
+        case under_single: val = PANGO_UNDERLINE_SINGLE; break;
+        case under_double: val = PANGO_UNDERLINE_DOUBLE; break;
+        case under_error : val = PANGO_UNDERLINE_ERROR ; break;
+        default: return;
     }
 
-    maybe_insert(attrs, bold, false, col, &new_attr_bold);
-    maybe_insert(attrs, italic, false, col, &new_attr_italic);
-    maybe_insert(attrs, strike, false, col, &new_attr_strike);
-    maybe_insert(attrs, under, under_none, col, &new_attr_under);
-
-    pango_layout_set_text(&*layout, text.data(), -1);
-    pango_layout_set_attributes(&*layout, &*attrs);
-    auto line0 = pango_layout_get_line_readonly(&*layout, 0);
-
-    image<shade> mask{dim{line.width() - x, line.height()}};
-
-    FT_Bitmap ft_mask;
-    ft_mask.rows = mask.height();
-    ft_mask.width = mask.width();
-    ft_mask.pitch = mask.width() * sizeof(shade);
-    ft_mask.buffer = mask.data();
-    ft_mask.num_grays = num_colors<shade>;
-    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
-
-    pango_ft2_render_layout_line(&ft_mask, line0, 0, base);
-
-    alpha_blend(line, pos{x, 0}, mask, fg);
+    auto attr = pango_attr_underline_new(val);
+    attr->start_index = from;
+    attr->end_index = to;
+    pango_attr_list_insert(&*attrs, attr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,10 +160,18 @@ inline auto string(PangoWeight weight)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-pango::pango(std::string_view font, dim res, int dpi) : ft_lib_{create_ft_lib()},
-    font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font)},
-    res_{res}, cell_{get_dim_cell(font_map_, context_, font_desc_)}
+pango::pango(std::string_view font_desc, dim res, int dpi) : ft_lib_{create_ft_lib()},
+    font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font_desc)},
+    res_{res},
+    layout_{create_layout(context_, font_desc_)}
 {
+    auto metrics = get_metrics(font_map_, context_, font_desc_);
+    cell_.width = pango_pixels(pango_font_metrics_get_approximate_char_width(&*metrics));
+    cell_.height = pango_pixels(pango_font_metrics_get_height(&*metrics));
+
+    baseline_ = pango_pixels(pango_layout_get_baseline(&*layout_));
+
+    ////////////////////
     auto name = pango_font_description_get_family(&*font_desc_);
     auto style = string(pango_font_description_get_style(&*font_desc_));
     auto weight = string(pango_font_description_get_weight(&*font_desc_));
@@ -245,33 +180,104 @@ pango::pango(std::string_view font, dim res, int dpi) : ft_lib_{create_ft_lib()}
     info() << "Using font: " << name << ", " << style << ", " << weight << ", size: " << size << ", cell: " << cell_.width << "x" << cell_.height;
 }
 
-image<color> pango::render(std::span<const cell> cells)
+////////////////////////////////////////////////////////////////////////////////
+void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<const cell> cells, color fg)
 {
-    image<color> line{dim{res_.width, cell_.height}};
+    auto attrs = create_attrs();
 
-    render_background(line, cells, cell_.width);
+    auto begin = cells.begin();
+    auto from_bold = begin, from_italic = begin, from_strike = begin, from_under = begin;
+    std::string text = begin->chars;
 
-    unsigned x = 0;
-    attr_state<color> fg;
-    attr_state<unsigned> len;
-
-    for (auto&& cell : cells)
+    for (auto to = begin + 1; to != cells.end(); ++to)
     {
-        if (x == 0)
-            fg.val = cell.fg;
-        else if (cell.fg != fg.val)
+        text += to->chars;
+
+        if (to->bold != from_bold->bold)
         {
-            render_text(line, context_, font_desc_, cells.subspan(len.loc, len.val), fg.loc, fg.val);
-
-            fg.loc = x;
-            fg.val = cell.fg;
-
-            len.loc += len.val;
-            len.val = 0;
+            maybe_insert_bold(attrs, from_bold - begin, to - begin, from_bold->bold);
+            from_bold = to;
         }
-        x += cell.width + cell_.width;
-        ++len.val;
+
+        if (to->italic != from_italic->italic)
+        {
+            maybe_insert_italic(attrs, from_italic - begin, to - begin, from_italic->italic);
+            from_italic = to;
+        }
+
+        if (to->strike != from_strike->strike)
+        {
+            maybe_insert_strike(attrs, from_strike - begin, to - begin, from_strike->strike);
+            from_strike = to;
+        }
+
+        if (to->under != from_under->under)
+        {
+            maybe_insert_under(attrs, from_under - begin, to - begin, from_under->under);
+            from_under = to;
+        }
     }
 
-    return line;
+    maybe_insert_bold(attrs, from_bold - begin, cells.size(), from_bold->bold);
+    maybe_insert_italic(attrs, from_italic - begin, cells.size(), from_italic->italic);
+    maybe_insert_strike(attrs, from_strike - begin, cells.size(), from_strike->strike);
+    maybe_insert_under(attrs, from_under - begin, cells.size(), from_under->under);
+
+    pango_layout_set_text(&*layout_, text.data(), -1);
+    pango_layout_set_attributes(&*layout_, &*attrs);
+    auto line = pango_layout_get_line_readonly(&*layout_, 0);
+
+    image<shade> mask{dim};
+    FT_Bitmap ft_mask;
+    ft_mask.rows = mask.height();
+    ft_mask.width = mask.width();
+    ft_mask.pitch = mask.width() * sizeof(shade);
+    ft_mask.buffer = mask.data();
+    ft_mask.num_grays = num_colors<shade>;
+    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
+    pango_ft2_render_layout_line(&ft_mask, line, 0, baseline_);
+
+    alpha_blend(image_line, pos, mask, fg);
+}
+
+image<color> pango::render(std::span<const cell> cells)
+{
+    image<color> image_line{dim{res_.width, cell_.height}};
+
+    pos pos{0, 0};
+    dim dim{cell_.width, image_line.height()};
+
+    // render background
+    auto from = cells.begin();
+    for (auto to = from + 1; to != cells.end(); ++to, dim.width += cell_.width)
+    {
+        if (to->bg != from->bg)
+        {
+            fill(image_line, pos, dim, from->bg);
+
+            from = to;
+            pos.x += dim.width;
+            dim.width = 0;
+        }
+    }
+    fill(image_line, pos, dim, from->bg);
+
+    ////////////////////
+    pos.x = 0;
+    dim.width = cell_.width;
+
+    from = cells.begin();
+    for (auto to = from + 1; to != cells.end(); ++to, dim.width += cell_.width)
+    {
+        if (to->fg != from->fg)
+        {
+            render_text(image_line, pos, dim, std::span{from, to}, from->fg);
+            from = to;
+            pos.x += dim.width;
+            dim.width = 0;
+        }
+    }
+    render_text(image_line, pos, dim, std::span{from, cells.end()}, from->fg);
+
+    return image_line;
 }
