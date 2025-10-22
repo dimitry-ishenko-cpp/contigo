@@ -28,7 +28,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     vte_->on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
     vte_->redraw();
 
-    pty_ = std::make_unique<pty>(ex, std::move(options.login), std::move(options.args));
+    pty_ = std::make_unique<pty>(ex, dim_vte, std::move(options.login), std::move(options.args));
     vte_->on_size_changed([&](dim dim){ pty_->resize(dim); });
 
     tty_->on_read_data([&](std::span<const char> data){ pty_->write(data); });

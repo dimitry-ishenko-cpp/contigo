@@ -25,7 +25,7 @@ class pty
 public:
     ////////////////////
     // NB: passing by value here to have own copy with guaranteed lifetime
-    pty(const asio::any_io_executor&, std::string pgm, std::vector<std::string> args);
+    pty(const asio::any_io_executor&, dim, std::string pgm, std::vector<std::string> args);
     ~pty() { stop_child(); }
 
     using read_data_callback = std::function<void(std::span<const char>)>;

@@ -34,13 +34,14 @@ inline int pidfd_open(pid_t pid, unsigned flags)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::string> args) :
+pty::pty(const asio::any_io_executor& ex, dim dim, std::string pgm, std::vector<std::string> args) :
     fd_{ex}, child_fd_{ex}
 {
     info() << "Spawning child process";
 
     int pt;
-    child_pid_ = forkpty(&pt, nullptr, nullptr, nullptr);
+    winsize ws(dim.height, dim.width, 0, 0);
+    child_pid_ = forkpty(&pt, nullptr, nullptr, &ws);
     if (child_pid_ < 0) throw posix_error{"forkpty"};
 
     if (child_pid_ > 0) // parent
