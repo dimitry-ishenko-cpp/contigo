@@ -37,7 +37,7 @@ public:
     constexpr auto span() const noexcept { return std::span{data(), size()}; }
 
     ////////////////////
-    image(struct dim dim) : dim_{dim}, data_{std::make_unique<C[]>(size())} { }
+    image(struct dim dim) : dim_{dim}, data_{std::make_unique_for_overwrite<C[]>(size())} { }
     image(struct dim dim, C c) : image{dim} { std::ranges::fill(span(), c); }
 };
 

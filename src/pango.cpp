@@ -227,7 +227,7 @@ void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<co
     pango_layout_set_attributes(&*layout_, &*attrs);
     auto line = pango_layout_get_line_readonly(&*layout_, 0);
 
-    image<shade> mask{dim};
+    image<shade> mask{dim, 0};
     FT_Bitmap ft_mask;
     ft_mask.rows = mask.height();
     ft_mask.width = mask.width();
