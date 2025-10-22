@@ -58,18 +58,20 @@ void fill(image<C>& img, pos pos, dim dim, C c)
 template<typename C>
 void alpha_blend(image<C>& img, pos pos, const image<shade>& mask, C c)
 {
-    auto off = ::pos{-pos.x, -pos.y};
-    auto dim = mask.dim();
+    auto mask_pos = pos;
+    auto mask_dim = mask.dim();
+    clip_within(img.dim(), &mask_pos, &mask_dim);
 
-    clip_within(img.dim(), &pos, &dim);
-    clip_within(mask.dim(), &off, &dim);
+    auto img_pos = -pos;
+    auto img_dim = img.dim();
+    clip_within(mask.dim(), &img_pos, &img_dim);
 
-    auto px = img.data() + pos.y * img.width() + pos.x;
-    auto mx = mask.data() + off.y * mask.width() + off.x;
+    auto px = img.data() + mask_pos.y * img.width() + mask_pos.x;
+    auto mx = mask.data() + img_pos.y * mask.width() + img_pos.x;
 
-    auto pd = img.width() - dim.width;
-    auto md = mask.width() - dim.width;
+    auto pd = img.width() - mask_dim.width;
+    auto md = mask.width() - img_dim.width;
 
-    for (auto h = dim.height; h; --h, px += pd, mx += md)
-        for (auto w = dim.width; w; --w, ++px, ++mx) alpha_blend(*px, c, *mx);
+    for (auto h = mask_dim.height; h; --h, px += pd, mx += md)
+        for (auto w = mask_dim.width; w; --w, ++px, ++mx) alpha_blend(*px, c, *mx);
 }
