@@ -5,12 +5,14 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "command.hpp"
 #include "error.hpp"
 #include "logging.hpp"
 #include "pty.hpp"
 
 #include <asio/buffer.hpp>
 #include <asio/write.hpp>
+#include <csignal>
 #include <thread>
 
 #include <pty.h> // forkpty
@@ -55,9 +57,15 @@ pty::pty(const asio::any_io_executor& ex, std::string pgm, std::vector<std::stri
     else start_child(std::move(pgm), std::move(args));
 }
 
-void pty::write(std::span<const char> data)
+void pty::write(std::span<const char> data) { asio::write(fd_, asio::buffer(data)); }
+
+void pty::resize(dim dim)
 {
-    asio::write(fd_, asio::buffer(data));
+    info() << "Resizing pty to: " << dim.width << "x" << dim.height;
+    command<TIOCSWINSZ, winsize> cmd{winsize(dim.height, dim.width)};
+    fd_.io_control(cmd);
+
+    if (child_pid_) kill(child_pid_, SIGWINCH);
 }
 
 void pty::sched_async_read()

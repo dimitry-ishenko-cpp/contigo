@@ -7,6 +7,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "geom.hpp"
+
 #include <array>
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
@@ -33,6 +35,7 @@ public:
     void on_child_exit(child_exit_callback cb) { child_cb_ = std::move(cb); }
 
     void write(std::span<const char>);
+    void resize(dim);
 
 private:
     ////////////////////
