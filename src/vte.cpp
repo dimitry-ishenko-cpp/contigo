@@ -30,7 +30,13 @@ static int damage(VTermRect rect, void* ctx)
 static int move_rect(VTermRect dst, VTermRect src, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    if (vt->move_cb_) vt->move_cb_(src.start_row, src.end_row - src.start_row, dst.start_row - src.start_row);
+    if (vt->move_cb_)
+    {
+        int row = src.start_row;
+        unsigned rows = src.end_row - src.start_row;
+        int distance = dst.start_row - src.start_row;
+        vt->move_cb_(row, rows, distance);
+    }
     return true;
 }
 
@@ -96,29 +102,7 @@ static int bell(void* ctx)
 static int resize(int rows, int cols, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    // TODO: resize scrollback
     info() << "resize: " << cols << "x" << rows;
-    return true;
-}
-
-static int scroll_push_line(int cols, const VTermScreenCell* cells, void* ctx)
-{
-    auto vt = static_cast<vte*>(ctx);
-    // TODO
-    return true;
-}
-
-static int scroll_pop_line(int cols, VTermScreenCell* cells, void* ctx)
-{
-    auto vt = static_cast<vte*>(ctx);
-    // TODO
-    return true;
-}
-
-static int scroll_clear(void* ctx)
-{
-    auto vt = static_cast<vte*>(ctx);
-    // TODO
     return true;
 }
 
@@ -137,9 +121,9 @@ vte::vte(dim dim) :
         .settermprop = dispatch::set_prop,
         .bell        = dispatch::bell,
         .resize      = dispatch::resize,
-        .sb_pushline = dispatch::scroll_push_line,
-        .sb_popline  = dispatch::scroll_pop_line,
-        .sb_clear    = dispatch::scroll_clear,
+        .sb_pushline = nullptr,
+        .sb_popline  = nullptr,
+        .sb_clear    = nullptr,
     };
 
     vterm_set_utf8(&*vterm_, true);
