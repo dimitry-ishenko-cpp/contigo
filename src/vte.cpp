@@ -102,7 +102,7 @@ static int bell(void* ctx)
 static int resize(int rows, int cols, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    info() << "resize: " << cols << "x" << rows;
+    if (vt->size_cb_) vt->size_cb_(dim(cols, rows));
     return true;
 }
 

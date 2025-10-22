@@ -32,6 +32,9 @@ public:
     using rows_moved_callback = std::function<void(int row, unsigned rows, int distance)>;
     void on_rows_moved(rows_moved_callback cb) { move_cb_ = std::move(cb); }
 
+    using size_changed_callback = std::function<void(dim)>;
+    void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
+
     ////////////////////
     void write(std::span<const char>);
     void commit();
@@ -46,6 +49,7 @@ private:
 
     row_changed_callback row_cb_;
     rows_moved_callback move_cb_;
+    size_changed_callback size_cb_;
 
     void change(int row, unsigned cols);
 
