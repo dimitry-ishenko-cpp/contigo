@@ -109,6 +109,43 @@ static int resize(int rows, int cols, void* ctx)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+namespace
+{
+
+void ucs4_to_utf8(char* out, const uint32_t* in)
+{
+    for (; *in; ++in)
+    {
+        auto cp = *in;
+        if (cp <= 0x7f)
+        {
+            *out++ = cp;
+        }
+        else if (cp <= 0x7ff)
+        {
+            *out++ = 0xc0 | (cp >>  6);
+            *out++ = 0x80 | (cp & 0x3f);
+        }
+        else if (cp <= 0xffff)
+        {
+            *out++ = 0xe0 | ( cp >> 12);
+            *out++ = 0x80 | ((cp >>  6) & 0x3f);
+            *out++ = 0x80 | ( cp & 0x3f);
+        }
+        else if (cp <= 0x10ffff)
+        {
+            *out++ = 0xf0 | ( cp >> 18);
+            *out++ = 0x80 | ((cp >> 12) & 0x3f);
+            *out++ = 0x80 | ((cp >>  6) & 0x3f);
+            *out++ = 0x80 | ( cp & 0x3f);
+        }
+    }
+    *out = '\0';
+}
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
 vte::vte(dim dim) :
     vterm_{vterm_new(dim.height, dim.width), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)}
@@ -162,7 +199,7 @@ void vte::change(int row, unsigned cols)
             vterm_state_convert_color_to_rgb(state_, &vc.fg);
             vterm_state_convert_color_to_rgb(state_, &vc.bg);
 
-            std::memcpy(cell->chars, vc.chars, sizeof(vc.chars));
+            ucs4_to_utf8(cell->chars, vc.chars);
             cell->width = vc.width;
 
             cell->bold  = vc.attrs.bold;

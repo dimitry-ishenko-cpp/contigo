@@ -114,37 +114,6 @@ struct attr_state
     A val{};
 };
 
-void ucs4_to_utf8(char* out, const char32_t* in)
-{
-    for (; *in; ++in)
-    {
-        auto cp = *in;
-        if (cp <= 0x7f)
-        {
-            *out++ = cp;
-        }
-        else if (cp <= 0x7ff)
-        {
-            *out++ = 0xc0 | (cp >>  6);
-            *out++ = 0x80 | (cp & 0x3f);
-        }
-        else if (cp <= 0xffff)
-        {
-            *out++ = 0xe0 | ( cp >> 12);
-            *out++ = 0x80 | ((cp >>  6) & 0x3f);
-            *out++ = 0x80 | ( cp & 0x3f);
-        }
-        else if (cp <= 0x10ffff)
-        {
-            *out++ = 0xf0 | ( cp >> 18);
-            *out++ = 0x80 | ((cp >> 12) & 0x3f);
-            *out++ = 0x80 | ((cp >>  6) & 0x3f);
-            *out++ = 0x80 | ( cp & 0x3f);
-        }
-    }
-    *out = '\0';
-}
-
 template<typename A>
 void maybe_insert(pango_attrs& attrs, attr_state<A>& state, A new_val, unsigned new_col, auto(*new_attr_fn)(A))
 {
@@ -195,9 +164,7 @@ void render_text(image<color>& line, pango_context& context, pango_font_desc& fo
     unsigned col = 0;
     for (auto&& cell : cells)
     {
-        char chars[cell::max_chars];
-        ucs4_to_utf8(chars, cell.chars);
-        text += chars;
+        text += cell.chars;
 
         maybe_insert(attrs, bold, cell.bold, col, &new_attr_bold);
         maybe_insert(attrs, italic, cell.italic, col, &new_attr_italic);
