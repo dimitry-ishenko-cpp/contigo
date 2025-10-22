@@ -39,9 +39,6 @@ public:
     using exit_callback = pty::child_exit_callback;
     void on_exit(exit_callback cb) { pty_->on_child_exit(std::move(cb)); }
 
-    ////////////////////
-    static tty::num active(const asio::any_io_executor& ex) { return tty::active(ex); }
-
 private:
     ////////////////////
     std::unique_ptr<tty> tty_;

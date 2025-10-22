@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "logging.hpp"
 #include "term.hpp"
+#include "tty.hpp"
 
 #include <asio.hpp>
 #include <charconv> // std::from_chars
@@ -75,7 +76,7 @@ try
 
         ////////////////////
         auto tty = get_num(args["--tty"], tty::path, tty::name, "tty path or number");
-        options.tty_num = tty.value_or(term::active(ex));
+        options.tty_num = tty.value_or(tty::active(ex));
         options.tty_activate = !!args["--activate"];
 
         auto dpi = get_num(args["--dpi"], {}, {}, "DPI value");
