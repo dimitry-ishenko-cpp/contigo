@@ -33,16 +33,16 @@ try
 
     pgm::args args
     {
-        { "-t", "--tty", "/dev/ttyN|ttyN|N",    "If specified, use ttyN. Otherwise, use the current one." },
-        { "-a", "--activate",                   "Activate given tty before starting.\n"},
+        { "-t", "--tty", "ttyN|N",      "Use specified tty; otherwise, use the current one." },
+        { "-a", "--activate",           "Activate given tty before starting.\n"},
 
-        { "-f", "--font", "name",               "Use specified font. Default: '" + options.font + "'" },
-        { "-p", "--dpi", "N",                   "Override DPI value reported by the screen.\n" },
+        { "-p", "--dpi", "N",           "Override DPI value reported by the screen." },
+        { "-f", "--font", "name",       "Use specified font. Default: '" + options.font + "'\n" },
 
-        { "-v", "--version",                    "Print version number and exit" },
-        { "-h", "--help",                       "Show this help" },
+        { "-v", "--version",            "Print version number and exit" },
+        { "-h", "--help",               "Show this help" },
 
-        { "login", pgm::mul | pgm::opt,         "Launch specified login program. Default: " + options.login },
+        { "login", pgm::mul | pgm::opt, "Launch specified login program. Default: " + options.login },
     };
 
     std::exception_ptr ep;
@@ -78,11 +78,11 @@ try
         options.tty_num = tty.value_or(term::active(ex));
         options.tty_activate = !!args["--activate"];
 
-        auto font = args["--font"];
-        if (font) options.font = font.value();
-
         auto dpi = get_num(args["--dpi"], {}, {}, "DPI value");
         if (dpi) options.dpi = *dpi;
+
+        auto font = args["--font"];
+        if (font) options.font = font.value();
 
         options.args = args["login"].values();
         if (options.args.size())
