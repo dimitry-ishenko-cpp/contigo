@@ -30,8 +30,8 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     pty_ = std::make_unique<pty>(ex, std::move(options.login), std::move(options.args));
 
-    tty_->on_read_data([&](auto data){ pty_->write(data); });
-    pty_->on_read_data([&](auto data){ vte_->write(data); });
+    tty_->on_read_data([&](std::span<const char> data){ pty_->write(data); });
+    pty_->on_read_data([&](std::span<const char> data){ vte_->write(data); });
 }
 
 void term::enable()
