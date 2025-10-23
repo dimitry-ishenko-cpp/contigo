@@ -126,7 +126,7 @@ void maybe_insert_under(pango_attrs& attrs, unsigned from, unsigned to, unsigned
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-inline auto string(PangoStyle style)
+auto string(PangoStyle style)
 {
     switch (style)
     {
@@ -137,7 +137,7 @@ inline auto string(PangoStyle style)
     }
 }
 
-inline auto string(PangoWeight weight)
+auto string(PangoWeight weight)
 {
     switch (weight)
     {
@@ -173,11 +173,11 @@ pango::pango(std::string_view font_desc, dim res, int dpi) : ft_lib_{create_ft_l
 
     ////////////////////
     auto name = pango_font_description_get_family(&*font_desc_);
-    auto style = string(pango_font_description_get_style(&*font_desc_));
-    auto weight = string(pango_font_description_get_weight(&*font_desc_));
+    auto style= string(pango_font_description_get_style(&*font_desc_));
+    auto wght = string(pango_font_description_get_weight(&*font_desc_));
     auto size = pango_pixels(pango_font_description_get_size(&*font_desc_));
 
-    info() << "Using font: " << name << ", " << style << ", " << weight << ", size: " << size << ", cell: " << cell_.width << "x" << cell_.height;
+    info() << "Using font: " << name << ", " << style << ", " << wght << ", size: " << size << ", cell: " << cell_.width << "x" << cell_.height;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -192,25 +192,21 @@ void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<co
     for (auto to = begin + 1; to != cells.end(); ++to)
     {
         text += to->chars;
-
         if (to->bold != from_bold->bold)
         {
             maybe_insert_bold(attrs, from_bold - begin, to - begin, from_bold->bold);
             from_bold = to;
         }
-
         if (to->italic != from_italic->italic)
         {
             maybe_insert_italic(attrs, from_italic - begin, to - begin, from_italic->italic);
             from_italic = to;
         }
-
         if (to->strike != from_strike->strike)
         {
             maybe_insert_strike(attrs, from_strike - begin, to - begin, from_strike->strike);
             from_strike = to;
         }
-
         if (to->underline != from_under->underline)
         {
             maybe_insert_under(attrs, from_under - begin, to - begin, from_under->underline);
