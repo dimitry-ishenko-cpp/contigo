@@ -15,12 +15,12 @@ term::term(const asio::any_io_executor& ex, term_options options)
     tty_->on_release([&]{ disable(); });
 
     drm_ = std::make_unique<drm>(ex, options.drm_num);
-    auto res = drm_->res();
+    auto mode = drm_->mode();
 
-    pango_ = std::make_unique<pango>(options.font, res, options.dpi.value_or(drm_->dpi()));
+    pango_ = std::make_unique<pango>(options.font, mode, options.dpi.value_or(drm_->dpi()));
 
     auto dim_cell = pango_->dim_cell();
-    auto dim_vte = dim{res.width / dim_cell.width, res.height / dim_cell.height};
+    auto dim_vte = dim{mode.width / dim_cell.width, mode.height / dim_cell.height};
 
     vte_ = std::make_unique<vte>(dim_vte);
     vte_->on_row_changed([&](int row, std::span<const cell> cells){ change(row, cells); });
