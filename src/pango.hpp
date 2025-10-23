@@ -44,7 +44,7 @@ class pango
 {
 public:
     ////////////////////
-    pango(std::string_view font_desc, dim res, int dpi);
+    pango(std::string_view font_desc, dim mode, unsigned dpi);
 
     constexpr auto dim_cell() const noexcept { return cell_; }
     image<color> render(std::span<const cell>);
@@ -56,7 +56,7 @@ private:
     pango_context context_;
     pango_font_desc font_desc_;
 
-    dim res_, cell_;
+    dim mode_, cell_;
 
     pango_layout layout_;
     int baseline_;

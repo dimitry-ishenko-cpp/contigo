@@ -160,9 +160,9 @@ auto string(PangoWeight weight)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-pango::pango(std::string_view font_desc, dim res, int dpi) : ft_lib_{create_ft_lib()},
+pango::pango(std::string_view font_desc, dim mode, unsigned dpi) : ft_lib_{create_ft_lib()},
     font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font_desc)},
-    res_{res},
+    mode_{mode},
     layout_{create_layout(context_, font_desc_)}
 {
     auto metrics = get_metrics(font_map_, context_, font_desc_);
@@ -238,7 +238,7 @@ void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<co
 
 image<color> pango::render(std::span<const cell> cells)
 {
-    image<color> image_line{dim{res_.width, cell_.height}};
+    image<color> image_line{dim{mode_.width, cell_.height}};
 
     pos pos{0, 0};
     dim dim{cell_.width, image_line.height()};
