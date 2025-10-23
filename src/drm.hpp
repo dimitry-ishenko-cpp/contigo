@@ -11,6 +11,19 @@
 
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
+#include <cstdint>
+#include <memory>
+
+struct _drmModeRes;
+using drm_mode_res = std::unique_ptr<_drmModeRes, void(*)(_drmModeRes*)>;
+
+struct _drmModeConnector;
+using drm_mode_conn = std::unique_ptr<_drmModeConnector, void(*)(_drmModeConnector*)>;
+
+struct _drmModeEncoder;
+using drm_mode_enc = std::unique_ptr<_drmModeEncoder, void(*)(_drmModeEncoder*)>;
+
+struct _drmModeCrtc;
 
 ////////////////////////////////////////////////////////////////////////////////
 class drm
@@ -35,5 +48,21 @@ public:
 
 private:
     ////////////////////
+    struct drm_scoped_crtc
+    {
+        asio::posix::stream_descriptor& fd;
+        std::uint32_t conn_id;
+        _drmModeCrtc* crtc;
+
+        drm_scoped_crtc(asio::posix::stream_descriptor&, drm_mode_conn&, drm_mode_enc&);
+        ~drm_scoped_crtc();
+    };
+
+    ////////////////////
     asio::posix::stream_descriptor fd_;
+
+    drm_mode_res res_;
+    drm_mode_conn conn_;
+    drm_mode_enc enc_;
+    drm_scoped_crtc crtc_;
 };
