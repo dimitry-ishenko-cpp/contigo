@@ -18,8 +18,8 @@ struct color
 {
     shade b, g, r, x;
 
-    constexpr color() = default;
-    constexpr color(shade r, shade g, shade b) : b{b}, g{g}, r{r}, x{} { }
+    constexpr color() noexcept = default;
+    constexpr color(shade r, shade g, shade b) noexcept : b{b}, g{g}, r{r}, x{} { }
 };
 #pragma pack(pop)
 
