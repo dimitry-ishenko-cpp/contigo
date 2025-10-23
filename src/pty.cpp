@@ -37,7 +37,7 @@ inline int pidfd_open(pid_t pid, unsigned flags)
 pty::pty(const asio::any_io_executor& ex, dim dim, std::string pgm, std::vector<std::string> args) :
     fd_{ex}, child_fd_{ex}
 {
-    info() << "Spawning child process";
+    info() << "Spawning child on pseudo tty";
 
     int pt;
     winsize ws(dim.height, dim.width, 0, 0);
