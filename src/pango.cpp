@@ -108,14 +108,14 @@ void maybe_insert_strike(pango_attrs& attrs, unsigned from, unsigned to, bool st
     }
 }
 
-void maybe_insert_under(pango_attrs& attrs, unsigned from, unsigned to, underline under)
+void maybe_insert_under(pango_attrs& attrs, unsigned from, unsigned to, unsigned underline)
 {
     PangoUnderline val;
-    switch (under)
+    switch (underline)
     {
-        case under_single: val = PANGO_UNDERLINE_SINGLE; break;
-        case under_double: val = PANGO_UNDERLINE_DOUBLE; break;
-        case under_error : val = PANGO_UNDERLINE_ERROR ; break;
+        case 1: val = PANGO_UNDERLINE_SINGLE; break;
+        case 2: val = PANGO_UNDERLINE_DOUBLE; break;
+        case 3: val = PANGO_UNDERLINE_ERROR ; break;
         default: return;
     }
 
@@ -211,9 +211,9 @@ void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<co
             from_strike = to;
         }
 
-        if (to->under != from_under->under)
+        if (to->underline != from_under->underline)
         {
-            maybe_insert_under(attrs, from_under - begin, to - begin, from_under->under);
+            maybe_insert_under(attrs, from_under - begin, to - begin, from_under->underline);
             from_under = to;
         }
     }
@@ -221,7 +221,7 @@ void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<co
     maybe_insert_bold(attrs, from_bold - begin, cells.size(), from_bold->bold);
     maybe_insert_italic(attrs, from_italic - begin, cells.size(), from_italic->italic);
     maybe_insert_strike(attrs, from_strike - begin, cells.size(), from_strike->strike);
-    maybe_insert_under(attrs, from_under - begin, cells.size(), from_under->under);
+    maybe_insert_under(attrs, from_under - begin, cells.size(), from_under->underline);
 
     pango_layout_set_text(&*layout_, text.data(), -1);
     pango_layout_set_attributes(&*layout_, &*attrs);

@@ -205,7 +205,7 @@ void vte::change(int row, unsigned cols)
             cell->bold  = vc.attrs.bold;
             cell->italic= vc.attrs.italic;
             cell->strike= vc.attrs.strike;
-            cell->under = static_cast<underline>(vc.attrs.underline);
+            cell->underline = vc.attrs.underline;
 
             cell->fg = color{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
             cell->bg = color{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};

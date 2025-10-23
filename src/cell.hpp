@@ -10,8 +10,6 @@
 #include "color.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
-enum underline { under_none, under_single, under_double, under_error };
-
 struct cell
 {
     static constexpr unsigned max_chars = 32;
@@ -22,7 +20,7 @@ struct cell
     bool bold;
     bool italic;
     bool strike;
-    underline under;
+    unsigned underline :2;
 
     color fg, bg;
 };
