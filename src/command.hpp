@@ -11,11 +11,11 @@ template<int Op, typename T>
 struct command
 {
     T val;
-    constexpr auto data()
+    constexpr auto data() noexcept
     {
         if constexpr (std::is_fundamental_v<T>) return reinterpret_cast<void*>(val);
         else if constexpr (std::is_pointer_v<T>) return static_cast<void*>(val);
         else return static_cast<void*>(&val);
     }
-    constexpr auto name() const { return Op; }
+    constexpr auto name() const noexcept { return Op; }
 };
