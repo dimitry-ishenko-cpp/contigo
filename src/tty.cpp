@@ -27,7 +27,7 @@ enum signals
     acquire = SIGUSR2,
 };
 
-inline auto open_device(const asio::any_io_executor& ex, tty::num num)
+auto open_device(const asio::any_io_executor& ex, tty::num num)
 {
     auto path = tty::path + std::to_string(num);
 

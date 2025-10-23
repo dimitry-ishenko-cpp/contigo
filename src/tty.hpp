@@ -25,9 +25,6 @@ public:
     static constexpr auto path = "/dev/tty";
     using num = unsigned;
 
-    struct activate_t { constexpr activate_t() = default; };
-    static constexpr activate_t activate{};
-
     ////////////////////
     tty(const asio::any_io_executor&, num, bool active);
 
