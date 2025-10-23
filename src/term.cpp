@@ -39,6 +39,7 @@ void term::enable()
     info() << "Enabling screen rendering";
     enabled_ = true;
 
+    drm_->enable();
     vte_->reload();
 }
 
@@ -46,6 +47,8 @@ void term::disable()
 {
     info() << "Disabling screen rendering";
     enabled_ = false;
+
+    drm_->disable();
 }
 
 void term::change(int row, std::span<const cell> cells)

@@ -5,10 +5,14 @@
 // Distributed under the GNU GPL license. See the LICENSE.md file for details.
 
 ////////////////////////////////////////////////////////////////////////////////
+#include "command.hpp"
 #include "drm.hpp"
 #include "error.hpp"
+#include "logging.hpp"
 
 #include <fcntl.h> // open
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 namespace
@@ -31,4 +35,18 @@ drm::drm(const asio::any_io_executor& ex, drm::num num) :
     fd_{open_device(ex, num)}
 {
     // TODO
+}
+
+void drm::disable()
+{
+    info() << "Dropping drm master";
+    command<DRM_IOCTL_DROP_MASTER, int> cmd{0};
+    fd_.io_control(cmd);
+}
+
+void drm::enable()
+{
+    info() << "Acquiring drm master";
+    command<DRM_IOCTL_SET_MASTER, int> cmd{0};
+    fd_.io_control(cmd);
 }

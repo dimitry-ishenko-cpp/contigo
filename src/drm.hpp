@@ -27,6 +27,9 @@ public:
     constexpr auto res() const noexcept { return dim{1920, 1080}; }
     constexpr auto dpi() const noexcept { return 96; }
 
+    void disable();
+    void enable();
+
     ////////////////////
     static num any() { return 0; }
 
