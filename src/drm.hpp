@@ -37,8 +37,8 @@ public:
     ////////////////////
     drm(const asio::any_io_executor&, num);
 
-    constexpr auto mode() const noexcept { return dim{1920, 1080}; }
-    constexpr auto dpi() const noexcept { return 96; }
+    constexpr auto mode() const noexcept { return mode_; }
+    constexpr auto dpi() const noexcept { return dpi_; }
 
     void disable();
     void enable();
@@ -65,4 +65,7 @@ private:
     drm_mode_conn conn_;
     drm_mode_enc enc_;
     drm_scoped_crtc crtc_;
+
+    dim mode_;
+    unsigned dpi_ = 96;
 };

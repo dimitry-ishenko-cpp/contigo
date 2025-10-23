@@ -66,7 +66,22 @@ drm::drm(const asio::any_io_executor& ex, drm::num num) :
     res_{get_drm_mode_res(fd_)}, conn_{get_drm_mode_conn(fd_, res_)}, enc_{get_drm_mode_enc(fd_, conn_)},
     crtc_{fd_, conn_, enc_}
 {
-    // TODO
+    if (!conn_->count_modes) throw std::runtime_error{"Connection has no modes"};
+
+    mode_.width = conn_->modes[0].hdisplay;
+    mode_.height = conn_->modes[0].vdisplay;
+
+    std::string size;
+    if (conn_->mmWidth && conn_->mmHeight)
+    {
+        size = std::to_string(conn_->mmWidth) + "mm x " + std::to_string(conn_->mmHeight) + "mm, ";
+
+        double dpi_x = 25.4 * mode_.width / conn_->mmWidth;
+        double dpi_y = 25.4 * mode_.height / conn_->mmHeight;
+        dpi_ = (dpi_x + dpi_y) / 2 + .5;
+    }
+
+    info() << "Screen info: " << mode_.width << "x" << mode_.height << ", " << size << "DPI = " << dpi_;
 }
 
 void drm::disable()
