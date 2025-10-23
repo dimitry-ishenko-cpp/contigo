@@ -25,7 +25,7 @@ public:
     }
 
     template<typename T>
-    auto& operator<<(T&& v) noexcept
+    auto& operator<<(T&& v)
     {
         ss_ << std::forward<T>(v);
         return *this;
@@ -37,5 +37,5 @@ private:
     std::FILE* fs_;
 };
 
-inline auto info() noexcept { return logstream{stdout}; }
-inline auto err() noexcept { return logstream{stderr}; }
+inline auto info() { return logstream{stdout}; }
+inline auto err() { return logstream{stderr}; }
