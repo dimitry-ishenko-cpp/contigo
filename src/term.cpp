@@ -25,7 +25,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     vte_ = std::make_unique<vte>(dim_vte);
     vte_->on_row_changed([&](int row, std::span<const cell> cells){ change(row, cells); });
     vte_->on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
-    vte_->redraw();
+    vte_->reload();
 
     pty_ = std::make_unique<pty>(ex, dim_vte, std::move(options.login), std::move(options.args));
     vte_->on_size_changed([&](dim dim){ pty_->resize(dim); });
@@ -39,7 +39,7 @@ void term::enable()
     info() << "Enabling screen rendering";
     enabled_ = true;
 
-    vte_->redraw();
+    vte_->reload();
 }
 
 void term::disable()

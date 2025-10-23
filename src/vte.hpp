@@ -15,6 +15,8 @@
 #include <span>
 
 struct VTerm;
+using vterm = std::unique_ptr<VTerm, void(*)(VTerm*)>;
+
 struct VTermScreen;
 struct VTermState;
 
@@ -39,19 +41,21 @@ public:
     void write(std::span<const char>);
     void commit();
 
-    void redraw();
+    void resize(dim);
+    void reload();
 
 private:
     ////////////////////
-    std::unique_ptr<VTerm, void(*)(VTerm*)> vterm_;
+    vterm vterm_;
     VTermScreen* screen_;
     VTermState* state_;
+    dim dim_;
 
     row_changed_callback row_cb_;
     rows_moved_callback move_cb_;
     size_changed_callback size_cb_;
 
-    void change(int row, unsigned cols);
+    void change(int row);
 
     ////////////////////
     struct dispatch;

@@ -18,12 +18,7 @@ struct vte::dispatch
 static int damage(VTermRect rect, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    if (vt->row_cb_)
-    {
-        int rows, cols;
-        vterm_get_size(&*vt->vterm_, &rows, &cols);
-        for (auto row = rect.start_row; row < rect.end_row; ++row) vt->change(row, cols);
-    }
+    if (vt->row_cb_) for (auto row = rect.start_row; row < rect.end_row; ++row) vt->change(row);
     return true;
 }
 
@@ -44,7 +39,6 @@ static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
     // TODO
-    // info() << "cursor: " << old_pos.col << "," << old_pos.row << " => " << pos.col << "," << pos.row;
     return true;
 }
 
@@ -52,42 +46,6 @@ static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
     // TODO
-    
-    static auto to_bool = [](VTermValue* val){ return val->boolean ? "on" : "off"; };
-    static auto to_string = [](VTermValue* val){ return std::string{val->string.str, val->string.len}; };
-    static auto to_cursor_shape = [](VTermValue* val){
-        switch (val->number)
-        {
-            case VTERM_PROP_CURSORSHAPE_BLOCK: return "block";
-            case VTERM_PROP_CURSORSHAPE_UNDERLINE: return "underline";
-            case VTERM_PROP_CURSORSHAPE_BAR_LEFT: return "bar-left";
-            default: return "???";
-        }
-    };
-    static auto to_mouse = [](VTermValue* val){
-        switch (val->number)
-        {
-            case VTERM_PROP_MOUSE_NONE: return "none";
-            case VTERM_PROP_MOUSE_CLICK: return "click";
-            case VTERM_PROP_MOUSE_DRAG: return "drag";
-            case VTERM_PROP_MOUSE_MOVE: return "move";
-            default: return "???";
-        }
-    };
-
-    switch (prop)
-    {
-        case VTERM_PROP_CURSORVISIBLE: info() << "cursor visible = " << to_bool(val); break;
-        case VTERM_PROP_CURSORBLINK  : info() << "cursor blink = " << to_bool(val); break;
-        case VTERM_PROP_ALTSCREEN    : info() << "alt screen = " << to_bool(val); break;
-        case VTERM_PROP_TITLE        : info() << "title = " << to_string(val); break;
-        case VTERM_PROP_ICONNAME     : info() << "icon name = " << to_string(val); break;
-        case VTERM_PROP_REVERSE      : info() << "reverse = " << to_bool(val); break;
-        case VTERM_PROP_CURSORSHAPE  : info() << "cursor shape = " << to_cursor_shape(val); break;
-        case VTERM_PROP_MOUSE        : info() << "mouse = " << to_mouse(val); break;
-        case VTERM_PROP_FOCUSREPORT  : info() << "focus report = " << to_bool(val); break;
-        default: break;
-    }
     return true;
 }
 
@@ -95,7 +53,6 @@ static int bell(void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
     // TODO
-    info() << "bell";
     return true;
 }
 
@@ -143,13 +100,34 @@ void ucs4_to_utf8(char* out, const uint32_t* in)
     *out = '\0';
 }
 
+auto to_cell(const VTermScreenCell& vc)
+{
+    cell cell;
+
+    ucs4_to_utf8(cell.chars, vc.chars);
+    cell.width = vc.width;
+
+    cell.bold  = vc.attrs.bold;
+    cell.italic= vc.attrs.italic;
+    cell.strike= vc.attrs.strike;
+    cell.underline = vc.attrs.underline;
+
+    cell.fg = color{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
+    cell.bg = color{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};
+
+    return cell;
+}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 vte::vte(dim dim) :
     vterm_{vterm_new(dim.height, dim.width), &vterm_free},
-    screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)}
+    screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
+    dim_{dim}
 {
+    info() << "Virtual terminal size: " << dim_.width << "x" << dim_.height;
+
     static const VTermScreenCallbacks callbacks
     {
         .damage      = dispatch::damage,
@@ -179,36 +157,27 @@ vte::~vte() { }
 void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void vte::commit() { vterm_screen_flush_damage(screen_); }
 
-void vte::redraw()
+void vte::resize(dim dim)
 {
-    int rows, cols;
-    vterm_get_size(&*vterm_, &rows, &cols);
-    vterm_set_size(&*vterm_, rows, cols);
+    dim_ = dim;
+    info() << "Resizing vte to: " << dim_.width << "x" << dim_.height;
+    vterm_set_size(&*vterm_, dim_.height, dim_.width);
 }
+void vte::reload() { resize(dim_); }
 
-void vte::change(int row, unsigned cols)
+void vte::change(int row)
 {
-    std::vector<cell> cells{cols};
+    std::vector<cell> cells;
+    cells.reserve(dim_.width);
 
-    auto cell = cells.begin();
-    for (VTermPos pos{row, 0}; pos.col < cols; ++pos.col, ++cell)
+    for (VTermPos pos{row, 0}; pos.col < dim_.width; ++pos.col)
     {
         VTermScreenCell vc;
         if (vterm_screen_get_cell(screen_, pos, &vc))
         {
             vterm_state_convert_color_to_rgb(state_, &vc.fg);
             vterm_state_convert_color_to_rgb(state_, &vc.bg);
-
-            ucs4_to_utf8(cell->chars, vc.chars);
-            cell->width = vc.width;
-
-            cell->bold  = vc.attrs.bold;
-            cell->italic= vc.attrs.italic;
-            cell->strike= vc.attrs.strike;
-            cell->underline = vc.attrs.underline;
-
-            cell->fg = color{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
-            cell->bg = color{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};
+            cells.push_back(to_cell(vc));
         }
     }
 
