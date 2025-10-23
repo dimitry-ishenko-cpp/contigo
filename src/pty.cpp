@@ -12,6 +12,7 @@
 
 #include <asio/buffer.hpp>
 #include <asio/write.hpp>
+#include <climits> // PATH_MAX
 #include <csignal>
 #include <thread>
 
@@ -37,12 +38,16 @@ inline int pidfd_open(pid_t pid, unsigned flags)
 pty::pty(const asio::any_io_executor& ex, dim dim, std::string pgm, std::vector<std::string> args) :
     fd_{ex}, child_fd_{ex}
 {
-    info() << "Spawning child on pseudo tty";
-
     int pt;
     winsize ws(dim.height, dim.width, 0, 0);
-    child_pid_ = forkpty(&pt, nullptr, nullptr, &ws);
+    char name[PATH_MAX];
+
+    info() << "Creating pseudo tty";
+
+    child_pid_ = forkpty(&pt, name, nullptr, &ws);
     if (child_pid_ < 0) throw posix_error{"forkpty"};
+
+    info() << "Spawning child on " << name;
 
     if (child_pid_ > 0) // parent
     {
