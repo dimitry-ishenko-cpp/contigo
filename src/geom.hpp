@@ -13,7 +13,7 @@ constexpr auto operator-(pos p) noexcept { return pos{-p.x, -p.y}; }
 
 struct dim { unsigned width, height; };
 
-constexpr void clip_within(dim rect, pos* pos, dim* dim)
+constexpr void clip_within(dim rect, pos* pos, dim* dim) noexcept
 {
     if (pos->x < 0)
     {
