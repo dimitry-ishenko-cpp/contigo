@@ -51,10 +51,11 @@ private:
     struct drm_scoped_crtc
     {
         asio::posix::stream_descriptor& fd;
+        std::uint32_t id;
         std::uint32_t conn_id;
         _drmModeCrtc* crtc;
 
-        drm_scoped_crtc(asio::posix::stream_descriptor&, drm_mode_conn&, drm_mode_enc&);
+        drm_scoped_crtc(asio::posix::stream_descriptor&, drm_mode_res&, drm_mode_conn&);
         ~drm_scoped_crtc();
     };
 
@@ -63,7 +64,6 @@ private:
 
     drm_mode_res res_;
     drm_mode_conn conn_;
-    drm_mode_enc enc_;
     drm_scoped_crtc crtc_;
 
     dim mode_;
