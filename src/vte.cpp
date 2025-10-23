@@ -163,7 +163,7 @@ void vte::resize(dim dim)
     info() << "Resizing vte to: " << dim_.width << "x" << dim_.height;
     vterm_set_size(&*vterm_, dim_.height, dim_.width);
 }
-void vte::reload() { resize(dim_); }
+void vte::reload() { vterm_set_size(&*vterm_, dim_.height, dim_.width); }
 
 void vte::change(int row)
 {
