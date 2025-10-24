@@ -35,11 +35,14 @@ constexpr color white{255, 255, 255};
 template<typename C>
 inline auto bits_per_pixel = sizeof(C) * std::numeric_limits<C>::digits;
 
+template<typename C>
+inline auto depth = bits_per_pixel<C>;
+
 template<>
-inline auto bits_per_pixel<color> = (sizeof(color) - sizeof(color::x)) * std::numeric_limits<color>::digits;
+inline auto depth<color> = (sizeof(color) - sizeof(color::x)) * std::numeric_limits<color>::digits;
 
 template<typename C>
-inline auto num_colors = 1 << bits_per_pixel<C>;
+inline auto num_colors = 1 << depth<C>;
 
 ////////////////////////////////////////////////////////////////////////////////
 template<typename C>
