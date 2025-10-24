@@ -99,7 +99,7 @@ drm::drm(const asio::any_io_executor& ex, drm::num num) :
         dpi_ = (dpi_x + dpi_y) / 2 + .5;
     }
 
-    info() << "Screen info: " << mode_ << ", " << size << "DPI = " << dpi_;
+    info() << "Using screen: " << mode_ << ", " << size << "DPI = " << dpi_;
 }
 
 void drm::disable()
@@ -118,14 +118,12 @@ void drm::enable()
 
 ////////////////////////////////////////////////////////////////////////////////
 drm::drm_scoped_crtc::drm_scoped_crtc(asio::posix::stream_descriptor& fd, drm_mode_res& res, drm_mode_conn& conn) :
-    fd{fd}, id{find_drm_crtc(fd, res, conn)}, conn_id{conn->connector_id}, crtc{get_drm_crtc(fd, id)}
-{
-    // TODO set up crtc
-}
+    fd{fd}, id{find_drm_crtc(fd, res, conn)}, conn_id{conn->connector_id}, old{get_drm_crtc(fd, id)}
+{ }
 
 drm::drm_scoped_crtc::~drm_scoped_crtc()
 {
     info() << "Restoring previous crtc";
-    drmModeSetCrtc(fd.native_handle(), crtc->crtc_id, crtc->buffer_id, crtc->x, crtc->y, &conn_id, 1, &crtc->mode);
-    drmModeFreeCrtc(crtc);
+    drmModeSetCrtc(fd.native_handle(), old->crtc_id, old->buffer_id, old->x, old->y, &conn_id, 1, &old->mode);
+    drmModeFreeCrtc(old);
 }

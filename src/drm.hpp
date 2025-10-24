@@ -53,7 +53,7 @@ private:
         asio::posix::stream_descriptor& fd;
         std::uint32_t id;
         std::uint32_t conn_id;
-        _drmModeCrtc* crtc;
+        _drmModeCrtc* old;
 
         drm_scoped_crtc(asio::posix::stream_descriptor&, drm_mode_res&, drm_mode_conn&);
         ~drm_scoped_crtc();
