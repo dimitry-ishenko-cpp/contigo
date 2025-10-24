@@ -99,7 +99,7 @@ drm::drm(const asio::any_io_executor& ex, drm::num num) :
         dpi_ = (dpi_x + dpi_y) / 2 + .5;
     }
 
-    info() << "Screen info: " << mode_.width << "x" << mode_.height << ", " << size << "DPI = " << dpi_;
+    info() << "Screen info: " << mode_ << ", " << size << "DPI = " << dpi_;
 }
 
 void drm::disable()

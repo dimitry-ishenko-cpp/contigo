@@ -67,7 +67,7 @@ void pty::write(std::span<const char> data) { asio::write(fd_, asio::buffer(data
 
 void pty::resize(dim dim)
 {
-    info() << "Resizing pty to: " << dim.width << "x" << dim.height;
+    info() << "Resizing pty to: " << dim;
     command<TIOCSWINSZ, winsize> cmd{winsize(dim.height, dim.width)};
     fd_.io_control(cmd);
 

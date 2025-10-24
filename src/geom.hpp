@@ -7,11 +7,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include <ostream>
+
 ////////////////////////////////////////////////////////////////////////////////
 struct pos { int x, y; };
 constexpr auto operator-(pos p) noexcept { return pos{-p.x, -p.y}; }
 
 struct dim { unsigned width, height; };
+inline auto& operator<<(std::ostream& os, dim dim) { return os << dim.width << 'x' << dim.height; }
 
 constexpr void clip_within(dim rect, pos* pos, dim* dim) noexcept
 {

@@ -126,7 +126,7 @@ vte::vte(dim dim) :
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
     dim_{dim}
 {
-    info() << "Virtual terminal size: " << dim_.width << "x" << dim_.height;
+    info() << "Virtual terminal size: " << dim_;
 
     static const VTermScreenCallbacks callbacks
     {
@@ -160,7 +160,7 @@ void vte::commit() { vterm_screen_flush_damage(screen_); }
 void vte::resize(dim dim)
 {
     dim_ = dim;
-    info() << "Resizing vte to: " << dim_.width << "x" << dim_.height;
+    info() << "Resizing vte to: " << dim_;
     vterm_set_size(&*vterm_, dim_.height, dim_.width);
 }
 void vte::reload() { vterm_set_size(&*vterm_, dim_.height, dim_.width); }

@@ -177,7 +177,7 @@ pango::pango(std::string_view font_desc, dim mode, unsigned dpi) : ft_lib_{creat
     auto wght = string(pango_font_description_get_weight(&*font_desc_));
     auto size = pango_pixels(pango_font_description_get_size(&*font_desc_));
 
-    info() << "Using font: " << name << ", " << style << ", " << wght << ", size: " << size << ", cell: " << cell_.width << "x" << cell_.height;
+    info() << "Using font: " << name << ", " << style << ", " << wght << ", size: " << size << ", cell: " << cell_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
