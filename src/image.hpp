@@ -19,6 +19,7 @@ template<typename C>
 class image
 {
     struct dim dim_;
+    std::size_t stride_;
     std::unique_ptr<C[]> data_;
 
 public:
@@ -27,8 +28,10 @@ public:
     constexpr auto width() const noexcept { return dim().width; }
     constexpr auto height() const noexcept { return dim().height; }
 
-    constexpr auto size() const noexcept { return width() * height(); }
-    constexpr auto size_bytes() const noexcept { return size() * sizeof(C); }
+    constexpr auto stride() const noexcept { return stride_; }
+
+    constexpr auto size_bytes() const noexcept { return height() * stride(); }
+    constexpr auto size() const noexcept { return size_bytes() / sizeof(C); }
 
     constexpr auto data() noexcept { return data_.get(); }
     constexpr auto data() const noexcept { return data_.get(); }
@@ -37,7 +40,9 @@ public:
     constexpr auto span() const noexcept { return std::span{data(), size()}; }
 
     ////////////////////
-    image(struct dim dim) : dim_{dim}, data_{std::make_unique_for_overwrite<C[]>(size())} { }
+    explicit image(struct dim dim) :
+        dim_{dim}, stride_{dim.width * sizeof(C)}, data_{std::make_unique_for_overwrite<C[]>(size())}
+    { }
     image(struct dim dim, C c) : image{dim} { std::ranges::fill(span(), c); }
 };
 
@@ -50,8 +55,10 @@ void fill(image<C>& img, pos pos, dim dim, C c)
 {
     clip_within(img.dim(), &pos, &dim);
 
-    auto px = img.data() + pos.y * img.width() + pos.x;
-    for (; dim.height; --dim.height, px += img.width()) std::ranges::fill(px, px + dim.width, c);
+    auto stride = img.stride() / sizeof(C);
+    auto px = img.data() + pos.y * stride + pos.x;
+
+    for (; dim.height; --dim.height, px += stride) std::ranges::fill(px, px + dim.width, c);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -69,8 +76,8 @@ void alpha_blend(image<C>& img, pos pos, const image<shade>& mask, C c)
     auto px = img.data() + mask_pos.y * img.width() + mask_pos.x;
     auto mx = mask.data() + img_pos.y * mask.width() + img_pos.x;
 
-    auto pd = img.width() - mask_dim.width;
-    auto md = mask.width() - img_dim.width;
+    auto pd = img.stride() / sizeof(C) - mask_dim.width;
+    auto md = mask.stride() / sizeof(shade) - img_dim.width;
 
     for (auto h = mask_dim.height; h; --h, px += pd, mx += md)
         for (auto w = mask_dim.width; w; --w, ++px, ++mx) alpha_blend(*px, c, *mx);

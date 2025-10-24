@@ -227,7 +227,7 @@ void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<co
     FT_Bitmap ft_mask;
     ft_mask.rows = mask.height();
     ft_mask.width = mask.width();
-    ft_mask.pitch = mask.width() * sizeof(shade);
+    ft_mask.pitch = mask.stride();
     ft_mask.buffer = mask.data();
     ft_mask.num_grays = num_colors<shade>;
     ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
