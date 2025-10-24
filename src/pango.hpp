@@ -47,7 +47,7 @@ public:
     pango(std::string_view font_desc, dim mode, unsigned dpi);
 
     constexpr auto dim_cell() const noexcept { return cell_; }
-    image<color> render(std::span<const cell>);
+    pixmap<color> render(std::span<const cell>);
 
 private:
     ////////////////////
@@ -61,5 +61,5 @@ private:
     pango_layout layout_;
     int baseline_;
 
-    void render_text(image<color>&, pos, dim, std::span<const cell>, color);
+    void render_text(pixmap<color>&, pos, dim, std::span<const cell>, color);
 };
