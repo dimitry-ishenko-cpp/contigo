@@ -8,6 +8,7 @@
 #include "command.hpp"
 #include "error.hpp"
 #include "framebuf.hpp"
+#include "logging.hpp"
 
 #include <sys/mman.h>
 #include <xf86drm.h>
@@ -61,4 +62,6 @@ framebuf_base::scoped_mmap::~scoped_mmap() { munmap(p, size); }
 ////////////////////////////////////////////////////////////////////////////////
 framebuf_base::framebuf_base(asio::posix::stream_descriptor& drm, dim dim, unsigned depth, unsigned bits_per_pixel) :
     buf_{drm, dim, bits_per_pixel}, fbo_{buf_, dim, depth, bits_per_pixel}, mmap_{buf_}
-{ }
+{
+    info() << "Using framebuf: " << dim << "px, " << depth << "/" << bits_per_pixel <<  "-bit, stride=" << buf_.stride << ", size=" << buf_.size;
+}
