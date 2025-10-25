@@ -34,11 +34,17 @@ public:
     static constexpr auto path = "/dev/dri/card";
     using num = unsigned;
 
+    struct mode
+    {
+        struct dim dim;
+        unsigned rate;
+        unsigned dpi = 96;
+    };
+
     ////////////////////
     drm(const asio::any_io_executor&, num);
 
     constexpr auto mode() const noexcept { return mode_; }
-    constexpr auto dpi() const noexcept { return dpi_; }
 
     void disable();
     void enable();
@@ -66,6 +72,5 @@ private:
     drm_mode_conn conn_;
     drm_scoped_crtc crtc_;
 
-    dim mode_;
-    unsigned dpi_ = 96;
+    struct mode mode_;
 };

@@ -80,26 +80,34 @@ auto get_drm_crtc(asio::posix::stream_descriptor& fd, std::uint32_t crtc_id)
     return crtc;
 }
 
+auto get_mode(drm_mode_conn& conn, unsigned n)
+{
+    struct drm::mode mode{
+        .dim = dim{conn->modes[n].hdisplay, conn->modes[n].vdisplay},
+        .rate = conn->modes[n].vrefresh
+    };
+    return mode;
+}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 drm::drm(const asio::any_io_executor& ex, drm::num num) :
     fd_{open_device(ex, num)},
-    res_{get_drm_res(fd_)}, conn_{find_drm_conn(fd_, res_)}, crtc_{fd_, res_, conn_}
+    res_{get_drm_res(fd_)}, conn_{find_drm_conn(fd_, res_)}, crtc_{fd_, res_, conn_},
+    mode_{get_mode(conn_, 0)}
 {
-    mode_ = dim{conn_->modes[0].hdisplay, conn_->modes[0].vdisplay};
-
     std::string size;
     if (conn_->mmWidth && conn_->mmHeight)
     {
         size = std::to_string(conn_->mmWidth) + "mm x " + std::to_string(conn_->mmHeight) + "mm, ";
 
-        double dpi_x = 25.4 * mode_.width / conn_->mmWidth;
-        double dpi_y = 25.4 * mode_.height / conn_->mmHeight;
-        dpi_ = (dpi_x + dpi_y) / 2 + .5;
+        double dpi_x = 25.4 * mode_.dim.width / conn_->mmWidth;
+        double dpi_y = 25.4 * mode_.dim.height / conn_->mmHeight;
+        mode_.dpi = (dpi_x + dpi_y) / 2 + .5;
     }
 
-    info() << "Using screen: " << mode_ << ", " << size << "DPI = " << dpi_;
+    info() << "Using screen: " << mode_.dim << "@" << mode_.rate << "hz, " << size << "DPI=" << mode_.dpi;
 }
 
 void drm::disable()
