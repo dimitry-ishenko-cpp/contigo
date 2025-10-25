@@ -74,6 +74,27 @@ void fill(image<D>& img, pos pos, dim dim, typename image<D>::color_type c)
     for (; dim.height; --dim.height, px += stride) std::ranges::fill_n(px, dim.width, c);
 }
 
+template<typename D, typename S>
+void fill(image<D>& img, pos pos, const image<S>& src)
+{
+    auto img_pos = pos;
+    auto img_dim = src.dim();
+    clip_within(img.dim(), &img_pos, &img_dim);
+
+    auto src_pos = -pos;
+    auto src_dim = img.dim();
+    clip_within(src.dim(), &src_pos, &src_dim);
+
+    auto img_pix = img.data() + img_pos.y * img.width() + img_pos.x;
+    auto src_pix = src.data() + src_pos.y * src.width() + src_pos.x;
+
+    auto img_inc = img.stride() / img.color_size;
+    auto src_inc = src.stride() / src.color_size;
+
+    for (auto h = img_dim.height; h; --h, img_pix += img_inc, src_pix += src_inc)
+        std::ranges::copy_n(src_pix, src_dim.width, img_pix);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 template<typename D, typename M,
     typename = std::enable_if_t<std::is_same_v<typename image<M>::color_type, shade>>
