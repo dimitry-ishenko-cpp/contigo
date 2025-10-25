@@ -71,7 +71,7 @@ void fill(image<D>& img, pos pos, dim dim, typename image<D>::color_type c)
     auto stride = img.stride() / img.color_size;
     auto px = img.data() + pos.y * stride + pos.x;
 
-    for (; dim.height; --dim.height, px += stride) std::ranges::fill(px, px + dim.width, c);
+    for (; dim.height; --dim.height, px += stride) std::ranges::fill_n(px, dim.width, c);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
