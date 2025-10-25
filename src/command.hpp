@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include <type_traits>
 
-template<int Op, typename T>
+template<unsigned Op, typename T>
 struct command
 {
     T val;
