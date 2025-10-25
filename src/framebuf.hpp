@@ -9,6 +9,7 @@
 
 #include "color.hpp"
 #include "geom.hpp"
+#include "image.hpp"
 
 #include <asio/posix/stream_descriptor.hpp>
 #include <cstdint>
@@ -71,4 +72,17 @@ public:
 
     auto get() noexcept { return static_cast<C*>(mmap_.p); }
     auto get() const noexcept { return static_cast<C*>(mmap_.p); }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+template<typename C>
+class framebuf_image : public image_base<framebuf<C>>
+{
+public:
+    ////////////////////
+    explicit framebuf_image(asio::posix::stream_descriptor& drm, struct dim dim) :
+        image_base<framebuf<C>>{dim, 0, framebuf<C>{drm, dim}}
+    { this->stride_ = this->data_.stride(); }
+
+    constexpr auto id() const noexcept { return this->data_.id(); }
 };
