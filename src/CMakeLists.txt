@@ -14,6 +14,8 @@ add_executable(term
     drm.cpp
     drm.hpp
     error.hpp
+    framebuf.cpp
+    framebuf.hpp
     geom.hpp
     image.hpp
     logging.hpp
