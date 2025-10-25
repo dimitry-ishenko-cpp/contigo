@@ -78,22 +78,23 @@ void fill(image<D>& img, pos pos, dim dim, typename image<D>::color_type c)
 template<typename D, typename M,
     typename = std::enable_if_t<std::is_same_v<typename image<M>::color_type, shade>>
 >
-void alpha_blend(image<D>& img, pos pos, const image<M>& mask, typename image<D>::color_type c)
+void alpha_blend(image<D>& img, pos pos, const image<M>& src, typename image<D>::color_type c)
 {
-    auto mask_pos = pos;
-    auto mask_dim = mask.dim();
-    clip_within(img.dim(), &mask_pos, &mask_dim);
+    auto img_pos = pos;
+    auto img_dim = src.dim();
+    clip_within(img.dim(), &img_pos, &img_dim);
 
-    auto img_pos = -pos;
-    auto img_dim = img.dim();
-    clip_within(mask.dim(), &img_pos, &img_dim);
+    auto src_pos = -pos;
+    auto src_dim = img.dim();
+    clip_within(src.dim(), &src_pos, &src_dim);
 
-    auto px = img.data() + mask_pos.y * img.width() + mask_pos.x;
-    auto mx = mask.data() + img_pos.y * mask.width() + img_pos.x;
+    auto img_pix = img.data() + img_pos.y * img.width() + img_pos.x;
+    auto src_pix = src.data() + src_pos.y * src.width() + src_pos.x;
 
-    auto pd = img.stride() / img.color_size - mask_dim.width;
-    auto md = mask.stride() / mask.color_size - img_dim.width;
+    auto img_inc = img.stride() / img.color_size - img_dim.width;
+    auto src_inc = src.stride() / src.color_size - src_dim.width;
 
-    for (auto h = mask_dim.height; h; --h, px += pd, mx += md)
-        for (auto w = mask_dim.width; w; --w, ++px, ++mx) alpha_blend(*px, c, *mx);
+    for (auto h = img_dim.height; h; --h, img_pix += img_inc, src_pix += src_inc)
+        for (auto w = img_dim.width; w; --w, ++img_pix, ++src_pix)
+            alpha_blend(*img_pix, c, *src_pix);
 }
