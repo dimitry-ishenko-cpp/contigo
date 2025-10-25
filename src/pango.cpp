@@ -181,7 +181,7 @@ pango::pango(std::string_view font_desc, dim mode, unsigned dpi) : ft_lib_{creat
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void pango::render_text(pixmap<color>& image_line, pos pos, dim dim, std::span<const cell> cells, color fg)
+void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<const cell> cells, color fg)
 {
     auto attrs = create_attrs();
 
@@ -223,7 +223,7 @@ void pango::render_text(pixmap<color>& image_line, pos pos, dim dim, std::span<c
     pango_layout_set_attributes(&*layout_, &*attrs);
     auto line = pango_layout_get_line_readonly(&*layout_, 0);
 
-    pixmap<shade> mask{dim, 0};
+    image<shade> mask{dim, 0};
     FT_Bitmap ft_mask;
     ft_mask.rows = mask.height();
     ft_mask.width = mask.width();
@@ -236,9 +236,9 @@ void pango::render_text(pixmap<color>& image_line, pos pos, dim dim, std::span<c
     alpha_blend(image_line, pos, mask, fg);
 }
 
-pixmap<color> pango::render(std::span<const cell> cells)
+image<color> pango::render(std::span<const cell> cells)
 {
-    pixmap<color> image_line{dim{mode_.width, cell_.height}};
+    image<color> image_line{dim{mode_.width, cell_.height}};
 
     pos pos{0, 0};
     dim dim{cell_.width, image_line.height()};
