@@ -47,10 +47,10 @@ pty::pty(const asio::any_io_executor& ex, dim dim, std::string pgm, std::vector<
     child_pid_ = forkpty(&pt, name, nullptr, &ws);
     if (child_pid_ < 0) throw posix_error{"forkpty"};
 
-    info() << "Spawning child on " << name;
-
     if (child_pid_ > 0) // parent
     {
+        info() << "Spawning child on " << name;
+
         fd_.assign(pt);
         sched_async_read();
 
