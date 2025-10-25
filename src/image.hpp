@@ -49,15 +49,6 @@ public:
     constexpr auto span() const noexcept { return std::span{data(), size()}; }
 };
 
-template<typename D>
-inline auto bits_per_pixel<image<D>> = bits_per_pixel<typename image<D>::color_type>;
-
-template<typename D>
-inline auto depth<image<D>> = depth<typename image<D>::color_type>;
-
-template<typename D>
-inline auto num_colors<image<D>> = num_colors<typename image<D>::color_type>;
-
 ////////////////////////////////////////////////////////////////////////////////
 template<typename C>
 class pixmap : public image<std::unique_ptr<C[]>>

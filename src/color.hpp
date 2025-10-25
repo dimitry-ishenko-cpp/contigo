@@ -13,6 +13,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 using shade = std::uint8_t;
 
+template<typename C>
+inline unsigned bits_per_pixel = sizeof(C) * std::numeric_limits<C>::digits;
+
+template<typename C>
+inline unsigned depth = bits_per_pixel<C>;
+
+template<typename C>
+inline unsigned num_colors = 1 << depth<C>;
+
+////////////////////////////////////////////////////////////////////////////////
 #pragma pack(push, 1)
 struct color
 {
@@ -32,17 +42,11 @@ constexpr color blue {  0,   0, 255};
 constexpr color white{255, 255, 255};
 
 ////////////////////////////////////////////////////////////////////////////////
-template<typename C>
-inline auto bits_per_pixel = sizeof(C) * std::numeric_limits<C>::digits;
-
-template<typename C>
-inline auto depth = bits_per_pixel<C>;
+template<>
+inline unsigned bits_per_pixel<color> = sizeof(color) * bits_per_pixel<decltype(color::x)>;
 
 template<>
-inline auto depth<color> = (sizeof(color) - sizeof(color::x)) * std::numeric_limits<color>::digits;
-
-template<typename C>
-inline auto num_colors = 1 << depth<C>;
+inline unsigned depth<color> = bits_per_pixel<color> - bits_per_pixel<decltype(color::x)>;
 
 ////////////////////////////////////////////////////////////////////////////////
 template<typename C>
