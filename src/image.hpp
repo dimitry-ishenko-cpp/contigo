@@ -108,11 +108,14 @@ void alpha_blend(image_base<D>& img, pos pos, const image_base<M>& src, typename
     auto src_dim = img.dim();
     clip_within(src.dim(), &src_pos, &src_dim);
 
-    auto img_pix = img.data() + img_pos.y * img.width() + img_pos.x;
-    auto src_pix = src.data() + src_pos.y * src.width() + src_pos.x;
+    auto img_std = img.stride() / img.color_size;
+    auto src_std = src.stride() / src.color_size;
 
-    auto img_inc = img.stride() / img.color_size - img_dim.width;
-    auto src_inc = src.stride() / src.color_size - src_dim.width;
+    auto img_pix = img.data() + img_pos.y * img_std + img_pos.x;
+    auto src_pix = src.data() + src_pos.y * src_std + src_pos.x;
+
+    auto img_inc = img_std - img_dim.width;
+    auto src_inc = src_std - src_dim.width;
 
     for (auto h = img_dim.height; h; --h, img_pix += img_inc, src_pix += src_inc)
         for (auto w = img_dim.width; w; --w, ++img_pix, ++src_pix)
