@@ -21,8 +21,11 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     drm_fb_{drm_},
 
     engine_{options.font, drm_->mode().dim.width, options.dpi.value_or(drm_->mode().dpi)},
-    vte_{drm_->mode().dim / engine_.dim_cell()}
+    vte_{drm_->mode().dim / engine_.dim_cell()},
+    pty_{ex, vte_.dim(), std::move(options.login), std::move(options.args)}
 {
+    tty_->on_read_data([&](std::span<const char> data){ pty_.write(data); });
+
     tty_switch_.on_acquire([&]{ enable(); });
     tty_switch_.on_release([&]{ disable(); });
 
@@ -30,12 +33,9 @@ term::term(const asio::any_io_executor& ex, term_options options) :
 
     vte_.on_row_changed([&](int row, std::span<const cell> cells){ change(row, cells); });
     vte_.on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
+    vte_.on_size_changed([&](dim dim){ pty_.resize(dim); });
 
-    pty_ = std::make_unique<pty>(ex, vte_.dim(), std::move(options.login), std::move(options.args));
-    vte_.on_size_changed([&](dim dim){ pty_->resize(dim); });
-
-    tty_->on_read_data([&](std::span<const char> data){ pty_->write(data); });
-    pty_->on_read_data([&](std::span<const char> data){ vte_.write(data); });
+    pty_.on_read_data([&](std::span<const char> data){ vte_.write(data); });
 }
 
 void term::enable()
