@@ -70,7 +70,7 @@ scoped_mmapped_ptr::~scoped_mmapped_ptr() { munmap(data_, size_); }
 framebuf_base::framebuf_base(std::shared_ptr<device> dev, unsigned depth, unsigned bits_per_pixel) :
     dev_{std::move(dev)}, buf_{dev_, bits_per_pixel}, fbo_{dev_, buf_, depth, bits_per_pixel}, mmap_{dev_, buf_}
 {
-    info() << "Using framebuf: " << depth << "/" << bits_per_pixel <<  "-bit, stride=" << buf_.stride() << ", size=" << buf_.size();
+    info() << "Using framebuf: " << depth << "-bit color, " << bits_per_pixel <<  " bpp, stride=" << buf_.stride() << ", size=" << buf_.size();
 }
 
 void framebuf_base::commit()
