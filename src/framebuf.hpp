@@ -81,7 +81,7 @@ class framebuf_image : public image_base<framebuf<C>>
 public:
     ////////////////////
     explicit framebuf_image(asio::posix::stream_descriptor& drm, struct dim dim) :
-        image_base<framebuf<C>>{dim, 0, framebuf<C>{drm, dim}}
+        image_base<framebuf<C>>{dim, 0, drm, dim}
     { this->stride_ = this->data_.stride(); }
 
     constexpr auto id() const noexcept { return this->data_.id(); }
