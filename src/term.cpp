@@ -35,7 +35,7 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     vte_.on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
     vte_.on_size_changed([&](dim dim){ pty_.resize(dim); });
 
-    pty_.on_read_data([&](std::span<const char> data){ vte_.write(data); });
+    pty_.on_read_data([&](std::span<const char> data){ vte_.write(data); vte_.commit(); });
 }
 
 void term::enable()
@@ -57,7 +57,12 @@ void term::disable()
 
 void term::change(int row, std::span<const cell> cells)
 {
-    // TODO
+    auto img = engine_.render(cells);
+
+    pos pos(0, row * engine_.dim_cell().height);
+    drm_fb_.fill(pos, img);
+
+    if (enabled_) drm_fb_.commit();
 }
 
 void term::move(int row, unsigned rows, int distance)
