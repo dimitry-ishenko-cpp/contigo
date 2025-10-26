@@ -67,10 +67,10 @@ void fill(image_base<D>& img, pos pos, dim dim, typename image_base<D>::color_ty
 {
     clip_within(img.dim(), &pos, &dim);
 
-    auto stride = img.stride() / img.color_size;
-    auto px = img.data() + pos.y * stride + pos.x;
+    auto inc = img.stride() / img.color_size;
+    auto pix = img.data() + pos.y * inc + pos.x;
 
-    for (; dim.height; --dim.height, px += stride) std::ranges::fill_n(px, dim.width, c);
+    for (; dim.height; --dim.height, pix += inc) std::ranges::fill_n(pix, dim.width, c);
 }
 
 template<typename D, typename S>
