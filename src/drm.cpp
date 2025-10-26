@@ -95,7 +95,7 @@ auto get_mode(drm_mode_conn& conn, unsigned n)
 drm::drm(const asio::any_io_executor& ex, drm::num num) :
     fd_{open_device(ex, num)},
     res_{get_drm_res(fd_)}, conn_{find_drm_conn(fd_, res_)}, crtc_{fd_, res_, conn_},
-    mode_{get_mode(conn_, 0)}
+    mode_{get_mode(conn_, 0)}, fb_{fd_, mode_.dim}
 {
     std::string size;
     if (conn_->mmWidth && conn_->mmHeight)
@@ -108,6 +108,8 @@ drm::drm(const asio::any_io_executor& ex, drm::num num) :
     }
 
     info() << "Using screen: " << mode_.dim << "@" << mode_.rate << "hz, " << size << "DPI=" << mode_.dpi;
+
+    activate();
 }
 
 void drm::disable()
@@ -122,6 +124,26 @@ void drm::enable()
     info() << "Acquiring drm master";
     command<DRM_IOCTL_SET_MASTER, int> cmd{0};
     fd_.io_control(cmd);
+
+    activate();
+}
+
+void drm::activate()
+{
+    info() << "Activating crtc";
+    auto code = drmModeSetCrtc(fd_.native_handle(), crtc_.id, fb_.id(), 0, 0, &conn_->connector_id, 1, &conn_->modes[mode_.idx]);
+    if (code) throw posix_error{"drmModeSetCrtc"};
+}
+
+void drm::fill(pos pos, const image<color>& src)
+{
+    ::fill(fb_, pos, src);
+}
+
+void drm::update()
+{
+    auto code = drmModeDirtyFB(fd_.native_handle(), fb_.id(), nullptr, 0);
+    if (code) throw posix_error{"drmModePageFlip"};
 }
 
 ////////////////////////////////////////////////////////////////////////////////

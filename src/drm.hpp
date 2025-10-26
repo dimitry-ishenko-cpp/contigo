@@ -7,7 +7,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "color.hpp"
+#include "framebuf.hpp"
 #include "geom.hpp"
+#include "image.hpp"
 
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
@@ -50,6 +53,9 @@ public:
     void disable();
     void enable();
 
+    void fill(pos, const image<color>&);
+    void update();
+
     ////////////////////
     static num any() { return 0; }
 
@@ -74,4 +80,7 @@ private:
     drm_scoped_crtc crtc_;
 
     struct mode mode_;
+    framebuf_image<color> fb_;
+
+    void activate();
 };
