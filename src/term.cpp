@@ -13,12 +13,17 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     tty_active_{tty_, options.tty_num, options.tty_activate},
     tty_raw_{tty_},
     tty_switch_{tty_},
-    tty_graph_{tty_}
+    tty_graph_{tty_},
+
+    drm_{std::make_shared<drm::device>(ex, options.drm_num)},
+    drm_crtc_{drm_},
+    drm_fb_{drm_}
 {
     tty_switch_.on_acquire([&]{ enable(); });
     tty_switch_.on_release([&]{ disable(); });
 
-    drm_ = std::make_unique<drm>(ex, options.drm_num);
+    drm_crtc_.activate(drm_fb_);
+
     auto mode = drm_->mode();
 
     pango_ = std::make_unique<pango>(options.font, mode.dim, options.dpi.value_or(mode.dpi));
@@ -44,7 +49,7 @@ void term::enable()
     enabled_ = true;
 
     drm_->enable();
-    vte_->reload();
+    drm_crtc_.activate(drm_fb_);
 }
 
 void term::disable()

@@ -8,81 +8,113 @@
 #pragma once
 
 #include "color.hpp"
+#include "drm.hpp"
 #include "geom.hpp"
 #include "image.hpp"
 
 #include <asio/posix/stream_descriptor.hpp>
 #include <cstdint>
+#include <memory>
+
+////////////////////////////////////////////////////////////////////////////////
+namespace drm
+{
+
+class scoped_dumbuf
+{
+    std::shared_ptr<device> dev_;
+    std::uint32_t handle_;
+    std::uint32_t stride_;
+    std::size_t size_;
+
+public:
+    ////////////////////
+    scoped_dumbuf(std::shared_ptr<device>, unsigned bits_per_pixel);
+    ~scoped_dumbuf();
+
+    constexpr auto handle() const noexcept { return handle_; }
+    constexpr auto stride() const noexcept { return stride_; }
+    constexpr auto size() const noexcept { return size_; }
+};
+
+class scoped_fbo
+{
+    std::shared_ptr<device> dev_;
+    std::uint32_t id_;
+
+public:
+    ////////////////////
+    scoped_fbo(std::shared_ptr<device>, scoped_dumbuf&, unsigned depth, unsigned bits_per_pixel);
+    ~scoped_fbo();
+
+    constexpr auto id() const noexcept { return id_; }
+};
+
+class scoped_mmapped_ptr
+{
+    void* data_;
+    std::size_t size_;
+
+public:
+    ////////////////////
+    scoped_mmapped_ptr(std::shared_ptr<device>, scoped_dumbuf&);
+    ~scoped_mmapped_ptr();
+
+    constexpr auto data() noexcept { return data_; }
+    constexpr auto data() const noexcept { return data_; }
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 class framebuf_base
 {
 protected:
     ////////////////////
-    struct scoped_dumbuf
-    {
-        asio::posix::stream_descriptor& drm;
-        std::uint32_t handle;
-        std::uint32_t stride;
-        std::size_t size;
-
-        scoped_dumbuf(asio::posix::stream_descriptor&, dim, unsigned bits_per_pixel);
-        ~scoped_dumbuf();
-    };
-
-    struct scoped_fbo
-    {
-        asio::posix::stream_descriptor& drm;
-        std::uint32_t id;
-
-        scoped_fbo(scoped_dumbuf&, dim, unsigned depth, unsigned bits_per_pixel);
-        ~scoped_fbo();
-    };
-
-    struct scoped_mmap
-    {
-        void* p;
-        std::size_t size;
-
-        scoped_mmap(scoped_dumbuf&);
-        ~scoped_mmap();
-    };
+    std::shared_ptr<device> dev_;
 
     scoped_dumbuf buf_;
     scoped_fbo fbo_;
-    scoped_mmap mmap_;
+    scoped_mmapped_ptr mmap_;
 
+    framebuf_base(std::shared_ptr<device>, unsigned depth, unsigned bits_per_pixel);
+
+public:
     ////////////////////
-    framebuf_base(asio::posix::stream_descriptor&, dim, unsigned depth, unsigned bits_per_pixel);
+    constexpr auto id() const noexcept { return fbo_.id(); }
+
+    constexpr auto data() noexcept { return mmap_.data(); }
+    constexpr auto data() const noexcept { return mmap_.data(); }
+
+    void commit();
 };
 
 template<typename C>
-class framebuf : public framebuf_base
+struct wrapped_ptr
+{
+    framebuf_base* fb;
+    using element_type = C;
+
+    constexpr auto get() noexcept { return static_cast<C*>(fb->data()); }
+    constexpr auto get() const noexcept { return static_cast<const C*>(fb->data()); }
+};
+
+template<typename C>
+class framebuf : public framebuf_base, public image_base<wrapped_ptr<C>>
 {
 public:
     ////////////////////
-    using element_type = C;
-
-    framebuf(asio::posix::stream_descriptor& drm, dim dim) :
-        framebuf_base{drm, dim, depth<C>, bits_per_pixel<C>}
+    explicit framebuf(std::shared_ptr<device> dev) :
+        framebuf_base{std::move(dev), depth<C>, bits_per_pixel<C>},
+        image_base<wrapped_ptr<C>>{dev_->mode().dim, buf_.stride(), wrapped_ptr<C>{this}}
     { }
 
-    constexpr auto stride() const noexcept { return buf_.stride; }
-    constexpr auto id() const noexcept { return fbo_.id; }
-
-    auto get() noexcept { return static_cast<C*>(mmap_.p); }
-    auto get() const noexcept { return static_cast<C*>(mmap_.p); }
+    template<typename D>
+    void fill(pos pos, const image_base<D>& src)
+        requires std::same_as<C, typename image_base<D>::color_type>
+    {
+        // TODO track damage
+        ::fill(*this, pos, src);
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-template<typename C>
-class framebuf_image : public image_base<framebuf<C>>
-{
-public:
-    ////////////////////
-    explicit framebuf_image(asio::posix::stream_descriptor& drm, struct dim dim) :
-        image_base<framebuf<C>>{dim, 0, drm, dim}
-    { this->stride_ = this->data_.stride(); }
-
-    constexpr auto id() const noexcept { return this->data_.id(); }
-};
+}

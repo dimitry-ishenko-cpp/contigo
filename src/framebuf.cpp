@@ -14,54 +14,70 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
-framebuf_base::scoped_dumbuf::scoped_dumbuf(asio::posix::stream_descriptor& drm, dim dim, unsigned bits_per_pixel) : drm{drm}
+////////////////////////////////////////////////////////////////////////////////
+namespace drm
 {
-    auto creq = drm_mode_create_dumb{
+
+scoped_dumbuf::scoped_dumbuf(std::shared_ptr<device> dev, unsigned bits_per_pixel) :
+    dev_{std::move(dev)}
+{
+    auto dim = dev_->mode().dim;
+    command<DRM_IOCTL_MODE_CREATE_DUMB, drm_mode_create_dumb> create{{
         .height = dim.height,
         .width = dim.width,
         .bpp = bits_per_pixel
-    };
-    command<DRM_IOCTL_MODE_CREATE_DUMB, drm_mode_create_dumb*> create{&creq};
-    drm.io_control(create);
+    }};
+    dev_->io_control(create);
 
-    handle = creq.handle;
-    stride = creq.pitch;
-    size = creq.size;
+    handle_ = create.val.handle;
+    stride_ = create.val.pitch;
+    size_ = create.val.size;
 }
 
-framebuf_base::scoped_dumbuf::~scoped_dumbuf()
+scoped_dumbuf::~scoped_dumbuf()
 {
-    command<DRM_IOCTL_MODE_DESTROY_DUMB, drm_mode_destroy_dumb> dreq{handle};
-    drm.io_control(dreq);
+    command<DRM_IOCTL_MODE_DESTROY_DUMB, drm_mode_destroy_dumb> destroy{handle_};
+    dev_->io_control(destroy);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-framebuf_base::scoped_fbo::scoped_fbo(scoped_dumbuf& buf, dim dim, unsigned depth, unsigned bits_per_pixel) : drm{buf.drm}
+scoped_fbo::scoped_fbo(std::shared_ptr<device> dev, scoped_dumbuf& buf, unsigned depth, unsigned bits_per_pixel) :
+    dev_{std::move(dev)}
 {
-    auto code = drmModeAddFB(drm.native_handle(), dim.width, dim.height, depth, bits_per_pixel, buf.stride, buf.handle, &id);
+    auto dim = dev_->mode().dim;
+    auto code = drmModeAddFB(dev_->handle(), dim.width, dim.height, depth, bits_per_pixel, buf.stride(), buf.handle(), &id_);
     if (code) throw posix_error{"drmModeAddFB"};
 }
 
-framebuf_base::scoped_fbo::~scoped_fbo() { drmModeRmFB(drm.native_handle(), id); }
+scoped_fbo::~scoped_fbo() { drmModeRmFB(dev_->handle(), id_); }
 
 ////////////////////////////////////////////////////////////////////////////////
-framebuf_base::scoped_mmap::scoped_mmap(scoped_dumbuf& buf) : size{buf.size}
+scoped_mmapped_ptr::scoped_mmapped_ptr(std::shared_ptr<device> dev, scoped_dumbuf& buf) :
+    size_{buf.size()}
 {
-    auto& drm = buf.drm;
+    command<DRM_IOCTL_MODE_MAP_DUMB, drm_mode_map_dumb> map{{
+        .handle = buf.handle()
+    }};
+    dev->io_control(map);
 
-    auto mreq = drm_mode_map_dumb{.handle = buf.handle};
-    command<DRM_IOCTL_MODE_MAP_DUMB, drm_mode_map_dumb*> map{&mreq};
-    drm.io_control(map);
-
-    p = mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_SHARED, drm.native_handle(), mreq.offset);
-    if (p == MAP_FAILED) throw posix_error{"mmap"};
+    data_ = mmap(nullptr, size_, PROT_READ | PROT_WRITE, MAP_SHARED, dev->handle(), map.val.offset);
+    if (data_ == MAP_FAILED) throw posix_error{"mmap"};
 }
 
-framebuf_base::scoped_mmap::~scoped_mmap() { munmap(p, size); }
+scoped_mmapped_ptr::~scoped_mmapped_ptr() { munmap(data_, size_); }
 
 ////////////////////////////////////////////////////////////////////////////////
-framebuf_base::framebuf_base(asio::posix::stream_descriptor& drm, dim dim, unsigned depth, unsigned bits_per_pixel) :
-    buf_{drm, dim, bits_per_pixel}, fbo_{buf_, dim, depth, bits_per_pixel}, mmap_{buf_}
+framebuf_base::framebuf_base(std::shared_ptr<device> dev, unsigned depth, unsigned bits_per_pixel) :
+    dev_{std::move(dev)}, buf_{dev_, bits_per_pixel}, fbo_{dev_, buf_, depth, bits_per_pixel}, mmap_{dev_, buf_}
 {
-    info() << "Using framebuf: " << dim << "px, " << depth << "/" << bits_per_pixel <<  "-bit, stride=" << buf_.stride << ", size=" << buf_.size;
+    info() << "Using framebuf: " << depth << "/" << bits_per_pixel <<  "-bit, stride=" << buf_.stride() << ", size=" << buf_.size();
+}
+
+void framebuf_base::commit()
+{
+    auto code = drmModeDirtyFB(dev_->handle(), fbo_.id(), nullptr, 0);
+    if (code) throw posix_error{"drmModeDirtyFB"};
+}
+
+////////////////////////////////////////////////////////////////////////////////
 }

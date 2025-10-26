@@ -8,6 +8,7 @@
 #pragma once
 
 #include "drm.hpp"
+#include "framebuf.hpp"
 #include "pango.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
@@ -49,7 +50,10 @@ private:
     tty::scoped_process_switch tty_switch_;
     tty::scoped_graphics_mode tty_graph_;
 
-    std::unique_ptr<drm> drm_;
+    std::shared_ptr<drm::device> drm_;
+    drm::crtc drm_crtc_;
+    drm::framebuf<color> drm_fb_;
+
     std::unique_ptr<pango> pango_;
     std::unique_ptr<vte> vte_;
     std::unique_ptr<pty> pty_;

@@ -7,10 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "color.hpp"
-#include "framebuf.hpp"
 #include "geom.hpp"
-#include "image.hpp"
 
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
@@ -18,69 +15,75 @@
 #include <memory>
 
 struct _drmModeRes;
-using drm_mode_res = std::unique_ptr<_drmModeRes, void(*)(_drmModeRes*)>;
+using drm_res = std::unique_ptr<_drmModeRes, void(*)(_drmModeRes*)>;
 
 struct _drmModeConnector;
-using drm_mode_conn = std::unique_ptr<_drmModeConnector, void(*)(_drmModeConnector*)>;
+using drm_conn = std::unique_ptr<_drmModeConnector, void(*)(_drmModeConnector*)>;
 
 struct _drmModeEncoder;
-using drm_mode_enc = std::unique_ptr<_drmModeEncoder, void(*)(_drmModeEncoder*)>;
+using drm_enc = std::unique_ptr<_drmModeEncoder, void(*)(_drmModeEncoder*)>;
 
 struct _drmModeCrtc;
 
 ////////////////////////////////////////////////////////////////////////////////
-class drm
+namespace drm
 {
+
+constexpr auto name = "card";
+constexpr auto path = "/dev/dri/card";
+using num = unsigned;
+
+num find();
+
+struct mode
+{
+    unsigned idx;
+    struct dim dim;
+    unsigned rate;
+    unsigned dpi = 96;
+};
+
+class framebuf_base;
+
+////////////////////////////////////////////////////////////////////////////////
+class device
+{
+    asio::posix::stream_descriptor fd_;
+
+    drm_res res_;
+    drm_conn conn_;
+    drm::mode mode_;
+
 public:
     ////////////////////
-    static constexpr auto name = "card";
-    static constexpr auto path = "/dev/dri/card";
-    using num = unsigned;
-
-    struct mode
-    {
-        unsigned idx;
-        struct dim dim;
-        unsigned rate;
-        unsigned dpi = 96;
-    };
-
-    ////////////////////
-    drm(const asio::any_io_executor&, num);
-
-    constexpr auto mode() const noexcept { return mode_; }
+    device(const asio::any_io_executor&, num);
 
     void disable();
     void enable();
 
-    void fill(pos, const image<color>&);
-    void update();
+    auto handle() { return fd_.native_handle(); }
+    template<typename Cmd> void io_control(Cmd& cmd) { fd_.io_control(cmd); }
 
-    ////////////////////
-    static num any() { return 0; }
+    constexpr auto& res() { return res_; }
+    constexpr auto& conn() { return conn_; }
 
-private:
-    ////////////////////
-    struct drm_scoped_crtc
-    {
-        asio::posix::stream_descriptor& fd;
-        std::uint32_t id;
-        std::uint32_t conn_id;
-        _drmModeCrtc* old;
-
-        drm_scoped_crtc(asio::posix::stream_descriptor&, drm_mode_res&, drm_mode_conn&);
-        ~drm_scoped_crtc();
-    };
-
-    ////////////////////
-    asio::posix::stream_descriptor fd_;
-
-    drm_mode_res res_;
-    drm_mode_conn conn_;
-    drm_scoped_crtc crtc_;
-
-    struct mode mode_;
-    framebuf_image<color> fb_;
-
-    void activate();
+    constexpr auto& mode() const noexcept { return mode_; }
 };
+
+////////////////////////////////////////////////////////////////////////////////
+class crtc
+{
+    std::shared_ptr<device> dev_;
+    std::uint32_t id_;
+    _drmModeCrtc* prev_;
+
+public:
+    ////////////////////
+    explicit crtc(std::shared_ptr<device>);
+    ~crtc();
+
+    void activate(framebuf_base&);
+};
+
+////////////////////////////////////////////////////////////////////////////////
+}

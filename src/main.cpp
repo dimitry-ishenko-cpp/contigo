@@ -82,7 +82,7 @@ try
         options.tty_activate = !!args["--activate"];
 
         auto gpu = get_num(args["--gpu"], drm::path, drm::name, "GPU path or number");
-        options.drm_num = gpu.value_or(drm::any());
+        options.drm_num = gpu.value_or(drm::find());
 
         auto dpi = get_num(args["--dpi"], {}, {}, "DPI value");
         if (dpi) options.dpi = *dpi;
