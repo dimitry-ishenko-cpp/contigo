@@ -36,6 +36,7 @@ public:
 
     struct mode
     {
+        unsigned idx;
         struct dim dim;
         unsigned rate;
         unsigned dpi = 96;

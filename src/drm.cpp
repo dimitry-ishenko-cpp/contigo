@@ -82,7 +82,7 @@ auto get_drm_crtc(asio::posix::stream_descriptor& fd, std::uint32_t crtc_id)
 
 auto get_mode(drm_mode_conn& conn, unsigned n)
 {
-    struct drm::mode mode{
+    struct drm::mode mode{.idx = n,
         .dim = dim{conn->modes[n].hdisplay, conn->modes[n].vdisplay},
         .rate = conn->modes[n].vrefresh
     };
