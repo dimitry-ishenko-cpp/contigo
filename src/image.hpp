@@ -24,8 +24,9 @@ protected:
     std::size_t stride_;
     D data_;
 
-    constexpr image_base(struct dim dim, std::size_t stride, D data) :
-        dim_{dim}, stride_{stride}, data_{std::move(data)}
+    template<typename... Args>
+    constexpr image_base(struct dim dim, std::size_t stride, Args&&... args) :
+        dim_{dim}, stride_{stride}, data_{std::forward<Args>(args)...}
     { }
 
 public:
