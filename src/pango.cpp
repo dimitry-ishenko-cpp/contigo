@@ -16,6 +16,9 @@
 #define pango_pixels PANGO_PIXELS
 
 ////////////////////////////////////////////////////////////////////////////////
+namespace pango
+{
+
 namespace
 {
 
@@ -160,9 +163,9 @@ auto string(PangoWeight weight)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-pango::pango(std::string_view font_desc, dim mode, unsigned dpi) : ft_lib_{create_ft_lib()},
+engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_lib_{create_ft_lib()},
     font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font_desc)},
-    mode_{mode},
+    width_{width},
     layout_{create_layout(context_, font_desc_)}
 {
     auto metrics = get_metrics(font_map_, context_, font_desc_);
@@ -180,8 +183,7 @@ pango::pango(std::string_view font_desc, dim mode, unsigned dpi) : ft_lib_{creat
     info() << "Using font: " << name << ", style: " << style << ", weight: " << wght << ", size=" << size << ", cell=" << cell_;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<const cell> cells, color fg)
+void engine::render_text(image<color>& img, pos pos, dim dim, std::span<const cell> cells, color fg)
 {
     auto attrs = create_attrs();
 
@@ -223,25 +225,25 @@ void pango::render_text(image<color>& image_line, pos pos, dim dim, std::span<co
     pango_layout_set_attributes(&*layout_, &*attrs);
     auto line = pango_layout_get_line_readonly(&*layout_, 0);
 
-    image<shade> mask{dim, 0};
-    FT_Bitmap ft_mask;
-    ft_mask.rows = mask.height();
-    ft_mask.width = mask.width();
-    ft_mask.pitch = mask.stride();
-    ft_mask.buffer = mask.data();
-    ft_mask.num_grays = num_colors<shade>;
-    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
-    pango_ft2_render_layout_line(&ft_mask, line, 0, baseline_);
+    image<shade> src{dim, 0};
+    FT_Bitmap mask;
+    mask.rows = src.height();
+    mask.width = src.width();
+    mask.pitch = src.stride();
+    mask.buffer = src.data();
+    mask.num_grays = num_colors<shade>;
+    mask.pixel_mode = FT_PIXEL_MODE_GRAY;
+    pango_ft2_render_layout_line(&mask, line, 0, baseline_);
 
-    alpha_blend(image_line, pos, mask, fg);
+    alpha_blend(img, pos, src, fg);
 }
 
-image<color> pango::render(std::span<const cell> cells)
+image<color> engine::render(std::span<const cell> cells)
 {
-    image<color> image_line{dim{mode_.width, cell_.height}};
+    image<color> img{dim{width_, cell_.height}};
 
     pos pos{0, 0};
-    dim dim{cell_.width, image_line.height()};
+    dim dim{cell_.width, img.height()};
 
     // render background
     auto from = cells.begin();
@@ -249,14 +251,14 @@ image<color> pango::render(std::span<const cell> cells)
     {
         if (to->bg != from->bg)
         {
-            fill(image_line, pos, dim, from->bg);
+            fill(img, pos, dim, from->bg);
 
             from = to;
             pos.x += dim.width;
             dim.width = 0;
         }
     }
-    fill(image_line, pos, dim, from->bg);
+    fill(img, pos, dim, from->bg);
 
     ////////////////////
     pos.x = 0;
@@ -267,13 +269,16 @@ image<color> pango::render(std::span<const cell> cells)
     {
         if (to->fg != from->fg)
         {
-            render_text(image_line, pos, dim, std::span{from, to}, from->fg);
+            render_text(img, pos, dim, std::span{from, to}, from->fg);
             from = to;
             pos.x += dim.width;
             dim.width = 0;
         }
     }
-    render_text(image_line, pos, dim, std::span{from, cells.end()}, from->fg);
+    render_text(img, pos, dim, std::span{from, cells.end()}, from->fg);
 
-    return image_line;
+    return img;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 }

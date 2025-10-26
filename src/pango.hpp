@@ -40,13 +40,17 @@ struct _PangoAttrList;
 using pango_attrs = std::unique_ptr<_PangoAttrList, void(*)(_PangoAttrList*)>;
 
 ////////////////////////////////////////////////////////////////////////////////
-class pango
+namespace pango
+{
+
+class engine
 {
 public:
     ////////////////////
-    pango(std::string_view font_desc, dim mode, unsigned dpi);
+    engine(std::string_view font_desc, unsigned width, unsigned dpi);
 
     constexpr auto dim_cell() const noexcept { return cell_; }
+
     image<color> render(std::span<const cell>);
 
 private:
@@ -56,10 +60,13 @@ private:
     pango_context context_;
     pango_font_desc font_desc_;
 
-    dim mode_, cell_;
+    unsigned width_;
+    dim cell_;
 
     pango_layout layout_;
     int baseline_;
 
     void render_text(image<color>&, pos, dim, std::span<const cell>, color);
 };
+
+}

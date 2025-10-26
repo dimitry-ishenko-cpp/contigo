@@ -54,7 +54,8 @@ private:
     drm::crtc drm_crtc_;
     drm::framebuf<color> drm_fb_;
 
-    std::unique_ptr<pango> pango_;
+    pango::engine engine_;
+
     std::unique_ptr<vte> vte_;
     std::unique_ptr<pty> pty_;
 
