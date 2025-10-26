@@ -14,6 +14,7 @@ struct pos { int x, y; };
 constexpr auto operator-(pos p) noexcept { return pos{-p.x, -p.y}; }
 
 struct dim { unsigned width, height; };
+constexpr auto operator/(dim x, dim y) noexcept { return dim{x.width / y.width, x.height / y.height}; }
 inline auto& operator<<(std::ostream& os, dim dim) { return os << dim.width << 'x' << dim.height; }
 
 constexpr void clip_within(dim rect, pos* pos, dim* dim) noexcept
