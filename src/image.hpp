@@ -84,13 +84,13 @@ void fill(image_base<D>& img, pos pos, const image_base<S>& src)
     auto src_dim = img.dim();
     clip_within(src.dim(), &src_pos, &src_dim);
 
-    auto img_pix = img.data() + img_pos.y * img.width() + img_pos.x;
-    auto src_pix = src.data() + src_pos.y * src.width() + src_pos.x;
+    auto img_std = img.stride() / img.color_size;
+    auto src_std = src.stride() / src.color_size;
 
-    auto img_inc = img.stride() / img.color_size;
-    auto src_inc = src.stride() / src.color_size;
+    auto img_pix = img.data() + img_pos.y * img_std + img_pos.x;
+    auto src_pix = src.data() + src_pos.y * src_std + src_pos.x;
 
-    for (auto h = img_dim.height; h; --h, img_pix += img_inc, src_pix += src_inc)
+    for (auto h = img_dim.height; h; --h, img_pix += img_std, src_pix += src_std)
         std::ranges::copy_n(src_pix, src_dim.width, img_pix);
 }
 
