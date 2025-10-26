@@ -18,16 +18,14 @@
 #include <linux/vt.h>
 
 ////////////////////////////////////////////////////////////////////////////////
+namespace tty
+{
+
+////////////////////////////////////////////////////////////////////////////////
 namespace
 {
 
-enum signals
-{
-    release = SIGUSR1,
-    acquire = SIGUSR2,
-};
-
-auto open_device(const asio::any_io_executor& ex, tty::num num)
+auto open(const asio::any_io_executor& ex, tty::num num)
 {
     auto path = tty::path + std::to_string(num);
 
@@ -37,21 +35,18 @@ auto open_device(const asio::any_io_executor& ex, tty::num num)
     return asio::posix::stream_descriptor{ex, fd};
 }
 
+enum signals
+{
+    release = SIGUSR1,
+    acquire = SIGUSR2,
+};
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::tty(const asio::any_io_executor &ex, tty::num num, bool activate) :
-    fd_{open_device(ex, num)},
-    active_{fd_, num, activate}, attrs_{fd_}, vt_mode_{fd_}, kd_mode_{fd_},
-    sigs_{ex, release, acquire}
+num active(const asio::any_io_executor& ex)
 {
-    sched_signal_callback();
-    sched_async_read();
-}
-
-tty::num tty::active(const asio::any_io_executor& ex)
-{
-    auto tty0 = open_device(ex, 0);
+    auto tty0 = tty::open(ex, 0);
 
     command<VT_GETSTATE, vt_stat> get_state;
     tty0.io_control(get_state);
@@ -60,56 +55,75 @@ tty::num tty::active(const asio::any_io_executor& ex)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_active_vt::scoped_active_vt(asio::posix::stream_descriptor& vt, tty::num num, bool activate) :
-    fd{vt}, old_num{tty::active(vt.get_executor())}, num{num}
+device::device(const asio::any_io_executor& ex, tty::num num) : fd_{open(ex, num)}
 {
-    if (num != old_num && activate)
+    sched_async_read();
+}
+
+void device::sched_async_read()
+{
+    fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
     {
-        make_active(num);
-        active = true;
+        if (!ec)
+        {
+            if (read_cb_) read_cb_(std::span<const char>{buffer_.begin(), size});
+            sched_async_read();
+        }
+    });
+}
+
+////////////////////////////////////////////////////////////////////////////////
+scoped_active::scoped_active(std::shared_ptr<device> dev, tty::num num, bool activate) :
+    dev_{std::move(dev)}, prev_{tty::active(dev_->executor())}, num_{num}
+{
+    if (num_ != prev_ && activate)
+    {
+        make_active(num_);
+        active_ = true;
     }
 }
 
-tty::scoped_active_vt::~scoped_active_vt()
+scoped_active::~scoped_active()
 {
-    if (active)
+    if (active_)
     {
-        auto new_num = tty::active(fd.get_executor());
-        if (new_num == num) make_active(old_num);
+        auto num = active(dev_->executor());
+        if (num == num_) make_active(prev_);
     }
 }
 
-void tty::scoped_active_vt::make_active(tty::num num)
+void scoped_active::make_active(tty::num num)
 {
     info() << "Activating tty" << num;
     command<VT_ACTIVATE, tty::num> activate{num};
-    fd.io_control(activate);
+    dev_->io_control(activate);
 
     command<VT_WAITACTIVE, tty::num> wait_active{num};
-    fd.io_control(wait_active);
+    dev_->io_control(wait_active);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_attrs::scoped_attrs(asio::posix::stream_descriptor& vt) : fd{vt}
+scoped_raw_mode::scoped_raw_mode(std::shared_ptr<device> dev) : dev_{std::move(dev)}
 {
-    if (tcgetattr(vt.native_handle(), &old_attrs) < 0) throw posix_error{"tcgetattr"};
+    if (tcgetattr(dev_->handle(), &prev_) < 0) throw posix_error{"tcgetattr"};
 
     info() << "Switching tty to raw mode";
-    termios tio = old_attrs;
+    termios tio = prev_;
     cfmakeraw(&tio);
     tio.c_cc[VMIN] = 1;
     tio.c_cc[VTIME] = 0;
-    if (tcsetattr(vt.native_handle(), TCSANOW, &tio) < 0) throw posix_error{"tcsetattr"};
+    if (tcsetattr(dev_->handle(), TCSANOW, &tio) < 0) throw posix_error{"tcsetattr"};
 }
 
-tty::scoped_attrs::~scoped_attrs()
+scoped_raw_mode::~scoped_raw_mode()
 {
     info() << "Restoring tty attrs";
-    tcsetattr(fd.native_handle(), TCSANOW, &old_attrs);
+    tcsetattr(dev_->handle(), TCSANOW, &prev_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-tty::scoped_vt_mode::scoped_vt_mode(asio::posix::stream_descriptor& vt) : fd{vt}
+scoped_process_switch::scoped_process_switch(std::shared_ptr<device> dev) :
+    dev_{std::move(dev)}, sigs_{dev_->executor(), release, acquire}
 {
     info() << "Enabling process switch mode";
     command<VT_SETMODE, vt_mode> mode{{
@@ -119,10 +133,12 @@ tty::scoped_vt_mode::scoped_vt_mode(asio::posix::stream_descriptor& vt) : fd{vt}
         .acqsig= acquire,
         .frsig = 0,
     }};
-    fd.io_control(mode);
+    dev_->io_control(mode);
+
+    sched_signal_callback();
 }
 
-tty::scoped_vt_mode::~scoped_vt_mode()
+scoped_process_switch::~scoped_process_switch()
 {
     info() << "Restoring auto switch mode";
     command<VT_SETMODE, vt_mode> mode{{
@@ -132,30 +148,10 @@ tty::scoped_vt_mode::~scoped_vt_mode()
         .acqsig= 0,
         .frsig = 0,
     }};
-    fd.io_control(mode);
+    dev_->io_control(mode);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-tty::scoped_kd_mode::scoped_kd_mode(asio::posix::stream_descriptor& vt) : fd{vt}
-{
-    command<KDGETMODE, unsigned*> get_mode{&old_mode};
-    vt.io_control(get_mode);
-
-    info() << "Switching to graphics mode";
-    command<KDSETMODE, unsigned> set_graph{KD_GRAPHICS};
-    vt.io_control(set_graph);
-}
-
-tty::scoped_kd_mode::~scoped_kd_mode()
-{
-    info() << "Restoring previous mode";
-    command<KDSETMODE, unsigned> set_mode{old_mode};
-    std::error_code ec;
-    fd.io_control(set_mode, ec);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void tty::sched_signal_callback()
+void scoped_process_switch::sched_signal_callback()
 {
     sigs_.async_wait([&](std::error_code ec, int signal)
     {
@@ -169,13 +165,13 @@ void tty::sched_signal_callback()
                 if (release_cb_) release_cb_();
 
                 rel.val = 1;
-                fd_.io_control(rel);
+                dev_->io_control(rel);
                 break;
 
             case acquire:
                 info() << "Acquiring tty";
                 rel.val = VT_ACKACQ;
-                fd_.io_control(rel);
+                dev_->io_control(rel);
 
                 if (acquire_cb_) acquire_cb_();
                 break;
@@ -186,14 +182,23 @@ void tty::sched_signal_callback()
     });
 }
 
-void tty::sched_async_read()
+////////////////////////////////////////////////////////////////////////////////
+scoped_graphics_mode::scoped_graphics_mode(std::shared_ptr<device> dev) : dev_{std::move(dev)}
 {
-    fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
-    {
-        if (!ec)
-        {
-            if (read_cb_) read_cb_(std::span<const char>{buffer_.begin(), size});
-            sched_async_read();
-        }
-    });
+    command<KDGETMODE, unsigned*> get_mode{&prev_};
+    dev_->io_control(get_mode);
+
+    info() << "Switching to graphics mode";
+    command<KDSETMODE, unsigned> set_graph{KD_GRAPHICS};
+    dev_->io_control(set_graph);
+}
+
+scoped_graphics_mode::~scoped_graphics_mode()
+{
+    info() << "Restoring previous mode";
+    command<KDSETMODE, unsigned> set_mode{prev_};
+    dev_->io_control(set_mode);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 }

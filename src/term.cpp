@@ -8,11 +8,15 @@
 #include "logging.hpp"
 #include "term.hpp"
 
-term::term(const asio::any_io_executor& ex, term_options options)
+term::term(const asio::any_io_executor& ex, term_options options) :
+    tty_{std::make_shared<tty::device>(ex, options.tty_num)},
+    tty_active_{tty_, options.tty_num, options.tty_activate},
+    tty_raw_{tty_},
+    tty_switch_{tty_},
+    tty_graph_{tty_}
 {
-    tty_ = std::make_unique<tty>(ex, options.tty_num, options.tty_activate);
-    tty_->on_acquire([&]{ enable(); });
-    tty_->on_release([&]{ disable(); });
+    tty_switch_.on_acquire([&]{ enable(); });
+    tty_switch_.on_release([&]{ disable(); });
 
     drm_ = std::make_unique<drm>(ex, options.drm_num);
     auto mode = drm_->mode();

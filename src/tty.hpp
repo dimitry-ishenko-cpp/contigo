@@ -12,21 +12,79 @@
 #include <asio/posix/stream_descriptor.hpp>
 #include <asio/signal_set.hpp>
 #include <functional>
+#include <memory>
 #include <span>
 
 #include <termios.h>
 
 ////////////////////////////////////////////////////////////////////////////////
-class tty
+namespace tty
+{
+
+constexpr auto name = "tty";
+constexpr auto path = "/dev/tty";
+using num = unsigned;
+
+num active(const asio::any_io_executor&);
+
+////////////////////////////////////////////////////////////////////////////////
+class device
 {
 public:
     ////////////////////
-    static constexpr auto name = "tty";
-    static constexpr auto path = "/dev/tty";
-    using num = unsigned;
+    device(const asio::any_io_executor&, num);
 
+    auto& executor() { return fd_.get_executor(); }
+    template<typename Cmd> void io_control(Cmd& cmd) { fd_.io_control(cmd); }
+    auto handle() { return fd_.native_handle(); }
+
+    using read_data_callback = std::function<void(std::span<const char>)>;
+    void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
+
+private:
     ////////////////////
-    tty(const asio::any_io_executor&, num, bool active);
+    asio::posix::stream_descriptor fd_;
+
+    read_data_callback read_cb_;
+    std::array<char, 4096> buffer_;
+
+    void sched_async_read();
+};
+
+////////////////////////////////////////////////////////////////////////////////
+class scoped_active
+{
+    std::shared_ptr<device> dev_;
+    num prev_, num_;
+    bool active_ = false;
+
+    void make_active(num);
+
+public:
+    ////////////////////
+    scoped_active(std::shared_ptr<device>, num, bool activate);
+    ~scoped_active();
+};
+
+////////////////////////////////////////////////////////////////////////////////
+class scoped_raw_mode
+{
+    std::shared_ptr<device> dev_;
+    termios prev_;
+
+public:
+    ////////////////////
+    explicit scoped_raw_mode(std::shared_ptr<device>);
+    ~scoped_raw_mode();
+};
+
+////////////////////////////////////////////////////////////////////////////////
+class scoped_process_switch
+{
+public:
+    ////////////////////
+    explicit scoped_process_switch(std::shared_ptr<device>);
+    ~scoped_process_switch();
 
     using release_callback = std::function<void()>;
     void on_release(release_callback cb) { release_cb_ = std::move(cb); }
@@ -34,69 +92,28 @@ public:
     using acquire_callback = std::function<void()>;
     void on_acquire(acquire_callback cb) { acquire_cb_ = std::move(cb); }
 
-    using read_data_callback = std::function<void(std::span<const char>)>;
-    void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
-
-    ////////////////////
-    static num active(const asio::any_io_executor&);
-
 private:
     ////////////////////
-    struct scoped_active_vt // VT_ACTIVATE
-    {
-        asio::posix::stream_descriptor& fd;
-        tty::num old_num, num;
-        bool active = false;
-
-        scoped_active_vt(asio::posix::stream_descriptor&, tty::num, bool activate);
-        ~scoped_active_vt();
-
-        void make_active(tty::num);
-    };
-
-    struct scoped_attrs // termios
-    {
-        asio::posix::stream_descriptor& fd;
-        termios old_attrs;
-
-        scoped_attrs(asio::posix::stream_descriptor&);
-        ~scoped_attrs();
-    };
-
-    struct scoped_vt_mode // VT_SETMODE
-    {
-        asio::posix::stream_descriptor& fd;
-
-        scoped_vt_mode(asio::posix::stream_descriptor&);
-        ~scoped_vt_mode();
-    };
-
-    struct scoped_kd_mode // KDSETMODE
-    {
-        asio::posix::stream_descriptor& fd;
-        unsigned old_mode;
-
-        scoped_kd_mode(asio::posix::stream_descriptor&);
-        ~scoped_kd_mode();
-    };
-
-    ////////////////////
-    asio::posix::stream_descriptor fd_;
-
-    scoped_active_vt active_;
-    scoped_attrs attrs_;
-    scoped_vt_mode vt_mode_;
-    scoped_kd_mode kd_mode_;
+    std::shared_ptr<device> dev_;
 
     asio::signal_set sigs_;
     void sched_signal_callback();
 
     release_callback release_cb_;
     acquire_callback acquire_cb_;
-
-    ////////////////////
-    read_data_callback read_cb_;
-    std::array<char, 4096> buffer_;
-
-    void sched_async_read();
 };
+
+////////////////////////////////////////////////////////////////////////////////
+class scoped_graphics_mode
+{
+    std::shared_ptr<device> dev_;
+    unsigned prev_;
+
+public:
+    ////////////////////
+    explicit scoped_graphics_mode(std::shared_ptr<device>);
+    ~scoped_graphics_mode();
+};
+
+////////////////////////////////////////////////////////////////////////////////
+}

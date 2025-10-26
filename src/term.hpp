@@ -43,7 +43,12 @@ public:
 
 private:
     ////////////////////
-    std::unique_ptr<tty> tty_;
+    std::shared_ptr<tty::device> tty_;
+    tty::scoped_active tty_active_;
+    tty::scoped_raw_mode tty_raw_;
+    tty::scoped_process_switch tty_switch_;
+    tty::scoped_graphics_mode tty_graph_;
+
     std::unique_ptr<drm> drm_;
     std::unique_ptr<pango> pango_;
     std::unique_ptr<vte> vte_;
