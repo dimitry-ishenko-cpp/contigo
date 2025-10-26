@@ -8,6 +8,7 @@
 #include "logging.hpp"
 #include "term.hpp"
 
+////////////////////////////////////////////////////////////////////////////////
 term::term(const asio::any_io_executor& ex, term_options options) :
     tty_{std::make_shared<tty::device>(ex, options.tty_num)},
     tty_active_{tty_, options.tty_num, options.tty_activate},
@@ -19,27 +20,22 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     drm_crtc_{drm_},
     drm_fb_{drm_},
 
-    engine_{options.font, drm_->mode().dim.width, options.dpi.value_or(drm_->mode().dpi)}
+    engine_{options.font, drm_->mode().dim.width, options.dpi.value_or(drm_->mode().dpi)},
+    vte_{drm_->mode().dim / engine_.dim_cell()}
 {
     tty_switch_.on_acquire([&]{ enable(); });
     tty_switch_.on_release([&]{ disable(); });
 
     drm_crtc_.activate(drm_fb_);
 
-    auto dim_mode = drm_->mode().dim;
-    auto dim_cell = engine_.dim_cell();
-    auto dim_vte = dim{dim_mode.width / dim_cell.width, dim_mode.height / dim_cell.height};
+    vte_.on_row_changed([&](int row, std::span<const cell> cells){ change(row, cells); });
+    vte_.on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
 
-    vte_ = std::make_unique<vte>(dim_vte);
-    vte_->on_row_changed([&](int row, std::span<const cell> cells){ change(row, cells); });
-    vte_->on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
-    vte_->reload();
-
-    pty_ = std::make_unique<pty>(ex, dim_vte, std::move(options.login), std::move(options.args));
-    vte_->on_size_changed([&](dim dim){ pty_->resize(dim); });
+    pty_ = std::make_unique<pty>(ex, vte_.dim(), std::move(options.login), std::move(options.args));
+    vte_.on_size_changed([&](dim dim){ pty_->resize(dim); });
 
     tty_->on_read_data([&](std::span<const char> data){ pty_->write(data); });
-    pty_->on_read_data([&](std::span<const char> data){ vte_->write(data); });
+    pty_->on_read_data([&](std::span<const char> data){ vte_.write(data); });
 }
 
 void term::enable()

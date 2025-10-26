@@ -25,7 +25,7 @@ class vte
 {
 public:
     ////////////////////
-    explicit vte(dim);
+    explicit vte(struct dim);
     ~vte();
 
     using row_changed_callback = std::function<void(int, std::span<const cell>)>;
@@ -41,15 +41,15 @@ public:
     void write(std::span<const char>);
     void commit();
 
-    void resize(dim);
-    void reload();
+    constexpr auto dim() const noexcept { return dim_; }
+    void resize(struct dim);
 
 private:
     ////////////////////
     vterm vterm_;
     VTermScreen* screen_;
     VTermState* state_;
-    dim dim_;
+    struct dim dim_;
 
     row_changed_callback row_cb_;
     rows_moved_callback move_cb_;

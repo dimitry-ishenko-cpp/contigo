@@ -59,7 +59,11 @@ static int bell(void* ctx)
 static int resize(int rows, int cols, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    if (vt->size_cb_) vt->size_cb_(dim(cols, rows));
+    if (vt->size_cb_)
+    {
+        struct dim dim(cols, rows);
+        vt->size_cb_(dim);
+    }
     return true;
 }
 
@@ -121,7 +125,7 @@ auto to_cell(const VTermScreenCell& vc)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-vte::vte(dim dim) :
+vte::vte(struct dim dim) :
     vterm_{vterm_new(dim.height, dim.width), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
     dim_{dim}
@@ -157,13 +161,12 @@ vte::~vte() { }
 void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void vte::commit() { vterm_screen_flush_damage(screen_); }
 
-void vte::resize(dim dim)
+void vte::resize(struct dim dim)
 {
     dim_ = dim;
     info() << "Resizing vte to: " << dim_;
     vterm_set_size(&*vterm_, dim_.height, dim_.width);
 }
-void vte::reload() { vterm_set_size(&*vterm_, dim_.height, dim_.width); }
 
 void vte::change(int row)
 {

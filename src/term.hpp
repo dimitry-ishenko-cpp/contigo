@@ -55,8 +55,8 @@ private:
     drm::framebuf<color> drm_fb_;
 
     pango::engine engine_;
+    vte vte_;
 
-    std::unique_ptr<vte> vte_;
     std::unique_ptr<pty> pty_;
 
     ////////////////////
