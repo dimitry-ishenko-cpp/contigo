@@ -50,15 +50,23 @@ inline unsigned depth<color> = bits_per_pixel<color> - bits_per_pixel<decltype(c
 
 ////////////////////////////////////////////////////////////////////////////////
 template<typename C>
-constexpr void alpha_blend(C& bg, C fg, shade mask)
+constexpr inline void alpha_blend(C& bg, C fg, shade mask)
 {
-    bg = (fg * mask + bg * (255 - mask)) / 255;
+    auto bg0 = fg * mask + bg * (255 - mask);
+    bg = (bg0 + 1 + (bg0 >> 8)) >> 8;
 }
 
 template<>
-constexpr void alpha_blend<color>(color& bg, color fg, shade mask)
+constexpr inline void alpha_blend<color>(color& bg, color fg, shade mask)
 {
-     alpha_blend(bg.b, fg.b, mask);
-     alpha_blend(bg.g, fg.g, mask);
-     alpha_blend(bg.r, fg.r, mask);
+    auto not_mask = 255 - mask;
+
+    auto b0 = fg.b * mask + bg.b * not_mask;
+    bg.b = (b0 + 1 + (b0 >> 8)) >> 8;
+
+    auto g0 = fg.g * mask + bg.g * not_mask;
+    bg.g = (g0 + 1 + (g0 >> 8)) >> 8;
+
+    auto r0 = fg.r * mask + bg.r * not_mask;
+    bg.r = (r0 + 1 + (r0 >> 8)) >> 8;
 }
