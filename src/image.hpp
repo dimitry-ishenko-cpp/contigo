@@ -24,15 +24,14 @@ protected:
     std::size_t stride_;
     D data_;
 
-    template<typename... Args>
-    constexpr image_base(struct dim dim, std::size_t stride, Args&&... args) :
-        dim_{dim}, stride_{stride}, data_{std::forward<Args>(args)...}
-    { }
-
 public:
     ////////////////////
     using color_type = D::element_type;
     static constexpr auto color_size = sizeof(color_type);
+
+    constexpr image_base(struct dim dim, std::size_t stride, D data) :
+        dim_{dim}, stride_{stride}, data_{std::move(data)}
+    { }
 
     constexpr auto dim() const noexcept { return dim_; }
     constexpr auto width() const noexcept { return dim().width; }
