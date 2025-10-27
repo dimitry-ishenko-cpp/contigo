@@ -206,7 +206,7 @@ void engine::render_text(image<color>& img, pos pos, dim dim, std::span<const ce
     alpha_blend(img, pos, src, fg);
 }
 
-image<color> engine::render(std::span<const cell> cells)
+image<color> engine::render_line(std::span<const cell> cells)
 {
     image<color> img{dim{width_, cell_.height}};
 

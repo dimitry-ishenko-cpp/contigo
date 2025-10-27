@@ -51,7 +51,7 @@ public:
 
     constexpr auto dim_cell() const noexcept { return cell_; }
 
-    image<color> render(std::span<const cell>);
+    image<color> render_line(std::span<const cell>);
 
 private:
     ////////////////////

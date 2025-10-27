@@ -57,7 +57,7 @@ void term::disable()
 
 void term::change(int row, std::span<const cell> cells)
 {
-    auto img = engine_.render(cells);
+    auto img = engine_.render_line(cells);
 
     pos pos(0, row * engine_.dim_cell().height);
     drm_fb_.fill(pos, img);
