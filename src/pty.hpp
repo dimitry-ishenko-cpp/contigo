@@ -7,8 +7,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "geom.hpp"
-
 #include <array>
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
@@ -25,7 +23,7 @@ class pty
 public:
     ////////////////////
     // NB: passing by value here to have own copy with guaranteed lifetime
-    pty(const asio::any_io_executor&, dim, std::string pgm, std::vector<std::string> args);
+    pty(const asio::any_io_executor&, unsigned w, unsigned h, std::string pgm, std::vector<std::string> args);
     ~pty() { stop_child(); }
 
     using read_data_callback = std::function<void(std::span<const char>)>;
@@ -35,7 +33,7 @@ public:
     void on_child_exit(child_exit_callback cb) { child_cb_ = std::move(cb); }
 
     void write(std::span<const char>);
-    void resize(dim);
+    void resize(unsigned w, unsigned h);
 
 private:
     ////////////////////

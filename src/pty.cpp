@@ -35,11 +35,11 @@ inline int pidfd_open(pid_t pid, unsigned flags)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-pty::pty(const asio::any_io_executor& ex, dim dim, std::string pgm, std::vector<std::string> args) :
+pty::pty(const asio::any_io_executor& ex, unsigned w, unsigned h, std::string pgm, std::vector<std::string> args) :
     fd_{ex}, child_fd_{ex}
 {
     int pt;
-    winsize ws(dim.height, dim.width, 0, 0);
+    winsize ws(h, w, 0, 0);
     char name[PATH_MAX];
 
     info() << "Creating pseudo tty";
@@ -65,10 +65,10 @@ pty::pty(const asio::any_io_executor& ex, dim dim, std::string pgm, std::vector<
 
 void pty::write(std::span<const char> data) { asio::write(fd_, asio::buffer(data)); }
 
-void pty::resize(dim dim)
+void pty::resize(unsigned w, unsigned h)
 {
-    info() << "Resizing pty to: " << dim;
-    command<TIOCSWINSZ, winsize> cmd{winsize(dim.height, dim.width)};
+    info() << "Resizing pty to: " << w << "x" << h;
+    command<TIOCSWINSZ, winsize> cmd{winsize(h, w)};
     fd_.io_control(cmd);
 
     if (child_pid_) kill(child_pid_, SIGWINCH);

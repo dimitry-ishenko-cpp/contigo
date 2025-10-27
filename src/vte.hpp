@@ -8,7 +8,6 @@
 #pragma once
 
 #include "cell.hpp"
-#include "geom.hpp"
 
 #include <functional>
 #include <memory>
@@ -25,7 +24,7 @@ class vte
 {
 public:
     ////////////////////
-    explicit vte(struct dim);
+    explicit vte(unsigned w, unsigned h);
     ~vte();
 
     using row_changed_callback = std::function<void(int, std::span<const cell>)>;
@@ -34,22 +33,25 @@ public:
     using rows_moved_callback = std::function<void(int row, unsigned rows, int distance)>;
     void on_rows_moved(rows_moved_callback cb) { move_cb_ = std::move(cb); }
 
-    using size_changed_callback = std::function<void(dim)>;
+    using size_changed_callback = std::function<void(unsigned w, unsigned h)>;
     void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
 
     ////////////////////
     void write(std::span<const char>);
     void commit();
 
-    constexpr auto dim() const noexcept { return dim_; }
-    void resize(struct dim);
+    constexpr auto width() const noexcept { return width_; }
+    constexpr auto height() const noexcept { return height_; }
+
+    void resize(unsigned w, unsigned h);
 
 private:
     ////////////////////
     vterm vterm_;
     VTermScreen* screen_;
     VTermState* state_;
-    struct dim dim_;
+
+    unsigned width_, height_;
 
     row_changed_callback row_cb_;
     rows_moved_callback move_cb_;

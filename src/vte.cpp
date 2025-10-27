@@ -59,11 +59,7 @@ static int bell(void* ctx)
 static int resize(int rows, int cols, void* ctx)
 {
     auto vt = static_cast<vte*>(ctx);
-    if (vt->size_cb_)
-    {
-        struct dim dim(cols, rows);
-        vt->size_cb_(dim);
-    }
+    if (vt->size_cb_) vt->size_cb_(cols, rows);
     return true;
 }
 
@@ -125,12 +121,12 @@ auto to_cell(const VTermScreenCell& vc)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-vte::vte(struct dim dim) :
-    vterm_{vterm_new(dim.height, dim.width), &vterm_free},
+vte::vte(unsigned w, unsigned h) :
+    vterm_{vterm_new(h, w), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
-    dim_{dim}
+    width_{w}, height_{h}
 {
-    info() << "Virtual terminal size: " << dim_;
+    info() << "Virtual terminal size: " << width_ << "x" << height_;
 
     static const VTermScreenCallbacks callbacks
     {
@@ -161,19 +157,19 @@ vte::~vte() { }
 void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void vte::commit() { vterm_screen_flush_damage(screen_); }
 
-void vte::resize(struct dim dim)
+void vte::resize(unsigned w, unsigned h)
 {
-    dim_ = dim;
-    info() << "Resizing vte to: " << dim_;
-    vterm_set_size(&*vterm_, dim_.height, dim_.width);
+    width_ = w; height_ = h;
+    info() << "Resizing vte to: " << width_ << "x" << height_;
+    vterm_set_size(&*vterm_, height_, width_);
 }
 
 void vte::change(int row)
 {
     std::vector<cell> cells;
-    cells.reserve(dim_.width);
+    cells.reserve(width_);
 
-    for (VTermPos pos{row, 0}; pos.col < dim_.width; ++pos.col)
+    for (VTermPos pos{row, 0}; pos.col < width_; ++pos.col)
     {
         VTermScreenCell vc;
         if (vterm_screen_get_cell(screen_, pos, &vc))
