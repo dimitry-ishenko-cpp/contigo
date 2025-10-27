@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "logging.hpp"
 #include "pango.hpp"
+#include "vte.hpp"
 
 #include <stdexcept>
 #include <string>
@@ -148,7 +149,7 @@ engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_li
     info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_width_ << "x" << cell_height_;
 }
 
-void engine::render_text(pixman::image& image, int x, int y, unsigned w, unsigned h, std::span<const cell> cells, const color& fg)
+void engine::render_text(pixman::image& image, int x, int y, unsigned w, unsigned h, std::span<const vte::cell> cells, const color& fg)
 {
     auto attrs = create_attrs();
 
@@ -203,7 +204,7 @@ void engine::render_text(pixman::image& image, int x, int y, unsigned w, unsigne
     image.alpha_blend(x, y, mask, fg);
 }
 
-pixman::image engine::render_line(std::span<const cell> cells)
+pixman::image engine::render_line(std::span<const vte::cell> cells)
 {
     pixman::image image{width_, cell_height_};
 

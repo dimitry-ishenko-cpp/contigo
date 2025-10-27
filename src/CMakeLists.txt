@@ -9,7 +9,6 @@ pkg_search_module(pixman-1 REQUIRED IMPORTED_TARGET pixman-1)
 pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 
 add_executable(term
-    cell.hpp
     command.hpp
     drm.cpp
     drm.hpp

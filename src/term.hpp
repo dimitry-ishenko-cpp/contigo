@@ -55,7 +55,7 @@ private:
     drm::framebuf drm_fb_;
 
     pango::engine pango_;
-    vte vte_;
+    vte::machine vte_;
     pty pty_;
 
     ////////////////////
@@ -63,6 +63,6 @@ private:
     void enable();
     void disable();
 
-    void change(int row, std::span<const cell>);
+    void change(int row, std::span<const vte::cell>);
     void move(int row, unsigned rows, int distance);
 };

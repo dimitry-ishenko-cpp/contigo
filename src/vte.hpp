@@ -7,25 +7,45 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "cell.hpp"
+#include "pixman.hpp"
 
 #include <functional>
 #include <memory>
 #include <span>
 
-struct VTerm;
-using vterm = std::unique_ptr<VTerm, void(*)(VTerm*)>;
-
-struct VTermScreen;
-struct VTermState;
+#include <vterm.h>
 
 ////////////////////////////////////////////////////////////////////////////////
-class vte
+namespace vte
+{
+
+struct vterm_delete { void operator()(VTerm* vterm) { vterm_free(vterm); } };
+using vterm_ptr = std::unique_ptr<VTerm, vterm_delete>;
+
+using pixman::color;
+
+////////////////////////////////////////////////////////////////////////////////
+struct cell
+{
+    static constexpr unsigned max_chars = 32;
+
+    char chars[max_chars];
+    unsigned width;
+
+    bool bold;
+    bool italic;
+    bool strike;
+    unsigned underline :2;
+
+    color fg, bg;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+class machine
 {
 public:
     ////////////////////
-    explicit vte(unsigned w, unsigned h);
-    ~vte();
+    explicit machine(unsigned w, unsigned h);
 
     using row_changed_callback = std::function<void(int, std::span<const cell>)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
@@ -47,7 +67,7 @@ public:
 
 private:
     ////////////////////
-    vterm vterm_;
+    vterm_ptr vterm_;
     VTermScreen* screen_;
     VTermState* state_;
 
@@ -62,3 +82,6 @@ private:
     ////////////////////
     struct dispatch;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+}

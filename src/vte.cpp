@@ -8,23 +8,25 @@
 #include "logging.hpp"
 #include "vte.hpp"
 
-#include <cstring> // std::memcpy
-#include <vterm.h>
-
 ////////////////////////////////////////////////////////////////////////////////
-struct vte::dispatch
+namespace vte
+{
+
+struct machine::dispatch
 {
 
 static int damage(VTermRect rect, void* ctx)
 {
-    auto vt = static_cast<vte*>(ctx);
-    if (vt->row_cb_) for (auto row = rect.start_row; row < rect.end_row; ++row) vt->change(row);
+    auto vt = static_cast<machine*>(ctx);
+    if (vt->row_cb_)
+        for (auto row = rect.start_row; row < rect.end_row; ++row)
+            vt->change(row);
     return true;
 }
 
 static int move_rect(VTermRect dst, VTermRect src, void* ctx)
 {
-    auto vt = static_cast<vte*>(ctx);
+    auto vt = static_cast<machine*>(ctx);
     if (vt->move_cb_)
     {
         int row = src.start_row;
@@ -37,33 +39,75 @@ static int move_rect(VTermRect dst, VTermRect src, void* ctx)
 
 static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
 {
-    auto vt = static_cast<vte*>(ctx);
+    auto vt = static_cast<machine*>(ctx);
     // TODO
     return true;
 }
 
 static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 {
-    auto vt = static_cast<vte*>(ctx);
+    auto vt = static_cast<machine*>(ctx);
     // TODO
     return true;
 }
 
 static int bell(void* ctx)
 {
-    auto vt = static_cast<vte*>(ctx);
+    auto vt = static_cast<machine*>(ctx);
     // TODO
     return true;
 }
 
 static int resize(int rows, int cols, void* ctx)
 {
-    auto vt = static_cast<vte*>(ctx);
+    auto vt = static_cast<machine*>(ctx);
     if (vt->size_cb_) vt->size_cb_(cols, rows);
     return true;
 }
 
 };
+
+////////////////////////////////////////////////////////////////////////////////
+machine::machine(unsigned w, unsigned h) :
+    vterm_{vterm_new(h, w)},
+    screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
+    width_{w}, height_{h}
+{
+    info() << "Virtual terminal size: " << width_ << "x" << height_;
+
+    static const VTermScreenCallbacks callbacks
+    {
+        .damage      = dispatch::damage,
+        .moverect    = dispatch::move_rect,
+        .movecursor  = dispatch::move_cursor,
+        .settermprop = dispatch::set_prop,
+        .bell        = dispatch::bell,
+        .resize      = dispatch::resize,
+        .sb_pushline = nullptr,
+        .sb_popline  = nullptr,
+        .sb_clear    = nullptr,
+    };
+
+    vterm_set_utf8(&*vterm_, true);
+
+    vterm_screen_set_callbacks(screen_, &callbacks, this);
+    vterm_screen_set_damage_merge(screen_, VTERM_DAMAGE_ROW);
+
+    vterm_screen_enable_reflow(screen_, true);
+    vterm_screen_enable_altscreen(screen_, true);
+
+    vterm_screen_reset(screen_, true);
+}
+
+void machine::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
+void machine::commit() { vterm_screen_flush_damage(screen_); }
+
+void machine::resize(unsigned w, unsigned h)
+{
+    width_ = w; height_ = h;
+    info() << "Resizing vte to: " << width_ << "x" << height_;
+    vterm_set_size(&*vterm_, height_, width_);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 namespace
@@ -100,71 +144,16 @@ void ucs4_to_utf8(char* out, const uint32_t* in)
     *out = '\0';
 }
 
-auto to_cell(const VTermScreenCell& vc)
+auto vtc_to_color(VTermState* state, VTermColor* vc)
 {
-    cell cell;
-
-    ucs4_to_utf8(cell.chars, vc.chars);
-    cell.width = vc.width;
-
-    cell.bold  = vc.attrs.bold;
-    cell.italic= vc.attrs.italic;
-    cell.strike= vc.attrs.strike;
-    cell.underline = vc.attrs.underline;
-
-    cell.fg = pixman::color(vc.fg.rgb.red << 8, vc.fg.rgb.green << 8, vc.fg.rgb.blue << 8, 0xffff);
-    cell.bg = pixman::color(vc.bg.rgb.red << 8, vc.bg.rgb.green << 8, vc.bg.rgb.blue << 8, 0xffff);
-
-    return cell;
+    vterm_state_convert_color_to_rgb(state, vc);
+    return color(vc->rgb.red << 8, vc->rgb.green << 8, vc->rgb.blue << 8, 0xffff);
 }
 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-vte::vte(unsigned w, unsigned h) :
-    vterm_{vterm_new(h, w), &vterm_free},
-    screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
-    width_{w}, height_{h}
-{
-    info() << "Virtual terminal size: " << width_ << "x" << height_;
-
-    static const VTermScreenCallbacks callbacks
-    {
-        .damage      = dispatch::damage,
-        .moverect    = dispatch::move_rect,
-        .movecursor  = dispatch::move_cursor,
-        .settermprop = dispatch::set_prop,
-        .bell        = dispatch::bell,
-        .resize      = dispatch::resize,
-        .sb_pushline = nullptr,
-        .sb_popline  = nullptr,
-        .sb_clear    = nullptr,
-    };
-
-    vterm_set_utf8(&*vterm_, true);
-
-    vterm_screen_set_callbacks(screen_, &callbacks, this);
-    vterm_screen_set_damage_merge(screen_, VTERM_DAMAGE_ROW);
-
-    vterm_screen_enable_reflow(screen_, true);
-    vterm_screen_enable_altscreen(screen_, true);
-
-    vterm_screen_reset(screen_, true);
-}
-
-vte::~vte() { }
-
-void vte::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
-void vte::commit() { vterm_screen_flush_damage(screen_); }
-
-void vte::resize(unsigned w, unsigned h)
-{
-    width_ = w; height_ = h;
-    info() << "Resizing vte to: " << width_ << "x" << height_;
-    vterm_set_size(&*vterm_, height_, width_);
-}
-
-void vte::change(int row)
+void machine::change(int row)
 {
     std::vector<cell> cells;
     cells.reserve(width_);
@@ -174,11 +163,25 @@ void vte::change(int row)
         VTermScreenCell vc;
         if (vterm_screen_get_cell(screen_, pos, &vc))
         {
-            vterm_state_convert_color_to_rgb(state_, &vc.fg);
-            vterm_state_convert_color_to_rgb(state_, &vc.bg);
-            cells.push_back(to_cell(vc));
+            cell cell;
+
+            ucs4_to_utf8(cell.chars, vc.chars);
+            cell.width = vc.width;
+
+            cell.bold  = vc.attrs.bold;
+            cell.italic= vc.attrs.italic;
+            cell.strike= vc.attrs.strike;
+            cell.underline = vc.attrs.underline;
+
+            cell.fg = vtc_to_color(state_, &vc.fg);
+            cell.bg = vtc_to_color(state_, &vc.bg);
+
+            cells.push_back(std::move(cell));
         }
     }
 
     row_cb_(row, cells);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 }

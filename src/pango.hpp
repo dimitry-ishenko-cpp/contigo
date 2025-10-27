@@ -7,7 +7,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "cell.hpp"
 #include "pixman.hpp"
 
 #include <memory>
@@ -15,6 +14,8 @@
 #include <string_view>
 
 #include <pango/pangoft2.h>
+
+namespace vte { struct cell; }
 
 ////////////////////////////////////////////////////////////////////////////////
 namespace pango
@@ -45,7 +46,7 @@ public:
     constexpr auto cell_width() const noexcept { return cell_width_; }
     constexpr auto cell_height() const noexcept { return cell_height_; }
 
-    pixman::image render_line(std::span<const cell>);
+    pixman::image render_line(std::span<const vte::cell>);
 
 private:
     ////////////////////
@@ -60,7 +61,8 @@ private:
     layout_ptr layout_;
     int baseline_;
 
-    void render_text(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const cell>, const color&);
+    void render_text(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const vte::cell>, const color&);
 };
 
+////////////////////////////////////////////////////////////////////////////////
 }

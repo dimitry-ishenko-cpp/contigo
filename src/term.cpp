@@ -31,7 +31,7 @@ term::term(const asio::any_io_executor& ex, term_options options) :
 
     drm_crtc_.activate(drm_fb_);
 
-    vte_.on_row_changed([&](int row, std::span<const cell> cells){ change(row, cells); });
+    vte_.on_row_changed([&](int row, std::span<const vte::cell> cells){ change(row, cells); });
     vte_.on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
     vte_.on_size_changed([&](unsigned w, unsigned h){ pty_.resize(w, h); });
 
@@ -55,7 +55,7 @@ void term::disable()
     drm_->disable();
 }
 
-void term::change(int row, std::span<const cell> cells)
+void term::change(int row, std::span<const vte::cell> cells)
 {
     auto image = pango_.render_line(cells);
     drm_fb_.fill(0, row * pango_.cell_height(), image);
