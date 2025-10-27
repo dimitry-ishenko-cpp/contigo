@@ -69,7 +69,7 @@ class framebuf
     scoped_dumbuf buf_;
     scoped_fbo fbo_;
     scoped_mmapped_ptr mmap_;
-    pixman::image image_;
+    pixman::mapped_image image_;
 
 public:
     ////////////////////

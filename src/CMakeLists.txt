@@ -20,7 +20,6 @@ add_executable(term
     main.cpp
     pango.cpp
     pango.hpp
-    pixman.cpp
     pixman.hpp
     pty.cpp
     pty.hpp
