@@ -31,22 +31,18 @@ using layout_ptr = std::unique_ptr<PangoLayout, void(*)(void*)>;
 using attrs_ptr = std::unique_ptr<PangoAttrList, void(*)(PangoAttrList*)>;
 
 using pixman::color;
-constexpr bool operator==(const color& x, const color& y) noexcept
-{
-    return x.red == y.red && x.green == y.green && x.blue == y.blue && x.alpha == y.alpha;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 class engine
 {
 public:
     ////////////////////
-    engine(std::string_view font_desc, unsigned width, unsigned dpi);
+    engine(std::string_view font_desc, unsigned dpi);
 
     constexpr auto cell_width() const noexcept { return cell_width_; }
     constexpr auto cell_height() const noexcept { return cell_height_; }
 
-    pixman::image render_line(std::span<const vte::cell>);
+    pixman::image render_line(unsigned width, std::span<const vte::cell>);
 
 private:
     ////////////////////
@@ -55,7 +51,6 @@ private:
     context_ptr context_;
     font_desc_ptr font_desc_;
 
-    unsigned width_;
     unsigned cell_width_, cell_height_;
 
     layout_ptr layout_;

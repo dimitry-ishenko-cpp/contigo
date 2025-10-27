@@ -129,9 +129,9 @@ void maybe_insert_underline(attrs_ptr& attrs, unsigned from, unsigned to, unsign
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_lib_{create_ft_lib()},
+engine::engine(std::string_view font_desc, unsigned dpi) :
+    ft_lib_{create_ft_lib()},
     font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font_desc)},
-    width_{width},
     layout_{create_layout(context_, font_desc_)}
 {
     auto metrics = get_metrics(font_map_, context_, font_desc_);
@@ -147,6 +147,11 @@ engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_li
     auto size = pango_pixels(pango_font_description_get_size(&*font_desc_));
 
     info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_width_ << "x" << cell_height_;
+}
+
+constexpr bool operator==(const color& x, const color& y) noexcept
+{
+    return x.red == y.red && x.green == y.green && x.blue == y.blue && x.alpha == y.alpha;
 }
 
 void engine::render_text(pixman::image& image, int x, int y, unsigned w, unsigned h, std::span<const vte::cell> cells, const color& fg)
@@ -192,21 +197,21 @@ void engine::render_text(pixman::image& image, int x, int y, unsigned w, unsigne
     auto line = pango_layout_get_line_readonly(&*layout_, 0);
 
     pixman::gray mask{w, h};
-    FT_Bitmap ft_mask;
-    ft_mask.rows  = mask.height();
-    ft_mask.width = mask.width();
-    ft_mask.pitch = mask.stride();
-    ft_mask.buffer= mask.data<uint8_t*>();
-    ft_mask.num_grays = mask.num_colors;
-    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
-    pango_ft2_render_layout_line(&ft_mask, line, 0, baseline_);
+    FT_Bitmap ftb;
+    ftb.rows  = mask.height();
+    ftb.width = mask.width();
+    ftb.pitch = mask.stride();
+    ftb.buffer= mask.data<uint8_t*>();
+    ftb.num_grays = mask.num_colors;
+    ftb.pixel_mode = FT_PIXEL_MODE_GRAY;
+    pango_ft2_render_layout_line(&ftb, line, 0, baseline_);
 
     image.alpha_blend(x, y, mask, fg);
 }
 
-pixman::image engine::render_line(std::span<const vte::cell> cells)
+pixman::image engine::render_line(unsigned width, std::span<const vte::cell> cells)
 {
-    pixman::image image{width_, cell_height_};
+    pixman::image image{width, cell_height_};
 
     int x = 0, y = 0;
     unsigned w = cell_width_, h = cell_height_;
@@ -243,4 +248,5 @@ pixman::image engine::render_line(std::span<const vte::cell> cells)
     return image;
 }
 
+////////////////////////////////////////////////////////////////////////////////
 }
