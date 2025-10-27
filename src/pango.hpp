@@ -15,53 +15,47 @@
 #include <span>
 #include <string_view>
 
-struct FT_LibraryRec_;
-using ft_lib = std::unique_ptr<FT_LibraryRec_, int(*)(FT_LibraryRec_*)>;
-
-struct _PangoFontMap;
-using pango_font_map = std::unique_ptr<_PangoFontMap, void(*)(void*)>;
-
-struct _PangoContext;
-using pango_context = std::unique_ptr<_PangoContext, void(*)(void*)>;
-
-struct _PangoFontDescription;
-using pango_font_desc = std::unique_ptr<_PangoFontDescription, void(*)(_PangoFontDescription*)>;
-
-struct _PangoFont;
-using pango_font = std::unique_ptr<_PangoFont, void(*)(void*)>;
-
-struct _PangoFontMetrics;
-using pango_font_metrics = std::unique_ptr<_PangoFontMetrics, void(*)(_PangoFontMetrics*)>;
-
-struct _PangoLayout;
-using pango_layout = std::unique_ptr<_PangoLayout, void(*)(void*)>;
-
-struct _PangoAttrList;
-using pango_attrs = std::unique_ptr<_PangoAttrList, void(*)(_PangoAttrList*)>;
+#include <pango/pangoft2.h>
 
 ////////////////////////////////////////////////////////////////////////////////
-class pango
+namespace pango
+{
+
+using ft_lib_ptr = std::unique_ptr<FT_LibraryRec_, int(*)(FT_LibraryRec_*)>;
+using font_map_ptr = std::unique_ptr<PangoFontMap, void(*)(void*)>;
+using context_ptr = std::unique_ptr<PangoContext, void(*)(void*)>;
+using font_desc_ptr = std::unique_ptr<PangoFontDescription, void(*)(PangoFontDescription*)>;
+using font_ptr = std::unique_ptr<PangoFont, void(*)(void*)>;
+using font_metrics_ptr = std::unique_ptr<PangoFontMetrics, void(*)(PangoFontMetrics*)>;
+using layout_ptr = std::unique_ptr<PangoLayout, void(*)(void*)>;
+using attrs_ptr = std::unique_ptr<PangoAttrList, void(*)(PangoAttrList*)>;
+
+////////////////////////////////////////////////////////////////////////////////
+class engine
 {
 public:
     ////////////////////
-    pango(std::string_view font_desc, unsigned width, unsigned dpi);
+    engine(std::string_view font_desc, unsigned width, unsigned dpi);
 
-    constexpr auto dim_cell() const noexcept { return cell_; }
+    constexpr auto cell_width() const noexcept { return cell_width_; }
+    constexpr auto cell_height() const noexcept { return cell_height_; }
 
     pixman::image render_line(std::span<const cell>);
 
 private:
     ////////////////////
-    ft_lib ft_lib_;
-    pango_font_map font_map_;
-    pango_context context_;
-    pango_font_desc font_desc_;
+    ft_lib_ptr ft_lib_;
+    font_map_ptr font_map_;
+    context_ptr context_;
+    font_desc_ptr font_desc_;
 
     unsigned width_;
-    dim cell_;
+    unsigned cell_width_, cell_height_;
 
-    pango_layout layout_;
+    layout_ptr layout_;
     int baseline_;
 
     void render_text(pixman::image&, pos, dim, std::span<const cell>, xrgb32);
 };
+
+}

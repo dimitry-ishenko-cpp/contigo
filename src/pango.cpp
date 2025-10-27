@@ -11,11 +11,12 @@
 #include <stdexcept>
 #include <string>
 
-#include <pango/pangoft2.h>
-
 #define pango_pixels PANGO_PIXELS
 
 ////////////////////////////////////////////////////////////////////////////////
+namespace pango
+{
+
 namespace
 {
 
@@ -24,57 +25,57 @@ auto create_ft_lib()
     FT_Library lib;
     auto code = FT_Init_FreeType(&lib);
     if (code) throw std::runtime_error{"Failed to init freetype2"};
-    return ft_lib{lib, &FT_Done_FreeType};
+    return ft_lib_ptr{lib, &FT_Done_FreeType};
 }
 
 auto create_font_map(int dpi)
 {
-    pango_font_map font_map{pango_ft2_font_map_new(), &g_object_unref};
+    font_map_ptr font_map{pango_ft2_font_map_new(), &g_object_unref};
     if (!font_map) throw std::runtime_error{"Failed to create fontmap"};
     pango_ft2_font_map_set_resolution(PANGO_FT2_FONT_MAP(&*font_map), dpi, dpi);
     return font_map;
 }
 
-auto create_context(pango_font_map& fontmap)
+auto create_context(font_map_ptr& fontmap)
 {
-    pango_context context{pango_font_map_create_context(&*fontmap), &g_object_unref};
+    context_ptr context{pango_font_map_create_context(&*fontmap), &g_object_unref};
     if (!context) throw std::runtime_error{"Failed to create pango context"};
     return context;
 }
 
 auto create_font_desc(std::string_view font_desc)
 {
-    pango_font_desc desc{pango_font_description_from_string(font_desc.data()), &pango_font_description_free};
+    font_desc_ptr desc{pango_font_description_from_string(font_desc.data()), &pango_font_description_free};
     if (!desc) throw std::runtime_error{"Failed to create font description"};
     return desc;
 }
 
-auto get_metrics(pango_font_map& font_map, pango_context& context, pango_font_desc& font_desc)
+auto get_metrics(font_map_ptr& font_map, context_ptr& context, font_desc_ptr& font_desc)
 {
-    pango_font font{pango_font_map_load_font(&*font_map, &*context, &*font_desc), &g_object_unref};
+    font_ptr font{pango_font_map_load_font(&*font_map, &*context, &*font_desc), &g_object_unref};
     if (!font) throw std::runtime_error{"Failed to load font"};
 
-    pango_font_metrics metrics{pango_font_get_metrics(&*font, nullptr), &pango_font_metrics_unref};
+    font_metrics_ptr metrics{pango_font_get_metrics(&*font, nullptr), &pango_font_metrics_unref};
     if (!metrics) throw std::runtime_error{"Failed to get font metrics"};
 
     return metrics;
 }
 
-auto create_layout(pango_context& context, pango_font_desc& font_desc)
+auto create_layout(context_ptr& context, font_desc_ptr& font_desc)
 {
-    pango_layout layout{pango_layout_new(&*context), &g_object_unref};
+    layout_ptr layout{pango_layout_new(&*context), &g_object_unref};
     pango_layout_set_font_description(&*layout, &*font_desc);
     return layout;
 }
 
 auto create_attrs()
 {
-    pango_attrs attrs{pango_attr_list_new(), &pango_attr_list_unref};
+    attrs_ptr attrs{pango_attr_list_new(), &pango_attr_list_unref};
     if (!attrs) throw std::runtime_error{"Failed to create attribute list"};
     return attrs;
 }
 
-void maybe_insert_bold(pango_attrs& attrs, unsigned from, unsigned to, bool bold)
+void maybe_insert_bold(attrs_ptr& attrs, unsigned from, unsigned to, bool bold)
 {
     if (bold)
     {
@@ -85,7 +86,7 @@ void maybe_insert_bold(pango_attrs& attrs, unsigned from, unsigned to, bool bold
     }
 }
 
-void maybe_insert_italic(pango_attrs& attrs, unsigned from, unsigned to, bool italic)
+void maybe_insert_italic(attrs_ptr& attrs, unsigned from, unsigned to, bool italic)
 {
     if (italic)
     {
@@ -96,7 +97,7 @@ void maybe_insert_italic(pango_attrs& attrs, unsigned from, unsigned to, bool it
     }
 }
 
-void maybe_insert_strike(pango_attrs& attrs, unsigned from, unsigned to, bool strike)
+void maybe_insert_strike(attrs_ptr& attrs, unsigned from, unsigned to, bool strike)
 {
     if (strike)
     {
@@ -107,7 +108,7 @@ void maybe_insert_strike(pango_attrs& attrs, unsigned from, unsigned to, bool st
     }
 }
 
-void maybe_insert_underline(pango_attrs& attrs, unsigned from, unsigned to, unsigned underline)
+void maybe_insert_underline(attrs_ptr& attrs, unsigned from, unsigned to, unsigned underline)
 {
     PangoUnderline val;
     switch (underline)
@@ -127,14 +128,14 @@ void maybe_insert_underline(pango_attrs& attrs, unsigned from, unsigned to, unsi
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-pango::pango(std::string_view font_desc, unsigned width, unsigned dpi) : ft_lib_{create_ft_lib()},
+engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_lib_{create_ft_lib()},
     font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font_desc)},
     width_{width},
     layout_{create_layout(context_, font_desc_)}
 {
     auto metrics = get_metrics(font_map_, context_, font_desc_);
-    cell_.width = pango_pixels(pango_font_metrics_get_approximate_char_width(&*metrics));
-    cell_.height = pango_pixels(pango_font_metrics_get_height(&*metrics));
+    cell_width_ = pango_pixels(pango_font_metrics_get_approximate_char_width(&*metrics));
+    cell_height_ = pango_pixels(pango_font_metrics_get_height(&*metrics));
 
     baseline_ = pango_pixels(pango_layout_get_baseline(&*layout_));
 
@@ -144,10 +145,10 @@ pango::pango(std::string_view font_desc, unsigned width, unsigned dpi) : ft_lib_
     auto weight = pango_font_description_get_weight(&*font_desc_);
     auto size = pango_pixels(pango_font_description_get_size(&*font_desc_));
 
-    info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_;
+    info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_width_ << "x" << cell_height_;
 }
 
-void pango::render_text(pixman::image& img, pos pos, dim dim, std::span<const cell> cells, xrgb32 fg)
+void engine::render_text(pixman::image& img, pos pos, dim dim, std::span<const cell> cells, xrgb32 fg)
 {
     auto attrs = create_attrs();
 
@@ -202,16 +203,16 @@ void pango::render_text(pixman::image& img, pos pos, dim dim, std::span<const ce
     img.alpha_blend(pos, mask, fg);
 }
 
-pixman::image pango::render_line(std::span<const cell> cells)
+pixman::image engine::render_line(std::span<const cell> cells)
 {
-    pixman::image image{dim{width_, cell_.height}};
+    pixman::image image{dim{width_, cell_height_}};
 
     pos pos{0, 0};
-    dim dim{cell_.width, image.height()};
+    dim dim{cell_width_, image.height()};
 
     // render background
     auto from = cells.begin();
-    for (auto to = from + 1; to != cells.end(); ++to, dim.width += cell_.width)
+    for (auto to = from + 1; to != cells.end(); ++to, dim.width += cell_width_)
     {
         if (to->bg != from->bg)
         {
@@ -226,10 +227,10 @@ pixman::image pango::render_line(std::span<const cell> cells)
 
     ////////////////////
     pos.x = 0;
-    dim.width = cell_.width;
+    dim.width = cell_width_;
 
     from = cells.begin();
-    for (auto to = from + 1; to != cells.end(); ++to, dim.width += cell_.width)
+    for (auto to = from + 1; to != cells.end(); ++to, dim.width += cell_width_)
     {
         if (to->fg != from->fg)
         {
@@ -242,4 +243,6 @@ pixman::image pango::render_line(std::span<const cell> cells)
     render_text(image, pos, dim, std::span{from, cells.end()}, from->fg);
 
     return image;
+}
+
 }

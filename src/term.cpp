@@ -21,9 +21,7 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     drm_fb_{drm_},
 
     pango_{options.font, drm_->mode().dim.width, options.dpi.value_or(drm_->mode().dpi)},
-    row_height_{pango_.dim_cell().height},
-
-    vte_{drm_->mode().dim.width / pango_.dim_cell().width, drm_->mode().dim.height / pango_.dim_cell().height},
+    vte_{drm_->mode().dim.width / pango_.cell_width(), drm_->mode().dim.height / pango_.cell_height()},
     pty_{ex, vte_.width(), vte_.height(), std::move(options.login), std::move(options.args)}
 {
     tty_->on_read_data([&](std::span<const char> data){ pty_.write(data); });
@@ -61,7 +59,7 @@ void term::change(int row, std::span<const cell> cells)
 {
     auto image = pango_.render_line(cells);
 
-    drm_fb_.fill(pos(0, row * row_height_), image);
+    drm_fb_.fill(pos(0, row * pango_.cell_height()), image);
     if (enabled_) drm_fb_.commit();
 }
 

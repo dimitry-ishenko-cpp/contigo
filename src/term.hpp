@@ -54,9 +54,7 @@ private:
     drm::crtc drm_crtc_;
     drm::framebuf drm_fb_;
 
-    pango pango_;
-    unsigned row_height_;
-
+    pango::engine pango_;
     vte vte_;
     pty pty_;
 
