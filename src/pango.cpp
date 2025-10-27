@@ -128,38 +128,6 @@ void maybe_insert_under(pango_attrs& attrs, unsigned from, unsigned to, unsigned
     pango_attr_list_insert(&*attrs, attr);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-auto string(PangoStyle style)
-{
-    switch (style)
-    {
-        case PANGO_STYLE_NORMAL : return "normal";
-        case PANGO_STYLE_OBLIQUE: return "oblique";
-        case PANGO_STYLE_ITALIC : return "italic";
-        default: return "???";
-    }
-}
-
-auto string(PangoWeight weight)
-{
-    switch (weight)
-    {
-        case PANGO_WEIGHT_THIN: return "thin";
-        case PANGO_WEIGHT_ULTRALIGHT: return "ultra-light";
-        case PANGO_WEIGHT_LIGHT: return "light";
-        case PANGO_WEIGHT_SEMILIGHT: return "semi-light";
-        case PANGO_WEIGHT_BOOK: return "book";
-        case PANGO_WEIGHT_NORMAL: return "normal";
-        case PANGO_WEIGHT_MEDIUM: return "medium";
-        case PANGO_WEIGHT_SEMIBOLD: return "semi-bold";
-        case PANGO_WEIGHT_BOLD: return "bold";
-        case PANGO_WEIGHT_ULTRABOLD: return "";
-        case PANGO_WEIGHT_HEAVY: return "heavy";
-        case PANGO_WEIGHT_ULTRAHEAVY: return "ultra-heavy";
-        default: return "???";
-    }
-}
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -176,11 +144,11 @@ engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_li
 
     ////////////////////
     auto name = pango_font_description_get_family(&*font_desc_);
-    auto style= string(pango_font_description_get_style(&*font_desc_));
-    auto wght = string(pango_font_description_get_weight(&*font_desc_));
+    auto style = pango_font_description_get_style(&*font_desc_);
+    auto weight = pango_font_description_get_weight(&*font_desc_);
     auto size = pango_pixels(pango_font_description_get_size(&*font_desc_));
 
-    info() << "Using font: " << name << ", style: " << style << ", weight: " << wght << ", size=" << size << ", cell=" << cell_;
+    info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_;
 }
 
 void engine::render_text(image<color>& img, pos pos, dim dim, std::span<const cell> cells, color fg)
