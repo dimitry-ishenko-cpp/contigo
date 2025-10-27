@@ -48,15 +48,15 @@ public:
     constexpr auto id() const noexcept { return id_; }
 };
 
-class scoped_mmapped_ptr
+class scoped_mapped_ptr
 {
     void* data_;
     std::size_t size_;
 
 public:
     ////////////////////
-    scoped_mmapped_ptr(std::shared_ptr<device>, scoped_dumbuf&);
-    ~scoped_mmapped_ptr();
+    scoped_mapped_ptr(std::shared_ptr<device>, scoped_dumbuf&);
+    ~scoped_mapped_ptr();
 
     constexpr auto data() noexcept { return data_; }
 };
@@ -68,7 +68,7 @@ class framebuf
 
     scoped_dumbuf buf_;
     scoped_fbo fbo_;
-    scoped_mmapped_ptr mmap_;
+    scoped_mapped_ptr map_;
     pixman::mapped_image image_;
 
 public:
