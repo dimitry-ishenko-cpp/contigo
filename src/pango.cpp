@@ -192,10 +192,10 @@ void engine::render_text(pixman::image& image, int x, int y, unsigned w, unsigne
 
     pixman::gray mask{w, h};
     FT_Bitmap ft_mask;
-    ft_mask.rows = mask.height();
+    ft_mask.rows  = mask.height();
     ft_mask.width = mask.width();
     ft_mask.pitch = mask.stride();
-    ft_mask.buffer = static_cast<std::uint8_t*>(mask.data());
+    ft_mask.buffer= mask.data<uint8_t*>();
     ft_mask.num_grays = mask.num_colors;
     ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
     pango_ft2_render_layout_line(&ft_mask, line, 0, baseline_);

@@ -19,7 +19,7 @@ unsigned image_base::height() const { return pixman_image_get_height(&*img_); }
 
 std::size_t image_base::stride() const { return pixman_image_get_stride(&*img_); }
 
-void* image_base::data() { return pixman_image_get_data(&*img_); }
+void* image_base::raw_data() { return pixman_image_get_data(&*img_); }
 
 ////////////////////////////////////////////////////////////////////////////////
 gray::gray(unsigned w, unsigned h) :
@@ -34,7 +34,7 @@ solid::solid(const color& c) :
 image::image(unsigned w, unsigned h) : image{w, h, 0, nullptr} { }
 
 image::image(unsigned w, unsigned h, std::size_t stride, void* p) :
-    image_base{image_ptr{pixman_image_create_bits(PIXMAN_x8r8g8b8, w, h, static_cast<std::uint32_t*>(p), stride)}}
+    image_base{image_ptr{pixman_image_create_bits(PIXMAN_x8r8g8b8, w, h, static_cast<uint32_t*>(p), stride)}}
 { }
 
 void image::fill(int x, int y, unsigned w, unsigned h, const color& bg)

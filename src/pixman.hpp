@@ -29,7 +29,8 @@ public:
 
     std::size_t stride() const;
 
-    void* data();
+    template<typename D>
+    auto data() { return static_cast<D>(raw_data()); }
 
 protected:
     ////////////////////
@@ -37,6 +38,7 @@ protected:
     friend class image;
 
     image_base(image_ptr img) : img_{std::move(img)} { }
+    void* raw_data();
 };
 
 class gray : public image_base
