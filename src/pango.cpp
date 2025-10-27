@@ -16,13 +16,9 @@
 #define pango_pixels PANGO_PIXELS
 
 ////////////////////////////////////////////////////////////////////////////////
-namespace pango
-{
-
 namespace
 {
 
-////////////////////////////////////////////////////////////////////////////////
 auto create_ft_lib()
 {
     FT_Library lib;
@@ -131,7 +127,7 @@ void maybe_insert_underline(pango_attrs& attrs, unsigned from, unsigned to, unsi
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_lib_{create_ft_lib()},
+pango::pango(std::string_view font_desc, unsigned width, unsigned dpi) : ft_lib_{create_ft_lib()},
     font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font_desc)},
     width_{width},
     layout_{create_layout(context_, font_desc_)}
@@ -151,7 +147,7 @@ engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_li
     info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_;
 }
 
-void engine::render_text(image<color>& img, pos pos, dim dim, std::span<const cell> cells, color fg)
+void pango::render_text(image<color>& img, pos pos, dim dim, std::span<const cell> cells, color fg)
 {
     auto attrs = create_attrs();
 
@@ -206,7 +202,7 @@ void engine::render_text(image<color>& img, pos pos, dim dim, std::span<const ce
     alpha_blend(img, pos, src, fg);
 }
 
-image<color> engine::render_line(std::span<const cell> cells)
+image<color> pango::render_line(std::span<const cell> cells)
 {
     image<color> img{dim{width_, cell_.height}};
 
@@ -246,7 +242,4 @@ image<color> engine::render_line(std::span<const cell> cells)
     render_text(img, pos, dim, std::span{from, cells.end()}, from->fg);
 
     return img;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 }

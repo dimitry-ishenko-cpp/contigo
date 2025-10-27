@@ -20,8 +20,10 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     drm_crtc_{drm_},
     drm_fb_{drm_},
 
-    engine_{options.font, drm_->mode().dim.width, options.dpi.value_or(drm_->mode().dpi)},
-    vte_{drm_->mode().dim / engine_.dim_cell()},
+    pango_{options.font, drm_->mode().dim.width, options.dpi.value_or(drm_->mode().dpi)},
+    row_height_{pango_.dim_cell().height},
+
+    vte_{drm_->mode().dim / pango_.dim_cell()},
     pty_{ex, vte_.dim(), std::move(options.login), std::move(options.args)}
 {
     tty_->on_read_data([&](std::span<const char> data){ pty_.write(data); });
@@ -57,11 +59,9 @@ void term::disable()
 
 void term::change(int row, std::span<const cell> cells)
 {
-    auto img = engine_.render_line(cells);
+    auto img = pango_.render_line(cells);
 
-    pos pos(0, row * engine_.dim_cell().height);
-    drm_fb_.fill(pos, img);
-
+    drm_fb_.fill(pos(0, row * row_height_), img);
     if (enabled_) drm_fb_.commit();
 }
 
