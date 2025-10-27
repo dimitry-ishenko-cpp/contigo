@@ -112,8 +112,8 @@ auto to_cell(const VTermScreenCell& vc)
     cell.strike= vc.attrs.strike;
     cell.underline = vc.attrs.underline;
 
-    cell.fg = xrgb32{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
-    cell.bg = xrgb32{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};
+    cell.fg = pixman::color(vc.fg.rgb.red << 8, vc.fg.rgb.green << 8, vc.fg.rgb.blue << 8, 0xffff);
+    cell.bg = pixman::color(vc.bg.rgb.red << 8, vc.bg.rgb.green << 8, vc.bg.rgb.blue << 8, 0xffff);
 
     return cell;
 }

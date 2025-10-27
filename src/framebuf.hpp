@@ -8,7 +8,6 @@
 #pragma once
 
 #include "drm.hpp"
-#include "geom.hpp"
 #include "pixman.hpp"
 
 #include <asio/posix/stream_descriptor.hpp>
@@ -78,7 +77,7 @@ public:
 
     constexpr auto id() const noexcept { return fbo_.id(); }
 
-    void fill(pos pos, const pixman::image& image) { image_.fill(pos, image); }
+    void fill(int x, int y, const pixman::image& image) { image_.fill(x, y, image); }
     void commit();
 };
 

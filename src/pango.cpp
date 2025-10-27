@@ -148,7 +148,7 @@ engine::engine(std::string_view font_desc, unsigned width, unsigned dpi) : ft_li
     info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_width_ << "x" << cell_height_;
 }
 
-void engine::render_text(pixman::image& img, pos pos, dim dim, std::span<const cell> cells, xrgb32 fg)
+void engine::render_text(pixman::image& image, int x, int y, unsigned w, unsigned h, std::span<const cell> cells, const color& fg)
 {
     auto attrs = create_attrs();
 
@@ -190,7 +190,7 @@ void engine::render_text(pixman::image& img, pos pos, dim dim, std::span<const c
     pango_layout_set_attributes(&*layout_, &*attrs);
     auto line = pango_layout_get_line_readonly(&*layout_, 0);
 
-    pixman::gray mask{dim};
+    pixman::gray mask{w, h};
     FT_Bitmap ft_mask;
     ft_mask.rows = mask.height();
     ft_mask.width = mask.width();
@@ -200,47 +200,44 @@ void engine::render_text(pixman::image& img, pos pos, dim dim, std::span<const c
     ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
     pango_ft2_render_layout_line(&ft_mask, line, 0, baseline_);
 
-    img.alpha_blend(pos, mask, fg);
+    image.alpha_blend(x, y, mask, fg);
 }
 
 pixman::image engine::render_line(std::span<const cell> cells)
 {
-    pixman::image image{dim{width_, cell_height_}};
+    pixman::image image{width_, cell_height_};
 
-    pos pos{0, 0};
-    dim dim{cell_width_, image.height()};
+    int x = 0, y = 0;
+    unsigned w = cell_width_, h = cell_height_;
 
     // render background
     auto from = cells.begin();
-    for (auto to = from + 1; to != cells.end(); ++to, dim.width += cell_width_)
+    for (auto to = from + 1; to != cells.end(); ++to, w += cell_width_)
     {
         if (to->bg != from->bg)
         {
-            image.fill(pos, dim, from->bg);
+            image.fill(x, y, w, h, from->bg);
 
             from = to;
-            pos.x += dim.width;
-            dim.width = 0;
+            x += w; w = 0;
         }
     }
-    image.fill(pos, dim, from->bg);
+    image.fill(x, y, w, h, from->bg);
 
     ////////////////////
-    pos.x = 0;
-    dim.width = cell_width_;
+    x = 0; w = cell_width_;
 
     from = cells.begin();
-    for (auto to = from + 1; to != cells.end(); ++to, dim.width += cell_width_)
+    for (auto to = from + 1; to != cells.end(); ++to, w += cell_width_)
     {
         if (to->fg != from->fg)
         {
-            render_text(image, pos, dim, std::span{from, to}, from->fg);
+            render_text(image, x, y, w, h, std::span{from, to}, from->fg);
             from = to;
-            pos.x += dim.width;
-            dim.width = 0;
+            x += w; w = 0;
         }
     }
-    render_text(image, pos, dim, std::span{from, cells.end()}, from->fg);
+    render_text(image, x, y, w, h, std::span{from, cells.end()}, from->fg);
 
     return image;
 }

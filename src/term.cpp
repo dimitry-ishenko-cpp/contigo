@@ -58,8 +58,7 @@ void term::disable()
 void term::change(int row, std::span<const cell> cells)
 {
     auto image = pango_.render_line(cells);
-
-    drm_fb_.fill(pos(0, row * pango_.cell_height()), image);
+    drm_fb_.fill(0, row * pango_.cell_height(), image);
     if (enabled_) drm_fb_.commit();
 }
 

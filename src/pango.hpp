@@ -8,7 +8,6 @@
 #pragma once
 
 #include "cell.hpp"
-#include "geom.hpp"
 #include "pixman.hpp"
 
 #include <memory>
@@ -29,6 +28,12 @@ using font_ptr = std::unique_ptr<PangoFont, void(*)(void*)>;
 using font_metrics_ptr = std::unique_ptr<PangoFontMetrics, void(*)(PangoFontMetrics*)>;
 using layout_ptr = std::unique_ptr<PangoLayout, void(*)(void*)>;
 using attrs_ptr = std::unique_ptr<PangoAttrList, void(*)(PangoAttrList*)>;
+
+using pixman::color;
+constexpr bool operator==(const color& x, const color& y) noexcept
+{
+    return x.red == y.red && x.green == y.green && x.blue == y.blue && x.alpha == y.alpha;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 class engine
@@ -55,7 +60,7 @@ private:
     layout_ptr layout_;
     int baseline_;
 
-    void render_text(pixman::image&, pos, dim, std::span<const cell>, xrgb32);
+    void render_text(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const cell>, const color&);
 };
 
 }

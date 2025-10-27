@@ -10,14 +10,12 @@ pkg_search_module(vterm REQUIRED IMPORTED_TARGET vterm)
 
 add_executable(term
     cell.hpp
-    color.hpp
     command.hpp
     drm.cpp
     drm.hpp
     error.hpp
     framebuf.cpp
     framebuf.hpp
-    geom.hpp
     logging.hpp
     main.cpp
     pango.cpp

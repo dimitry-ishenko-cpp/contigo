@@ -7,9 +7,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "color.hpp"
-#include "geom.hpp"
-
 #include <memory>
 #include <pixman.h>
 
@@ -18,7 +15,9 @@ namespace pixman
 {
 
 using color = pixman_color;
-using image_ptr = std::unique_ptr<pixman_image, int(*)(pixman_image*)>;
+
+struct image_delete { void operator()(pixman_image*); };
+using image_ptr = std::unique_ptr<pixman_image, image_delete>;
 
 ////////////////////////////////////////////////////////////////////////////////
 class image_base
@@ -40,7 +39,6 @@ protected:
     image_base(image_ptr img) : img_{std::move(img)} { }
 };
 
-////////////////////////////////////////////////////////////////////////////////
 class gray : public image_base
 {
 public:
@@ -48,17 +46,15 @@ public:
     static constexpr unsigned bits_per_pixel = 8;
     static constexpr unsigned num_colors = 1 << depth;
 
-    explicit gray(struct dim);
+    gray(unsigned w, unsigned h);
 };
 
-////////////////////////////////////////////////////////////////////////////////
 class solid : public image_base
 {
 public:
-    explicit solid(xrgb32);
+    explicit solid(const color&);
 };
 
-////////////////////////////////////////////////////////////////////////////////
 class image : public image_base
 {
 public:
@@ -67,13 +63,13 @@ public:
     static constexpr unsigned num_colors = 1 << depth;
 
     ////////////////////
-    explicit image(struct dim);
-    image(struct dim, std::size_t stride, void* data);
+    image(unsigned w, unsigned h);
+    image(unsigned w, unsigned h, std::size_t stride, void* p);
 
-    void fill(pos, struct dim, xrgb32);
-    void fill(pos, const image&);
+    void fill(int x, int y, unsigned w, unsigned h, const color&);
+    void fill(int x, int y, const image&);
 
-    void alpha_blend(pos, const gray&, xrgb32);
+    void alpha_blend(int x, int y, const gray&, const color&);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
