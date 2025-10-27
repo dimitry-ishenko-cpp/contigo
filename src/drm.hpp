@@ -7,8 +7,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "geom.hpp"
-
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
 #include <cstdint>
@@ -38,7 +36,7 @@ num find();
 struct mode
 {
     unsigned idx;
-    struct dim dim;
+    unsigned width, height;
     unsigned rate;
     unsigned dpi = 96;
 };

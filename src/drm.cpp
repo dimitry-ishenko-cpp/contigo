@@ -58,8 +58,9 @@ auto find_conn(asio::posix::stream_descriptor& fd, drm_res& res)
 auto get_mode(drm_conn& conn, unsigned n)
 {
     return drm::mode{.idx = n,
-        .dim = dim{conn->modes[n].hdisplay, conn->modes[n].vdisplay},
-        .rate= conn->modes[n].vrefresh
+        .width = conn->modes[n].hdisplay,
+        .height= conn->modes[n].vdisplay,
+        .rate  = conn->modes[n].vrefresh
     };
 }
 
@@ -116,12 +117,12 @@ device::device(const asio::any_io_executor& ex, drm::num num) : fd_{open(ex, num
     {
         size = std::to_string(conn_->mmWidth) + "mm x " + std::to_string(conn_->mmHeight) + "mm, ";
 
-        double dpi_x = 25.4 * mode_.dim.width / conn_->mmWidth;
-        double dpi_y = 25.4 * mode_.dim.height / conn_->mmHeight;
+        double dpi_x = 25.4 * mode_.width / conn_->mmWidth;
+        double dpi_y = 25.4 * mode_.height / conn_->mmHeight;
         mode_.dpi = (dpi_x + dpi_y) / 2 + .5;
     }
 
-    info() << "Using screen: " << mode_.dim << "@" << mode_.rate << "hz, " << size << "DPI=" << mode_.dpi;
+    info() << "Using screen: " << mode_.width << "x" << mode_.height << "@" << mode_.rate << "hz, " << size << "DPI=" << mode_.dpi;
 }
 
 void device::disable()

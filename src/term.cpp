@@ -20,8 +20,8 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     drm_crtc_{drm_},
     drm_fb_{drm_},
 
-    pango_{options.font, drm_->mode().dim.width, options.dpi.value_or(drm_->mode().dpi)},
-    vte_{drm_->mode().dim.width / pango_.cell_width(), drm_->mode().dim.height / pango_.cell_height()},
+    pango_{options.font, drm_->mode().width, options.dpi.value_or(drm_->mode().dpi)},
+    vte_{drm_->mode().width / pango_.cell_width(), drm_->mode().height / pango_.cell_height()},
     pty_{ex, vte_.width(), vte_.height(), std::move(options.login), std::move(options.args)}
 {
     tty_->on_read_data([&](std::span<const char> data){ pty_.write(data); });
