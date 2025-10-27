@@ -7,10 +7,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "color.hpp"
 #include "drm.hpp"
 #include "geom.hpp"
-#include "image.hpp"
+#include "pixman.hpp"
 
 #include <asio/posix/stream_descriptor.hpp>
 #include <cstdint>
@@ -61,59 +60,26 @@ public:
     ~scoped_mmapped_ptr();
 
     constexpr auto data() noexcept { return data_; }
-    constexpr auto data() const noexcept { return data_; }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-class framebuf_base
+class framebuf
 {
-protected:
-    ////////////////////
     std::shared_ptr<device> dev_;
 
     scoped_dumbuf buf_;
     scoped_fbo fbo_;
     scoped_mmapped_ptr mmap_;
-
-    framebuf_base(std::shared_ptr<device>, unsigned depth, unsigned bits_per_pixel);
+    pixman::image image_;
 
 public:
     ////////////////////
+    explicit framebuf(std::shared_ptr<device>);
+
     constexpr auto id() const noexcept { return fbo_.id(); }
 
-    constexpr auto data() noexcept { return mmap_.data(); }
-    constexpr auto data() const noexcept { return mmap_.data(); }
-
+    void fill(pos pos, const pixman::image& image) { image_.fill(pos, image); }
     void commit();
-};
-
-template<typename C>
-struct wrapped_ptr
-{
-    framebuf_base* fb;
-    using element_type = C;
-
-    constexpr auto get() noexcept { return static_cast<C*>(fb->data()); }
-    constexpr auto get() const noexcept { return static_cast<const C*>(fb->data()); }
-};
-
-template<typename C>
-class framebuf : public framebuf_base, public image_base<wrapped_ptr<C>>
-{
-public:
-    ////////////////////
-    explicit framebuf(std::shared_ptr<device> dev) :
-        framebuf_base{std::move(dev), depth<C>, bits_per_pixel<C>},
-        image_base<wrapped_ptr<C>>{dev_->mode().dim, buf_.stride(), wrapped_ptr<C>{this}}
-    { }
-
-    template<typename D>
-    void fill(pos pos, const image_base<D>& src)
-        requires std::same_as<C, typename image_base<D>::color_type>
-    {
-        // TODO track damage
-        ::fill(*this, pos, src);
-    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////

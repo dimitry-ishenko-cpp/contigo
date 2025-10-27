@@ -9,7 +9,7 @@
 
 #include "cell.hpp"
 #include "geom.hpp"
-#include "image.hpp"
+#include "pixman.hpp"
 
 #include <memory>
 #include <span>
@@ -48,7 +48,7 @@ public:
 
     constexpr auto dim_cell() const noexcept { return cell_; }
 
-    image<color> render_line(std::span<const cell>);
+    pixman::image render_line(std::span<const cell>);
 
 private:
     ////////////////////
@@ -63,5 +63,5 @@ private:
     pango_layout layout_;
     int baseline_;
 
-    void render_text(image<color>&, pos, dim, std::span<const cell>, color);
+    void render_text(pixman::image&, pos, dim, std::span<const cell>, xrgb32);
 };

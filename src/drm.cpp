@@ -152,7 +152,7 @@ crtc::~crtc()
     drmModeFreeCrtc(prev_);
 }
 
-void crtc::activate(framebuf_base& fb)
+void crtc::activate(framebuf& fb)
 {
     auto& conn = dev_->conn();
     auto& mode = dev_->mode();

@@ -43,7 +43,7 @@ struct mode
     unsigned dpi = 96;
 };
 
-class framebuf_base;
+class framebuf;
 
 ////////////////////////////////////////////////////////////////////////////////
 class device
@@ -82,7 +82,7 @@ public:
     explicit crtc(std::shared_ptr<device>);
     ~crtc();
 
-    void activate(framebuf_base&);
+    void activate(framebuf&);
 };
 
 ////////////////////////////////////////////////////////////////////////////////

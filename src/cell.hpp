@@ -22,5 +22,5 @@ struct cell
     bool strike;
     unsigned underline :2;
 
-    color fg, bg;
+    xrgb32 fg, bg;
 };

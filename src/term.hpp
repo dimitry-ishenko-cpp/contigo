@@ -52,7 +52,7 @@ private:
 
     std::shared_ptr<drm::device> drm_;
     drm::crtc drm_crtc_;
-    drm::framebuf<color> drm_fb_;
+    drm::framebuf drm_fb_;
 
     pango pango_;
     unsigned row_height_;

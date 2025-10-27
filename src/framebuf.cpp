@@ -67,13 +67,15 @@ scoped_mmapped_ptr::scoped_mmapped_ptr(std::shared_ptr<device> dev, scoped_dumbu
 scoped_mmapped_ptr::~scoped_mmapped_ptr() { munmap(data_, size_); }
 
 ////////////////////////////////////////////////////////////////////////////////
-framebuf_base::framebuf_base(std::shared_ptr<device> dev, unsigned depth, unsigned bits_per_pixel) :
-    dev_{std::move(dev)}, buf_{dev_, bits_per_pixel}, fbo_{dev_, buf_, depth, bits_per_pixel}, mmap_{dev_, buf_}
+framebuf::framebuf(std::shared_ptr<device> dev) :
+    dev_{std::move(dev)},
+    buf_{dev_, image_.bits_per_pixel}, fbo_{dev_, buf_, image_.depth, image_.bits_per_pixel}, mmap_{dev_, buf_},
+    image_{dev_->mode().dim, buf_.stride(), mmap_.data()}
 {
-    info() << "Using framebuf: " << depth << "-bit color, " << bits_per_pixel <<  " bpp, stride=" << buf_.stride() << ", size=" << buf_.size();
+    info() << "Using framebuf: " << image_.depth << "-bit color, " << image_.bits_per_pixel <<  " bpp, stride=" << buf_.stride() << ", size=" << buf_.size();
 }
 
-void framebuf_base::commit()
+void framebuf::commit()
 {
     auto code = drmModeDirtyFB(dev_->handle(), fbo_.id(), nullptr, 0);
     if (code) throw posix_error{"drmModeDirtyFB"};

@@ -147,7 +147,7 @@ pango::pango(std::string_view font_desc, unsigned width, unsigned dpi) : ft_lib_
     info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_;
 }
 
-void pango::render_text(image<color>& img, pos pos, dim dim, std::span<const cell> cells, color fg)
+void pango::render_text(pixman::image& img, pos pos, dim dim, std::span<const cell> cells, xrgb32 fg)
 {
     auto attrs = create_attrs();
 
@@ -189,25 +189,25 @@ void pango::render_text(image<color>& img, pos pos, dim dim, std::span<const cel
     pango_layout_set_attributes(&*layout_, &*attrs);
     auto line = pango_layout_get_line_readonly(&*layout_, 0);
 
-    image<shade> src{dim, 0};
-    FT_Bitmap mask;
-    mask.rows = src.height();
-    mask.width = src.width();
-    mask.pitch = src.stride();
-    mask.buffer = src.data();
-    mask.num_grays = num_colors<shade>;
-    mask.pixel_mode = FT_PIXEL_MODE_GRAY;
-    pango_ft2_render_layout_line(&mask, line, 0, baseline_);
+    pixman::gray mask{dim};
+    FT_Bitmap ft_mask;
+    ft_mask.rows = mask.height();
+    ft_mask.width = mask.width();
+    ft_mask.pitch = mask.stride();
+    ft_mask.buffer = static_cast<std::uint8_t*>(mask.data());
+    ft_mask.num_grays = mask.num_colors;
+    ft_mask.pixel_mode = FT_PIXEL_MODE_GRAY;
+    pango_ft2_render_layout_line(&ft_mask, line, 0, baseline_);
 
-    alpha_blend(img, pos, src, fg);
+    img.alpha_blend(pos, mask, fg);
 }
 
-image<color> pango::render_line(std::span<const cell> cells)
+pixman::image pango::render_line(std::span<const cell> cells)
 {
-    image<color> img{dim{width_, cell_.height}};
+    pixman::image image{dim{width_, cell_.height}};
 
     pos pos{0, 0};
-    dim dim{cell_.width, img.height()};
+    dim dim{cell_.width, image.height()};
 
     // render background
     auto from = cells.begin();
@@ -215,14 +215,14 @@ image<color> pango::render_line(std::span<const cell> cells)
     {
         if (to->bg != from->bg)
         {
-            fill(img, pos, dim, from->bg);
+            image.fill(pos, dim, from->bg);
 
             from = to;
             pos.x += dim.width;
             dim.width = 0;
         }
     }
-    fill(img, pos, dim, from->bg);
+    image.fill(pos, dim, from->bg);
 
     ////////////////////
     pos.x = 0;
@@ -233,13 +233,13 @@ image<color> pango::render_line(std::span<const cell> cells)
     {
         if (to->fg != from->fg)
         {
-            render_text(img, pos, dim, std::span{from, to}, from->fg);
+            render_text(image, pos, dim, std::span{from, to}, from->fg);
             from = to;
             pos.x += dim.width;
             dim.width = 0;
         }
     }
-    render_text(img, pos, dim, std::span{from, cells.end()}, from->fg);
+    render_text(image, pos, dim, std::span{from, cells.end()}, from->fg);
 
-    return img;
+    return image;
 }

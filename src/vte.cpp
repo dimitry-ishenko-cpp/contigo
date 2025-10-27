@@ -116,8 +116,8 @@ auto to_cell(const VTermScreenCell& vc)
     cell.strike= vc.attrs.strike;
     cell.underline = vc.attrs.underline;
 
-    cell.fg = color{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
-    cell.bg = color{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};
+    cell.fg = xrgb32{vc.fg.rgb.red, vc.fg.rgb.green, vc.fg.rgb.blue};
+    cell.bg = xrgb32{vc.bg.rgb.red, vc.bg.rgb.green, vc.bg.rgb.blue};
 
     return cell;
 }
