@@ -80,17 +80,18 @@ struct mapped_image : image_base
 
     void fill(int x, int y, const mapped_image& src)
     {
-        pixman_image_composite(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_,
-            0, 0, 0, 0, x, y, src.width(), src.height()
-        );
+        pixman_image_composite(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_, 0, 0, 0, 0, x, y, src.width(), src.height());
+    }
+
+    void fill(int x, int y, const mapped_image& src, int src_x, int src_y, unsigned w, unsigned h)
+    {
+        pixman_image_composite(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_, src_x, src_y, 0, 0, x, y, w, h);
     }
 
     void alpha_blend(int x, int y, const gray& mask, const color& c)
     {
         solid solid{c};
-        pixman_image_composite(PIXMAN_OP_OVER, &*solid.pix_, &*mask.pix_, &*pix_,
-            0, 0, 0, 0, x, y, mask.width(), mask.height()
-        );
+        pixman_image_composite(PIXMAN_OP_OVER, &*solid.pix_, &*mask.pix_, &*pix_, 0, 0, 0, 0, x, y, mask.width(), mask.height());
     }
 };
 
