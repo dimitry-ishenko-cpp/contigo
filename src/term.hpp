@@ -46,9 +46,8 @@ private:
     ////////////////////
     tty::device tty_;
 
-    std::shared_ptr<drm::device> drm_;
-    drm::crtc drm_crtc_;
-    drm::framebuf drm_fb_;
+    drm::device drm_;
+    drm::framebuf fb_;
 
     pango::engine pango_;
     vte::machine vte_;

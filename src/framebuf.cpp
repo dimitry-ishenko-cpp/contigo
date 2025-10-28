@@ -18,70 +18,66 @@
 namespace drm
 {
 
-scoped_dumbuf::scoped_dumbuf(std::shared_ptr<device> dev, unsigned bits_per_pixel) :
-    dev_{std::move(dev)}
-{
-    auto& mode = dev_->mode();
-    command<DRM_IOCTL_MODE_CREATE_DUMB, drm_mode_create_dumb> create{{
-        .height = mode.height,
-        .width = mode.width,
-        .bpp = bits_per_pixel
-    }};
-    dev_->io_control(create);
-
-    handle_ = create.val.handle;
-    stride_ = create.val.pitch;
-    size_ = create.val.size;
-}
-
-scoped_dumbuf::~scoped_dumbuf()
-{
-    command<DRM_IOCTL_MODE_DESTROY_DUMB, drm_mode_destroy_dumb> destroy{handle_};
-    dev_->io_control(destroy);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
-scoped_fbo::scoped_fbo(std::shared_ptr<device> dev, scoped_dumbuf& buf, unsigned depth, unsigned bits_per_pixel) :
-    dev_{std::move(dev)}
+framebuf::framebuf(device& dev, unsigned w, unsigned h) : drm_{dev.fd_},
+    buf_{drm_, w, h},
+    fbo_{drm_, w, h, buf_},
+    map_{drm_, buf_},
+    image_{w, h, buf_.stride, map_.data}
 {
-    auto mode = dev_->mode();
-    auto code = drmModeAddFB(dev_->handle(), mode.width, mode.height, depth, bits_per_pixel, buf.stride(), buf.handle(), &id_);
-    if (code) throw posix_error{"drmModeAddFB"};
-}
-
-scoped_fbo::~scoped_fbo() { drmModeRmFB(dev_->handle(), id_); }
-
-////////////////////////////////////////////////////////////////////////////////
-scoped_mapped_ptr::scoped_mapped_ptr(std::shared_ptr<device> dev, scoped_dumbuf& buf) :
-    size_{buf.size()}
-{
-    command<DRM_IOCTL_MODE_MAP_DUMB, drm_mode_map_dumb> map{{
-        .handle = buf.handle()
-    }};
-    dev->io_control(map);
-
-    data_ = mmap(nullptr, size_, PROT_READ | PROT_WRITE, MAP_SHARED, dev->handle(), map.val.offset);
-    if (data_ == MAP_FAILED) throw posix_error{"mmap"};
-}
-
-scoped_mapped_ptr::~scoped_mapped_ptr() { munmap(data_, size_); }
-
-////////////////////////////////////////////////////////////////////////////////
-framebuf::framebuf(std::shared_ptr<device> dev) :
-    dev_{std::move(dev)},
-    buf_{dev_, image_.bits_per_pixel},
-    fbo_{dev_, buf_, image_.depth, image_.bits_per_pixel},
-    map_{dev_, buf_},
-    image_{dev_->mode().width, dev_->mode().height, buf_.stride(), map_.data()}
-{
-    info() << "Using framebuf: " << image_.depth << "-bit color, " << image_.bits_per_pixel <<  " bpp, stride=" << buf_.stride() << ", size=" << buf_.size();
+    info() << "Using framebuf: " << image_.depth << "-bit color, " << image_.bits_per_pixel <<  " bpp, stride=" << buf_.stride << ", size=" << buf_.size;
 }
 
 void framebuf::commit()
 {
-    auto code = drmModeDirtyFB(dev_->handle(), fbo_.id(), nullptr, 0);
+    auto code = drmModeDirtyFB(drm_.native_handle(), fbo_.id, nullptr, 0);
     if (code) throw posix_error{"drmModeDirtyFB"};
 }
+
+framebuf::scoped_dumbuf::scoped_dumbuf(asio::posix::stream_descriptor& drm, unsigned w, unsigned h) : drm{drm}
+{
+    command<DRM_IOCTL_MODE_CREATE_DUMB, drm_mode_create_dumb> create{{
+        .height = h,
+        .width = w,
+        .bpp = pixman::image::bits_per_pixel
+    }};
+    drm.io_control(create);
+
+    handle = create.val.handle;
+    stride = create.val.pitch;
+    size = create.val.size;
+}
+
+framebuf::scoped_dumbuf::~scoped_dumbuf()
+{
+    command<DRM_IOCTL_MODE_DESTROY_DUMB, drm_mode_destroy_dumb> destroy{handle};
+    drm.io_control(destroy);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+framebuf::scoped_fbo::scoped_fbo(asio::posix::stream_descriptor& drm, unsigned w, unsigned h, scoped_dumbuf& buf) : drm{drm}
+{
+    auto code = drmModeAddFB(drm.native_handle(), w, h,
+        pixman::image::depth, pixman::image::bits_per_pixel, buf.stride, buf.handle, &id
+    );
+    if (code) throw posix_error{"drmModeAddFB"};
+}
+
+framebuf::scoped_fbo::~scoped_fbo() { drmModeRmFB(drm.native_handle(), id); }
+
+////////////////////////////////////////////////////////////////////////////////
+framebuf::scoped_mapped_ptr::scoped_mapped_ptr(asio::posix::stream_descriptor& drm, scoped_dumbuf& buf) : size{buf.size}
+{
+    command<DRM_IOCTL_MODE_MAP_DUMB, drm_mode_map_dumb> map{{
+        .handle = buf.handle
+    }};
+    drm.io_control(map);
+
+    data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, drm.native_handle(), map.val.offset);
+    if (data == MAP_FAILED) throw posix_error{"mmap"};
+}
+
+framebuf::scoped_mapped_ptr::~scoped_mapped_ptr() { munmap(data, size); }
 
 ////////////////////////////////////////////////////////////////////////////////
 }

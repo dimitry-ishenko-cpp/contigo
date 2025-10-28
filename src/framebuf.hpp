@@ -12,73 +12,62 @@
 
 #include <asio/posix/stream_descriptor.hpp>
 #include <cstdint>
-#include <memory>
 
 ////////////////////////////////////////////////////////////////////////////////
 namespace drm
 {
 
-class scoped_dumbuf
-{
-    std::shared_ptr<device> dev_;
-    std::uint32_t handle_;
-    std::uint32_t stride_;
-    std::size_t size_;
-
-public:
-    ////////////////////
-    scoped_dumbuf(std::shared_ptr<device>, unsigned bits_per_pixel);
-    ~scoped_dumbuf();
-
-    constexpr auto handle() const noexcept { return handle_; }
-    constexpr auto stride() const noexcept { return stride_; }
-    constexpr auto size() const noexcept { return size_; }
-};
-
-class scoped_fbo
-{
-    std::shared_ptr<device> dev_;
-    std::uint32_t id_;
-
-public:
-    ////////////////////
-    scoped_fbo(std::shared_ptr<device>, scoped_dumbuf&, unsigned depth, unsigned bits_per_pixel);
-    ~scoped_fbo();
-
-    constexpr auto id() const noexcept { return id_; }
-};
-
-class scoped_mapped_ptr
-{
-    void* data_;
-    std::size_t size_;
-
-public:
-    ////////////////////
-    scoped_mapped_ptr(std::shared_ptr<device>, scoped_dumbuf&);
-    ~scoped_mapped_ptr();
-
-    constexpr auto data() noexcept { return data_; }
-};
-
 ////////////////////////////////////////////////////////////////////////////////
 class framebuf
 {
-    std::shared_ptr<device> dev_;
+public:
+    ////////////////////
+    explicit framebuf(device&, unsigned w, unsigned h);
+
+    constexpr auto id() const noexcept { return fbo_.id; }
+
+    void fill(int x, int y, const pixman::image& image) { image_.fill(x, y, image); }
+    void commit();
+
+private:
+    ////////////////////
+    struct scoped_dumbuf
+    {
+        asio::posix::stream_descriptor& drm;
+        std::uint32_t handle;
+        std::uint32_t stride;
+        std::size_t size;
+
+        scoped_dumbuf(asio::posix::stream_descriptor&, unsigned w, unsigned h);
+        ~scoped_dumbuf();
+    };
+
+    struct scoped_fbo
+    {
+        asio::posix::stream_descriptor& drm;
+        std::uint32_t id;
+
+        scoped_fbo(asio::posix::stream_descriptor&, unsigned w, unsigned h, scoped_dumbuf&);
+        ~scoped_fbo();
+    };
+
+    struct scoped_mapped_ptr
+    {
+        void* data;
+        std::size_t size;
+
+        scoped_mapped_ptr(asio::posix::stream_descriptor&, scoped_dumbuf&);
+        ~scoped_mapped_ptr();
+    };
+
+    ////////////////////
+    asio::posix::stream_descriptor& drm_;
 
     scoped_dumbuf buf_;
     scoped_fbo fbo_;
     scoped_mapped_ptr map_;
+
     pixman::mapped_image image_;
-
-public:
-    ////////////////////
-    explicit framebuf(std::shared_ptr<device>);
-
-    constexpr auto id() const noexcept { return fbo_.id(); }
-
-    void fill(int x, int y, const pixman::image& image) { image_.fill(x, y, image); }
-    void commit();
 };
 
 ////////////////////////////////////////////////////////////////////////////////

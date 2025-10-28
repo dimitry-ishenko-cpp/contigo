@@ -12,19 +12,18 @@
 term::term(const asio::any_io_executor& ex, term_options options) :
     tty_{ex, options.tty_num, options.tty_activate},
 
-    drm_{std::make_shared<drm::device>(ex, options.drm_num)},
-    drm_crtc_{drm_},
-    drm_fb_{drm_},
+    drm_{ex, options.drm_num},
+    fb_{drm_, drm_.mode().width, drm_.mode().height},
 
-    pango_{options.font, options.dpi.value_or(drm_->mode().dpi)},
-    vte_{drm_->mode().width / pango_.cell_width(), drm_->mode().height / pango_.cell_height()},
+    pango_{options.font, options.dpi.value_or(drm_.mode().dpi)},
+    vte_{drm_.mode().width / pango_.cell_width(), drm_.mode().height / pango_.cell_height()},
     pty_{ex, vte_.width(), vte_.height(), std::move(options.login), std::move(options.args)}
 {
     tty_.on_acquire([&]{ enable(); });
     tty_.on_release([&]{ disable(); });
     tty_.on_read_data([&](std::span<const char> data){ pty_.write(data); });
 
-    drm_crtc_.activate(drm_fb_);
+    drm_.activate(fb_);
 
     vte_.on_row_changed([&](int row, std::span<const vte::cell> cells){ change(row, cells); });
     vte_.on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
@@ -38,8 +37,8 @@ void term::enable()
     info() << "Enabling screen rendering";
     enabled_ = true;
 
-    drm_->enable();
-    drm_crtc_.activate(drm_fb_);
+    drm_.enable();
+    drm_.activate(fb_);
 }
 
 void term::disable()
@@ -47,15 +46,15 @@ void term::disable()
     info() << "Disabling screen rendering";
     enabled_ = false;
 
-    drm_->disable();
+    drm_.disable();
 }
 
 void term::change(int row, std::span<const vte::cell> cells)
 {
-    auto image = pango_.render_line(drm_->mode().width, cells);
+    auto image = pango_.render_line(drm_.mode().width, cells);
 
-    drm_fb_.fill(0, row * pango_.cell_height(), image);
-    if (enabled_) drm_fb_.commit();
+    fb_.fill(0, row * pango_.cell_height(), image);
+    if (enabled_) fb_.commit();
 }
 
 void term::move(int row, unsigned rows, int distance)

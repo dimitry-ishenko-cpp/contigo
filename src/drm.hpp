@@ -12,16 +12,7 @@
 #include <cstdint>
 #include <memory>
 
-struct _drmModeRes;
-using drm_res = std::unique_ptr<_drmModeRes, void(*)(_drmModeRes*)>;
-
-struct _drmModeConnector;
-using drm_conn = std::unique_ptr<_drmModeConnector, void(*)(_drmModeConnector*)>;
-
-struct _drmModeEncoder;
-using drm_enc = std::unique_ptr<_drmModeEncoder, void(*)(_drmModeEncoder*)>;
-
-struct _drmModeCrtc;
+#include <xf86drmMode.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 namespace drm
@@ -43,44 +34,45 @@ struct mode
 
 class framebuf;
 
+using resources = std::unique_ptr<drmModeRes, void(*)(drmModeRes*)>;
+using connector = std::unique_ptr<drmModeConnector, void(*)(drmModeConnector*)>;
+using encoder = std::unique_ptr<drmModeEncoder, void(*)(drmModeEncoder*)>;
+
 ////////////////////////////////////////////////////////////////////////////////
 class device
 {
-    asio::posix::stream_descriptor fd_;
-
-    drm_res res_;
-    drm_conn conn_;
-    drm::mode mode_;
-
 public:
     ////////////////////
     device(const asio::any_io_executor&, num);
 
+    constexpr auto& mode() const noexcept { return mode_; }
+
     void disable();
     void enable();
 
-    auto handle() { return fd_.native_handle(); }
-    template<typename Cmd> void io_control(Cmd& cmd) { fd_.io_control(cmd); }
-
-    constexpr auto& res() { return res_; }
-    constexpr auto& conn() { return conn_; }
-
-    constexpr auto& mode() const noexcept { return mode_; }
-};
-
-////////////////////////////////////////////////////////////////////////////////
-class crtc
-{
-    std::shared_ptr<device> dev_;
-    std::uint32_t id_;
-    _drmModeCrtc* prev_;
-
-public:
-    ////////////////////
-    explicit crtc(std::shared_ptr<device>);
-    ~crtc();
-
     void activate(framebuf&);
+
+private:
+    ////////////////////
+    struct crtc
+    {
+        asio::posix::stream_descriptor& fd;
+        std::uint32_t id, conn_id;
+        drmModeCrtc* prev;
+
+        crtc(asio::posix::stream_descriptor&, resources&, connector&);
+        ~crtc();
+    };
+
+    ////////////////////
+    asio::posix::stream_descriptor fd_;
+
+    resources ress_;
+    connector conn_;
+    drm::mode mode_;
+    crtc crtc_;
+
+    friend class framebuf;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
