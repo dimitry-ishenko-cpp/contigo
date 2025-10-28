@@ -53,7 +53,9 @@ void term::change(int row, std::span<const vte::cell> cells)
 {
     auto image = pango_.render_line(drm_.mode().width, cells);
 
-    fb_.fill(0, row * pango_.cell_height(), image);
+    auto ch = pango_.cell_height();
+    fb_.image().fill(0, row * ch, image);
+
     if (enabled_) fb_.commit();
 }
 

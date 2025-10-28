@@ -25,8 +25,8 @@ public:
     explicit framebuf(device&, unsigned w, unsigned h);
 
     constexpr auto id() const noexcept { return fbo_.id; }
+    auto& image() noexcept { return image_; }
 
-    void fill(int x, int y, const pixman::image& image) { image_.fill(x, y, image); }
     void commit();
 
 private:
