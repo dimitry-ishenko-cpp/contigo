@@ -24,18 +24,10 @@
 using namespace std::chrono_literals;
 
 ////////////////////////////////////////////////////////////////////////////////
-namespace 
+namespace pty
 {
 
-inline int pidfd_open(pid_t pid, unsigned flags)
-{
-    return syscall(SYS_pidfd_open, pid, flags);
-}
-
-}
-
-////////////////////////////////////////////////////////////////////////////////
-pty::pty(const asio::any_io_executor& ex, unsigned w, unsigned h, std::string pgm, std::vector<std::string> args) :
+device::device(const asio::any_io_executor& ex, unsigned w, unsigned h, std::string pgm, std::vector<std::string> args) :
     fd_{ex}, child_fd_{ex}
 {
     int pt;
@@ -54,7 +46,7 @@ pty::pty(const asio::any_io_executor& ex, unsigned w, unsigned h, std::string pg
         fd_.assign(pt);
         sched_async_read();
 
-        auto fd = pidfd_open(child_pid_, 0);
+        auto fd = syscall(SYS_pidfd_open, child_pid_, 0);
         if (fd < 0) throw posix_error{"pidfd_open"};
 
         child_fd_.assign(fd);
@@ -63,9 +55,9 @@ pty::pty(const asio::any_io_executor& ex, unsigned w, unsigned h, std::string pg
     else start_child(std::move(pgm), std::move(args));
 }
 
-void pty::write(std::span<const char> data) { asio::write(fd_, asio::buffer(data)); }
+void device::write(std::span<const char> data) { asio::write(fd_, asio::buffer(data)); }
 
-void pty::resize(unsigned w, unsigned h)
+void device::resize(unsigned w, unsigned h)
 {
     info() << "Resizing pty to: " << w << "x" << h;
     command<TIOCSWINSZ, winsize> cmd{winsize(h, w)};
@@ -74,7 +66,7 @@ void pty::resize(unsigned w, unsigned h)
     if (child_pid_) kill(child_pid_, SIGWINCH);
 }
 
-void pty::sched_async_read()
+void device::sched_async_read()
 {
     fd_.async_read_some(asio::buffer(buffer_), [&](std::error_code ec, std::size_t size)
     {
@@ -87,7 +79,7 @@ void pty::sched_async_read()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void pty::start_child(std::string pgm, std::vector<std::string> args)
+void device::start_child(std::string pgm, std::vector<std::string> args)
 {
     std::vector<char*> argv = { pgm.data() };
     for (auto&& arg : args) argv.push_back(arg.data());
@@ -97,7 +89,7 @@ void pty::start_child(std::string pgm, std::vector<std::string> args)
     throw posix_error{"execv"};
 }
 
-void pty::stop_child()
+void device::stop_child()
 {
     if (child_pid_)
     {
@@ -124,7 +116,7 @@ void pty::stop_child()
     }
 }
 
-void pty::sched_child_wait()
+void device::sched_child_wait()
 {
     child_fd_.async_wait(child_fd_.wait_read, [&](std::error_code ec)
     {
@@ -144,4 +136,6 @@ void pty::sched_child_wait()
             if (child_cb_) child_cb_(exit_code);
         }
     });
+}
+
 }

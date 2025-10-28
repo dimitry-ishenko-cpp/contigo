@@ -39,7 +39,7 @@ public:
     ////////////////////
     term(const asio::any_io_executor&, term_options);
 
-    using exit_callback = pty::child_exit_callback;
+    using exit_callback = pty::device::child_exit_callback;
     void on_exit(exit_callback cb) { pty_.on_child_exit(std::move(cb)); }
 
 private:
@@ -51,7 +51,7 @@ private:
 
     pango::engine pango_;
     vte::machine vte_;
-    pty pty_;
+    pty::device pty_;
 
     ////////////////////
     bool enabled_ = true;

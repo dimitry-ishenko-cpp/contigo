@@ -18,13 +18,16 @@
 #include <sys/types.h> // pid_t
 
 ////////////////////////////////////////////////////////////////////////////////
-class pty
+namespace pty
+{
+
+class device
 {
 public:
     ////////////////////
     // NB: passing by value here to have own copy with guaranteed lifetime
-    pty(const asio::any_io_executor&, unsigned w, unsigned h, std::string pgm, std::vector<std::string> args);
-    ~pty() { stop_child(); }
+    device(const asio::any_io_executor&, unsigned w, unsigned h, std::string pgm, std::vector<std::string> args);
+    ~device() { stop_child(); }
 
     using read_data_callback = std::function<void(std::span<const char>)>;
     void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
@@ -38,12 +41,12 @@ public:
 private:
     ////////////////////
     asio::posix::stream_descriptor fd_;
+
     read_data_callback read_cb_;
     std::array<char, 4096> buffer_;
 
     void sched_async_read();
 
-    ////////////////////
     pid_t child_pid_;
     asio::posix::stream_descriptor child_fd_;
     child_exit_callback child_cb_;
@@ -52,3 +55,5 @@ private:
     void stop_child();
     void sched_child_wait();
 };
+
+}
