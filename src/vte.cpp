@@ -29,10 +29,9 @@ static int move_rect(VTermRect dst, VTermRect src, void* ctx)
     auto vt = static_cast<machine*>(ctx);
     if (vt->move_cb_)
     {
-        int row = src.start_row;
-        unsigned rows = src.end_row - src.start_row;
-        int distance = dst.start_row - src.start_row;
-        vt->move_cb_(row, rows, distance);
+        unsigned w = dst.end_col - dst.start_col;
+        unsigned h = dst.end_row - dst.start_row;
+        vt->move_cb_(dst.start_col, dst.start_row, w, h, src.start_col, src.start_row);
     }
     return true;
 }
@@ -91,7 +90,7 @@ machine::machine(unsigned w, unsigned h) :
     vterm_set_utf8(&*vterm_, true);
 
     vterm_screen_set_callbacks(screen_, &callbacks, this);
-    vterm_screen_set_damage_merge(screen_, VTERM_DAMAGE_ROW);
+    vterm_screen_set_damage_merge(screen_, VTERM_DAMAGE_SCROLL);
 
     vterm_screen_enable_reflow(screen_, true);
     vterm_screen_enable_altscreen(screen_, true);

@@ -59,5 +59,5 @@ private:
     void disable();
 
     void change(int row, std::span<const vte::cell>);
-    void move(int row, unsigned rows, int distance);
+    void move(int col, int row, unsigned w, unsigned h, int src_col, int src_row);
 };

@@ -26,7 +26,7 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     drm_.activate(fb_);
 
     vte_.on_row_changed([&](int row, std::span<const vte::cell> cells){ change(row, cells); });
-    vte_.on_rows_moved([&](int row, unsigned rows, int distance){ move(row, rows, distance); });
+    vte_.on_cells_moved([&](int col, int row, unsigned w, unsigned h, int src_col, int src_row){ move(col, row, w, h, src_col, src_row); });
     vte_.on_size_changed([&](unsigned w, unsigned h){ pty_.resize(w, h); });
 
     pty_.on_read_data([&](std::span<const char> data){ vte_.write(data); vte_.commit(); });
@@ -59,7 +59,7 @@ void term::change(int row, std::span<const vte::cell> cells)
     if (enabled_) fb_.commit();
 }
 
-void term::move(int row, unsigned rows, int distance)
+void term::move(int col, int row, unsigned w, unsigned h, int src_col, int src_row)
 {
     // TODO
 }

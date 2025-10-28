@@ -50,8 +50,8 @@ public:
     using row_changed_callback = std::function<void(int, std::span<const cell>)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
-    using rows_moved_callback = std::function<void(int row, unsigned rows, int distance)>;
-    void on_rows_moved(rows_moved_callback cb) { move_cb_ = std::move(cb); }
+    using cells_moved_callback = std::function<void(int col, int row, unsigned w, unsigned h, int src_col, int src_row)>;
+    void on_cells_moved(cells_moved_callback cb) { move_cb_ = std::move(cb); }
 
     using size_changed_callback = std::function<void(unsigned w, unsigned h)>;
     void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
@@ -74,7 +74,7 @@ private:
     unsigned width_, height_;
 
     row_changed_callback row_cb_;
-    rows_moved_callback move_cb_;
+    cells_moved_callback move_cb_;
     size_changed_callback size_cb_;
 
     void change(int row);
