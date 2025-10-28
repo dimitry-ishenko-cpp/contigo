@@ -10,11 +10,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 term::term(const asio::any_io_executor& ex, term_options options) :
-    tty_{std::make_shared<tty::device>(ex, options.tty_num)},
-    tty_active_{tty_, options.tty_num, options.tty_activate},
-    tty_raw_{tty_},
-    tty_switch_{tty_},
-    tty_graph_{tty_},
+    tty_{ex, options.tty_num, options.tty_activate},
 
     drm_{std::make_shared<drm::device>(ex, options.drm_num)},
     drm_crtc_{drm_},
@@ -24,10 +20,9 @@ term::term(const asio::any_io_executor& ex, term_options options) :
     vte_{drm_->mode().width / pango_.cell_width(), drm_->mode().height / pango_.cell_height()},
     pty_{ex, vte_.width(), vte_.height(), std::move(options.login), std::move(options.args)}
 {
-    tty_->on_read_data([&](std::span<const char> data){ pty_.write(data); });
-
-    tty_switch_.on_acquire([&]{ enable(); });
-    tty_switch_.on_release([&]{ disable(); });
+    tty_.on_acquire([&]{ enable(); });
+    tty_.on_release([&]{ disable(); });
+    tty_.on_read_data([&](std::span<const char> data){ pty_.write(data); });
 
     drm_crtc_.activate(drm_fb_);
 

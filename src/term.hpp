@@ -44,11 +44,7 @@ public:
 
 private:
     ////////////////////
-    std::shared_ptr<tty::device> tty_;
-    tty::scoped_active tty_active_;
-    tty::scoped_raw_mode tty_raw_;
-    tty::scoped_process_switch tty_switch_;
-    tty::scoped_graphics_mode tty_graph_;
+    tty::device tty_;
 
     std::shared_ptr<drm::device> drm_;
     drm::crtc drm_crtc_;

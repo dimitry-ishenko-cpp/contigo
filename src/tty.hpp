@@ -12,7 +12,6 @@
 #include <asio/posix/stream_descriptor.hpp>
 #include <asio/signal_set.hpp>
 #include <functional>
-#include <memory>
 #include <span>
 
 #include <termios.h>
@@ -32,59 +31,7 @@ class device
 {
 public:
     ////////////////////
-    device(const asio::any_io_executor&, num);
-
-    auto& executor() { return fd_.get_executor(); }
-    template<typename Cmd> void io_control(Cmd& cmd) { fd_.io_control(cmd); }
-    auto handle() { return fd_.native_handle(); }
-
-    using read_data_callback = std::function<void(std::span<const char>)>;
-    void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
-
-private:
-    ////////////////////
-    asio::posix::stream_descriptor fd_;
-
-    read_data_callback read_cb_;
-    std::array<char, 4096> buffer_;
-
-    void sched_async_read();
-};
-
-////////////////////////////////////////////////////////////////////////////////
-class scoped_active
-{
-    std::shared_ptr<device> dev_;
-    num prev_, num_;
-    bool active_ = false;
-
-    void make_active(num);
-
-public:
-    ////////////////////
-    scoped_active(std::shared_ptr<device>, num, bool activate);
-    ~scoped_active();
-};
-
-////////////////////////////////////////////////////////////////////////////////
-class scoped_raw_mode
-{
-    std::shared_ptr<device> dev_;
-    termios prev_;
-
-public:
-    ////////////////////
-    explicit scoped_raw_mode(std::shared_ptr<device>);
-    ~scoped_raw_mode();
-};
-
-////////////////////////////////////////////////////////////////////////////////
-class scoped_process_switch
-{
-public:
-    ////////////////////
-    explicit scoped_process_switch(std::shared_ptr<device>);
-    ~scoped_process_switch();
+    device(const asio::any_io_executor&, num, bool activate);
 
     using release_callback = std::function<void()>;
     void on_release(release_callback cb) { release_cb_ = std::move(cb); }
@@ -92,27 +39,67 @@ public:
     using acquire_callback = std::function<void()>;
     void on_acquire(acquire_callback cb) { acquire_cb_ = std::move(cb); }
 
+    using read_data_callback = std::function<void(std::span<const char>)>;
+    void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
+
 private:
     ////////////////////
-    std::shared_ptr<device> dev_;
+    struct scoped_active
+    {
+        asio::posix::stream_descriptor& fd;
+        tty::num prev, num;
+        bool active = false;
+
+        void make_active(tty::num);
+
+        scoped_active(asio::posix::stream_descriptor&, tty::num, bool activate);
+        ~scoped_active();
+    };
+
+    struct scoped_raw_mode
+    {
+        asio::posix::stream_descriptor& fd;
+        termios prev;
+
+        scoped_raw_mode(asio::posix::stream_descriptor&);
+        ~scoped_raw_mode();
+    };
+
+    struct scoped_process_switch
+    {
+        asio::posix::stream_descriptor& fd;
+
+        scoped_process_switch(asio::posix::stream_descriptor&);
+        ~scoped_process_switch();
+    };
+
+    struct scoped_graphics_mode
+    {
+        asio::posix::stream_descriptor& fd;
+        unsigned prev;
+
+        scoped_graphics_mode(asio::posix::stream_descriptor&);
+        ~scoped_graphics_mode();
+    };
+
+    ////////////////////
+    asio::posix::stream_descriptor fd_;
+
+    scoped_active active_;
+    scoped_raw_mode raw_mode_;
+    scoped_process_switch proc_switch_;
+    scoped_graphics_mode graph_mode_;
+
+    release_callback release_cb_;
+    acquire_callback acquire_cb_;
 
     asio::signal_set sigs_;
     void sched_signal_callback();
 
-    release_callback release_cb_;
-    acquire_callback acquire_cb_;
-};
+    read_data_callback read_cb_;
+    std::array<char, 4096> buffer_;
 
-////////////////////////////////////////////////////////////////////////////////
-class scoped_graphics_mode
-{
-    std::shared_ptr<device> dev_;
-    unsigned prev_;
-
-public:
-    ////////////////////
-    explicit scoped_graphics_mode(std::shared_ptr<device>);
-    ~scoped_graphics_mode();
+    void sched_async_read();
 };
 
 ////////////////////////////////////////////////////////////////////////////////
