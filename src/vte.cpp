@@ -58,9 +58,9 @@ static int resize(int rows, int cols, void* ctx)
 machine::machine(unsigned w, unsigned h) :
     vterm_{vterm_new(h, w), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
-    width_{w}, height_{h}
+    width_{w}
 {
-    info() << "Virtual terminal size: " << width_ << "x" << height_;
+    info() << "Virtual terminal size: " << w << "x" << h;
 
     static const VTermScreenCallbacks callbacks
     {
@@ -87,9 +87,8 @@ void machine::commit() { vterm_screen_flush_damage(screen_); }
 
 void machine::resize(unsigned w, unsigned h)
 {
-    width_ = w; height_ = h;
-    info() << "Resizing vte to: " << width_ << "x" << height_;
-    vterm_set_size(&*vterm_, height_, width_);
+    info() << "Resizing vte to: " << w << "x" << h;
+    vterm_set_size(&*vterm_, h, width_ = w);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

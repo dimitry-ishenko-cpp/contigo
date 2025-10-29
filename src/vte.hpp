@@ -46,7 +46,7 @@ public:
     ////////////////////
     explicit machine(unsigned w, unsigned h);
 
-    using row_changed_callback = std::function<void(int, std::span<const cell>)>;
+    using row_changed_callback = std::function<void(unsigned row, std::span<const cell>)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
     using size_changed_callback = std::function<void(unsigned w, unsigned h)>;
@@ -56,9 +56,6 @@ public:
     void write(std::span<const char>);
     void commit();
 
-    constexpr auto width() const noexcept { return width_; }
-    constexpr auto height() const noexcept { return height_; }
-
     void resize(unsigned w, unsigned h);
 
 private:
@@ -67,7 +64,7 @@ private:
     VTermScreen* screen_;
     VTermState* state_;
 
-    unsigned width_, height_;
+    unsigned width_;
 
     row_changed_callback row_cb_;
     size_changed_callback size_cb_;
