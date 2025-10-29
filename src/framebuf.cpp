@@ -20,9 +20,7 @@ namespace drm
 
 ////////////////////////////////////////////////////////////////////////////////
 framebuf::framebuf(device& dev, unsigned w, unsigned h) : drm_{dev.fd_},
-    buf_{drm_, w, h},
-    fbo_{drm_, w, h, buf_},
-    map_{drm_, buf_},
+    buf_{drm_, w, h}, fbo_{drm_, w, h, buf_}, map_{drm_, buf_},
     image_{w, h, buf_.stride, map_.data}
 {
     info() << "Using framebuf: " << image_.depth << "-bit color, " << image_.bits_per_pixel <<  " bpp, stride=" << buf_.stride << ", size=" << buf_.size;
