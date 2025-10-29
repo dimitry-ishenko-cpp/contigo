@@ -10,6 +10,7 @@
 #include <asio/any_io_executor.hpp>
 #include <asio/posix/stream_descriptor.hpp>
 #include <cstdint>
+#include <functional>
 #include <memory>
 
 #include <xf86drmMode.h>
@@ -52,6 +53,9 @@ public:
 
     void activate(framebuf&);
 
+    using vblank_callback = std::function<void()>;
+    void on_vblank(vblank_callback cb) { vblank_cb_ = std::move(cb); }
+
 private:
     ////////////////////
     struct crtc
@@ -71,6 +75,9 @@ private:
     connector conn_;
     drm::mode mode_;
     crtc crtc_;
+
+    vblank_callback vblank_cb_;
+    void sched_vblank_wait();
 
     friend class framebuf;
 };

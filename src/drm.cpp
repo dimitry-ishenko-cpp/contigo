@@ -118,6 +118,8 @@ device::device(const asio::any_io_executor& ex, drm::num num) : fd_{open(ex, num
     }
 
     info() << "Using screen: " << mode_.width << "x" << mode_.height << "@" << mode_.rate << "hz, " << size << "DPI=" << mode_.dpi;
+
+    sched_vblank_wait();
 }
 
 void device::disable()
@@ -139,6 +141,31 @@ void device::activate(framebuf& fb)
     info() << "Activating crtc";
     auto code = drmModeSetCrtc(fd_.native_handle(), crtc_.id, fb.id(), 0, 0, &conn_->connector_id, 1, &conn_->modes[mode_.idx]);
     if (code) throw posix_error{"drmModeSetCrtc"};
+}
+
+void device::sched_vblank_wait()
+{
+    drmVBlank vbl{ .request = {
+        .type = static_cast<drmVBlankSeqType>(DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT | DRM_VBLANK_NEXTONMISS),
+        .sequence = 1
+    }};
+    auto code = drmWaitVBlank(fd_.native_handle(), &vbl);
+    if (code) throw posix_error{"drmModeSetCrtc"};
+
+    static drmEventContext ctx{
+        .version = DRM_EVENT_CONTEXT_VERSION
+    };
+
+    fd_.async_wait(fd_.wait_read, [&](std::error_code ec)
+    {
+        if (!ec)
+        {
+            drmHandleEvent(fd_.native_handle(), &ctx);
+            if (vblank_cb_) vblank_cb_();
+
+            sched_vblank_wait();
+        }
+    });
 }
 
 ////////////////////////////////////////////////////////////////////////////////
