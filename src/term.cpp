@@ -32,7 +32,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     drm_->on_vblank([&](){ commit(); });
     drm_->activate(*fb_);
 
-    vte_->on_row_changed([&](auto row, auto cells){ change(row, cells); });
+    vte_->on_row_changed([&](auto y){ change(y); });
     vte_->on_size_changed([&](auto w, auto h){ pty_->resize(w, h); });
 
     pty_->on_read_data([&](auto data){ vte_->write(data); });
@@ -55,10 +55,10 @@ void term::disable()
     drm_->disable();
 }
 
-void term::change(int row, std::span<const vte::cell> cells)
+void term::change(int y)
 {
-    auto image = pango_->render_line(mode_.width, cells);
-    fb_->image().fill(0, row * cell_.height, image);
+    auto image = pango_->render_line(mode_.width, vte_->row(y));
+    fb_->image().fill(0, y * cell_.height, image);
 
     // TODO track damage
 }

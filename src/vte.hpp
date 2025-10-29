@@ -12,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <span>
+#include <vector>
 
 #include <vterm.h>
 
@@ -20,7 +21,6 @@ namespace vte
 {
 
 using vterm_ptr = std::unique_ptr<VTerm, void(*)(VTerm*)>;
-
 using pixman::color;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ public:
     ////////////////////
     explicit machine(unsigned w, unsigned h);
 
-    using row_changed_callback = std::function<void(unsigned row, std::span<const cell>)>;
+    using row_changed_callback = std::function<void(int y)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
     using size_changed_callback = std::function<void(unsigned w, unsigned h)>;
@@ -55,6 +55,9 @@ public:
     ////////////////////
     void write(std::span<const char>);
     void commit();
+
+    vte::cell cell(int x, int y);
+    std::vector<vte::cell> row(int y);
 
     void resize(unsigned w, unsigned h);
 
@@ -68,8 +71,6 @@ private:
 
     row_changed_callback row_cb_;
     size_changed_callback size_cb_;
-
-    void change(int row);
 
     ////////////////////
     struct dispatch;

@@ -19,8 +19,8 @@ static int damage(VTermRect rect, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
     if (vt->row_cb_)
-        for (auto row = rect.start_row; row < rect.end_row; ++row)
-            vt->change(row);
+        for (auto y = rect.start_row; y < rect.end_row; ++y)
+            vt->row_cb_(y);
     return true;
 }
 
@@ -85,13 +85,6 @@ machine::machine(unsigned w, unsigned h) :
 void machine::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void machine::commit() { vterm_screen_flush_damage(screen_); }
 
-void machine::resize(unsigned w, unsigned h)
-{
-    info() << "Resizing vte to: " << w << "x" << h;
-    vterm_set_size(&*vterm_, h, width_ = w);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 namespace
 {
 
@@ -134,35 +127,42 @@ auto vtc_to_color(VTermState* state, VTermColor* vc)
 
 }
 
-////////////////////////////////////////////////////////////////////////////////
-void machine::change(int row)
+vte::cell machine::cell(int x, int y)
 {
-    std::vector<cell> cells;
-    cells.reserve(width_);
+    vte::cell cell;
 
-    for (VTermPos pos{row, 0}; pos.col < width_; ++pos.col)
+    VTermScreenCell vtc;
+    if (vterm_screen_get_cell(screen_, VTermPos{y, x}, &vtc))
     {
-        VTermScreenCell vc;
-        if (vterm_screen_get_cell(screen_, pos, &vc))
-        {
-            cell cell;
+        ucs4_to_utf8(cell.chars, vtc.chars);
+        cell.width = vtc.width;
 
-            ucs4_to_utf8(cell.chars, vc.chars);
-            cell.width = vc.width;
+        cell.bold  = vtc.attrs.bold;
+        cell.italic= vtc.attrs.italic;
+        cell.strike= vtc.attrs.strike;
+        cell.underline = vtc.attrs.underline;
 
-            cell.bold  = vc.attrs.bold;
-            cell.italic= vc.attrs.italic;
-            cell.strike= vc.attrs.strike;
-            cell.underline = vc.attrs.underline;
-
-            cell.fg = vtc_to_color(state_, &vc.fg);
-            cell.bg = vtc_to_color(state_, &vc.bg);
-
-            cells.push_back(std::move(cell));
-        }
+        cell.fg = vtc_to_color(state_, &vtc.fg);
+        cell.bg = vtc_to_color(state_, &vtc.bg);
     }
 
-    row_cb_(row, cells);
+    return cell;
+}
+
+std::vector<vte::cell> machine::row(int y)
+{
+    std::vector<vte::cell> cells;
+    cells.reserve(width_);
+
+    for (auto x = 0; x < width_; ++x) cells.push_back(cell(x, y));
+
+    return cells;
+}
+
+void machine::resize(unsigned w, unsigned h)
+{
+    info() << "Resizing vte to: " << w << "x" << h;
+    vterm_set_size(&*vterm_, h, width_ = w);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
