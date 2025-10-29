@@ -1,4 +1,4 @@
-# contigo — Linux console emulator
+# term — Linux console terminal emulator
 
 ...
 
