@@ -53,7 +53,8 @@ private:
     std::unique_ptr<vte::machine> vte_;
     std::unique_ptr<pty::device> pty_;
 
-    unsigned width_, height_, cell_width_, cell_height_;
+    drm::mode mode_;
+    pango::cell cell_;
 
     ////////////////////
     bool enabled_ = true;

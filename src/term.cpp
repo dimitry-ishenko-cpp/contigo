@@ -12,17 +12,16 @@
 term::term(const asio::any_io_executor& ex, term_options options)
 {
     tty_ = std::make_unique<tty::device>(ex, options.tty_num, options.tty_activate);
+    
     drm_ = std::make_unique<drm::device>(ex, options.drm_num);
+    mode_ = drm_->mode();
+    fb_ = std::make_unique<drm::framebuf>(*drm_, mode_.width, mode_.height);
 
-    width_ = drm_->mode().width;
-    height_ = drm_->mode().height;
-    fb_ = std::make_unique<drm::framebuf>(*drm_, width_, height_);
+    pango_ = std::make_unique<pango::engine>(options.font, options.dpi.value_or(mode_.dpi));
+    cell_ = pango_->cell();
 
-    pango_ = std::make_unique<pango::engine>(options.font, options.dpi.value_or(drm_->mode().dpi));
-
-    cell_width_ = pango_->cell_width();
-    cell_height_ = pango_->cell_height();
-    auto vte_width = width_ / cell_width_, vte_height = height_ / cell_height_;
+    auto vte_width = mode_.width / cell_.width;
+    auto vte_height = mode_.height / cell_.height;
     vte_ = std::make_unique<vte::machine>(vte_width, vte_height);
     pty_ = std::make_unique<pty::device>(ex, vte_width, vte_height, std::move(options.login), std::move(options.args));
 
@@ -58,8 +57,8 @@ void term::disable()
 
 void term::change(int row, std::span<const vte::cell> cells)
 {
-    auto image = pango_->render_line(width_, cells);
-    fb_->image().fill(0, row * cell_height_, image);
+    auto image = pango_->render_line(mode_.width, cells);
+    fb_->image().fill(0, row * cell_.height, image);
 
     // TODO track damage
 }

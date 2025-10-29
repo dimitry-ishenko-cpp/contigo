@@ -30,6 +30,12 @@ using font_metrics_ptr = std::unique_ptr<PangoFontMetrics, void(*)(PangoFontMetr
 using layout_ptr = std::unique_ptr<PangoLayout, void(*)(void*)>;
 using attrs_ptr = std::unique_ptr<PangoAttrList, void(*)(PangoAttrList*)>;
 
+struct cell
+{
+    unsigned width, height;
+    int baseline;
+};
+
 using pixman::color;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -39,8 +45,7 @@ public:
     ////////////////////
     engine(std::string_view font_desc, unsigned dpi);
 
-    constexpr auto cell_width() const noexcept { return cell_width_; }
-    constexpr auto cell_height() const noexcept { return cell_height_; }
+    constexpr auto& cell() const noexcept { return cell_; }
 
     pixman::image render_line(unsigned width, std::span<const vte::cell>);
 
@@ -51,10 +56,8 @@ private:
     context_ptr context_;
     font_desc_ptr font_desc_;
 
-    unsigned cell_width_, cell_height_;
-
     layout_ptr layout_;
-    int baseline_;
+    pango::cell cell_;
 
     void render_chunk(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const vte::cell>, const color&);
 };
