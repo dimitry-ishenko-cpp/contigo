@@ -24,18 +24,6 @@ static int damage(VTermRect rect, void* ctx)
     return true;
 }
 
-static int move_rect(VTermRect dst, VTermRect src, void* ctx)
-{
-    auto vt = static_cast<machine*>(ctx);
-    if (vt->move_cb_)
-    {
-        unsigned w = dst.end_col - dst.start_col;
-        unsigned h = dst.end_row - dst.start_row;
-        vt->move_cb_(dst.start_col, dst.start_row, w, h, src.start_col, src.start_row);
-    }
-    return true;
-}
-
 static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
@@ -77,14 +65,10 @@ machine::machine(unsigned w, unsigned h) :
     static const VTermScreenCallbacks callbacks
     {
         .damage      = dispatch::damage,
-        .moverect    = dispatch::move_rect,
         .movecursor  = dispatch::move_cursor,
         .settermprop = dispatch::set_prop,
         .bell        = dispatch::bell,
         .resize      = dispatch::resize,
-        .sb_pushline = nullptr,
-        .sb_popline  = nullptr,
-        .sb_clear    = nullptr,
     };
 
     vterm_set_utf8(&*vterm_, true);
