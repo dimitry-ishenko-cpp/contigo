@@ -40,18 +40,20 @@ public:
     term(const asio::any_io_executor&, term_options);
 
     using exit_callback = pty::device::child_exit_callback;
-    void on_exit(exit_callback cb) { pty_.on_child_exit(std::move(cb)); }
+    void on_exit(exit_callback cb) { pty_->on_child_exit(std::move(cb)); }
 
 private:
     ////////////////////
-    tty::device tty_;
+    std::unique_ptr<tty::device> tty_;
 
-    drm::device drm_;
-    drm::framebuf fb_;
+    std::unique_ptr<drm::device> drm_;
+    std::unique_ptr<drm::framebuf> fb_;
 
-    pango::engine pango_;
-    vte::machine vte_;
-    pty::device pty_;
+    std::unique_ptr<pango::engine> pango_;
+    std::unique_ptr<vte::machine> vte_;
+    std::unique_ptr<pty::device> pty_;
+
+    unsigned width_, height_, cell_width_, cell_height_;
 
     ////////////////////
     bool enabled_ = true;

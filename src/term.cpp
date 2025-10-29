@@ -9,27 +9,34 @@
 #include "term.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
-term::term(const asio::any_io_executor& ex, term_options options) :
-    tty_{ex, options.tty_num, options.tty_activate},
-
-    drm_{ex, options.drm_num},
-    fb_{drm_, drm_.mode().width, drm_.mode().height},
-
-    pango_{options.font, options.dpi.value_or(drm_.mode().dpi)},
-    vte_{drm_.mode().width / pango_.cell_width(), drm_.mode().height / pango_.cell_height()},
-    pty_{ex, vte_.width(), vte_.height(), std::move(options.login), std::move(options.args)}
+term::term(const asio::any_io_executor& ex, term_options options)
 {
-    tty_.on_acquire([&]{ enable(); });
-    tty_.on_release([&]{ disable(); });
-    tty_.on_read_data([&](std::span<const char> data){ pty_.write(data); });
+    tty_ = std::make_unique<tty::device>(ex, options.tty_num, options.tty_activate);
+    drm_ = std::make_unique<drm::device>(ex, options.drm_num);
 
-    drm_.activate(fb_);
+    width_ = drm_->mode().width;
+    height_ = drm_->mode().height;
+    fb_ = std::make_unique<drm::framebuf>(*drm_, width_, height_);
 
-    vte_.on_row_changed([&](int row, std::span<const vte::cell> cells){ change(row, cells); });
-    vte_.on_cells_moved([&](int col, int row, unsigned w, unsigned h, int src_col, int src_row){ move(col, row, w, h, src_col, src_row); });
-    vte_.on_size_changed([&](unsigned w, unsigned h){ pty_.resize(w, h); });
+    pango_ = std::make_unique<pango::engine>(options.font, options.dpi.value_or(drm_->mode().dpi));
 
-    pty_.on_read_data([&](std::span<const char> data){ vte_.write(data); vte_.commit(); });
+    cell_width_ = pango_->cell_width();
+    cell_height_ = pango_->cell_height();
+    auto vte_width = width_ / cell_width_, vte_height = height_ / cell_height_;
+    vte_ = std::make_unique<vte::machine>(vte_width, vte_height);
+    pty_ = std::make_unique<pty::device>(ex, vte_width, vte_height, std::move(options.login), std::move(options.args));
+
+    tty_->on_acquire([&]{ enable(); });
+    tty_->on_release([&]{ disable(); });
+    tty_->on_read_data([&](std::span<const char> data){ pty_->write(data); });
+
+    drm_->activate(*fb_);
+
+    vte_->on_row_changed([&](int row, std::span<const vte::cell> cells){ change(row, cells); });
+    vte_->on_cells_moved([&](int col, int row, unsigned w, unsigned h, int src_col, int src_row){ move(col, row, w, h, src_col, src_row); });
+    vte_->on_size_changed([&](unsigned w, unsigned h){ pty_->resize(w, h); });
+
+    pty_->on_read_data([&](std::span<const char> data){ vte_->write(data); vte_->commit(); });
 }
 
 void term::enable()
@@ -37,8 +44,8 @@ void term::enable()
     info() << "Enabling screen rendering";
     enabled_ = true;
 
-    drm_.enable();
-    drm_.activate(fb_);
+    drm_->enable();
+    drm_->activate(*fb_);
 }
 
 void term::disable()
@@ -46,21 +53,20 @@ void term::disable()
     info() << "Disabling screen rendering";
     enabled_ = false;
 
-    drm_.disable();
+    drm_->disable();
 }
 
 void term::change(int row, std::span<const vte::cell> cells)
 {
-    auto image = pango_.render_line(drm_.mode().width, cells);
+    auto image = pango_->render_line(width_, cells);
 
-    auto ch = pango_.cell_height();
-    fb_.image().fill(0, row * ch, image);
-
-    if (enabled_) fb_.commit();
+    fb_->image().fill(0, row * cell_height_, image);
+    if (enabled_) fb_->commit();
 }
 
 void term::move(int col, int row, unsigned w, unsigned h, int src_col, int src_row)
 {
-    auto cw = pango_.cell_width(), ch = pango_.cell_height();
-    fb_.image().fill(col * cw, row * ch, fb_.image(), src_col * cw, src_row * ch, w * cw, h * ch);
+    fb_->image().fill(col * cell_width_, row * cell_height_, fb_->image(),
+        src_col * cell_width_, src_row * cell_height_, w * cell_width_, h * cell_height_
+    );
 }
