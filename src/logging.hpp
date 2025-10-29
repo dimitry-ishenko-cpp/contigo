@@ -20,7 +20,8 @@ public:
     ~logstream()
     {
         ss_ << std::endl;
-        std::fputs(ss_.str().data(), fs_);
+        auto out = ss_.str();
+        std::fwrite(out.data(), 1, out.size(), fs_);
         std::fflush(fs_);
     }
 
