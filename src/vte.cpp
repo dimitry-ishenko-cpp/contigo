@@ -68,7 +68,7 @@ static int resize(int rows, int cols, void* ctx)
 
 ////////////////////////////////////////////////////////////////////////////////
 machine::machine(unsigned w, unsigned h) :
-    vterm_{vterm_new(h, w)},
+    vterm_{vterm_new(h, w), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
     width_{w}, height_{h}
 {

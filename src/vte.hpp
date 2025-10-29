@@ -19,8 +19,7 @@
 namespace vte
 {
 
-struct vterm_delete { void operator()(VTerm* vterm) { vterm_free(vterm); } };
-using vterm_ptr = std::unique_ptr<VTerm, vterm_delete>;
+using vterm_ptr = std::unique_ptr<VTerm, void(*)(VTerm*)>;
 
 using pixman::color;
 
