@@ -61,4 +61,5 @@ private:
     void disable();
 
     void change(int row, std::span<const vte::cell>);
+    void commit();
 };

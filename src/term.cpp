@@ -30,12 +30,13 @@ term::term(const asio::any_io_executor& ex, term_options options)
     tty_->on_release([&]{ disable(); });
     tty_->on_read_data([&](auto data){ pty_->write(data); });
 
+    drm_->on_vblank([&](){ commit(); });
     drm_->activate(*fb_);
 
     vte_->on_row_changed([&](auto row, auto cells){ change(row, cells); });
     vte_->on_size_changed([&](auto w, auto h){ pty_->resize(w, h); });
 
-    pty_->on_read_data([&](auto data){ vte_->write(data); vte_->commit(); });
+    pty_->on_read_data([&](auto data){ vte_->write(data); });
 }
 
 void term::enable()
@@ -58,7 +59,13 @@ void term::disable()
 void term::change(int row, std::span<const vte::cell> cells)
 {
     auto image = pango_->render_line(width_, cells);
-
     fb_->image().fill(0, row * cell_height_, image);
+
+    // TODO track damage
+}
+
+void term::commit()
+{
+    vte_->commit();
     if (enabled_) fb_->commit();
 }
