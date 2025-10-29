@@ -14,6 +14,7 @@
 #include <asio/write.hpp>
 #include <climits> // PATH_MAX
 #include <csignal>
+#include <cstdlib> // setenv
 #include <thread>
 
 #include <pty.h> // forkpty
@@ -85,6 +86,8 @@ void device::start_child(std::string pgm, std::vector<std::string> args)
     for (auto&& arg : args) argv.push_back(arg.data());
     argv.push_back(nullptr);
 
+    setenv("TERM", "linux", true);
+
     execv(argv[0], argv.data());
     throw posix_error{"execv"};
 }
@@ -125,7 +128,7 @@ void device::sched_child_wait()
             int status;
             waitpid(child_pid_, &status, 0);
             child_pid_ = 0;
-            
+
             int exit_code = 0;
             if (WIFEXITED(status))
                 exit_code = WEXITSTATUS(status);
