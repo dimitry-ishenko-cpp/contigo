@@ -35,7 +35,7 @@ public:
 protected:
     ////////////////////
     image_ptr pix_;
-    friend struct mapped_image;
+    friend struct image;
 
     image_base(image_ptr pix) : pix_{std::move(pix)} { }
 };
@@ -53,21 +53,15 @@ struct gray : image_base
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-struct solid : image_base
-{
-    explicit solid(const color& c) :
-        image_base{image_ptr{pixman_image_create_solid_fill(&c)}}
-    { }
-};
-
-////////////////////////////////////////////////////////////////////////////////
-struct mapped_image : image_base
+struct image : image_base
 {
     static constexpr unsigned depth = 24;
     static constexpr unsigned bits_per_pixel = 32;
     static constexpr unsigned num_colors = 1 << depth;
 
-    mapped_image(unsigned w, unsigned h, std::size_t stride, void* p) :
+    image(unsigned w, unsigned h) : image{w, h, 0, nullptr} { }
+
+    image(unsigned w, unsigned h, std::size_t stride, void* p) :
         image_base{image_ptr{pixman_image_create_bits(PIXMAN_x8r8g8b8, w, h, static_cast<uint32_t*>(p), stride)}}
     { }
 
@@ -78,27 +72,16 @@ struct mapped_image : image_base
         pixman_image_fill_rectangles(PIXMAN_OP_SRC, &*pix_, &c, 1, &rect);
     }
 
-    void fill(int x, int y, const mapped_image& src)
+    void fill(int x, int y, const image& src)
     {
         pixman_image_composite(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_, 0, 0, 0, 0, x, y, src.width(), src.height());
     }
 
-    void fill(int x, int y, const mapped_image& src, int src_x, int src_y, unsigned w, unsigned h)
-    {
-        pixman_image_composite(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_, src_x, src_y, 0, 0, x, y, w, h);
-    }
-
     void alpha_blend(int x, int y, const gray& mask, const color& c)
     {
-        solid solid{c};
-        pixman_image_composite(PIXMAN_OP_OVER, &*solid.pix_, &*mask.pix_, &*pix_, 0, 0, 0, 0, x, y, mask.width(), mask.height());
+        image_ptr solid{pixman_image_create_solid_fill(&c)};
+        pixman_image_composite(PIXMAN_OP_OVER, &*solid, &*mask.pix_, &*pix_, 0, 0, 0, 0, x, y, mask.width(), mask.height());
     }
-};
-
-////////////////////////////////////////////////////////////////////////////////
-struct image : mapped_image
-{
-    image(unsigned w, unsigned h) : mapped_image{w, h, 0, nullptr} { }
 };
 
 ////////////////////////////////////////////////////////////////////////////////

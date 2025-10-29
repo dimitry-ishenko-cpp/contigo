@@ -67,7 +67,7 @@ private:
     scoped_fbo fbo_;
     scoped_mapped_ptr map_;
 
-    pixman::mapped_image image_;
+    pixman::image image_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
