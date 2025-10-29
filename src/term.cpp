@@ -28,14 +28,14 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     tty_->on_acquire([&]{ enable(); });
     tty_->on_release([&]{ disable(); });
-    tty_->on_read_data([&](std::span<const char> data){ pty_->write(data); });
+    tty_->on_read_data([&](auto data){ pty_->write(data); });
 
     drm_->activate(*fb_);
 
-    vte_->on_row_changed([&](int row, std::span<const vte::cell> cells){ change(row, cells); });
-    vte_->on_size_changed([&](unsigned w, unsigned h){ pty_->resize(w, h); });
+    vte_->on_row_changed([&](auto row, auto cells){ change(row, cells); });
+    vte_->on_size_changed([&](auto w, auto h){ pty_->resize(w, h); });
 
-    pty_->on_read_data([&](std::span<const char> data){ vte_->write(data); vte_->commit(); });
+    pty_->on_read_data([&](auto data){ vte_->write(data); vte_->commit(); });
 }
 
 void term::enable()
