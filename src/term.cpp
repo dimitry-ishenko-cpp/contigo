@@ -61,5 +61,6 @@ void term::change(int row, std::span<const vte::cell> cells)
 
 void term::move(int col, int row, unsigned w, unsigned h, int src_col, int src_row)
 {
-    // TODO
+    auto cw = pango_.cell_width(), ch = pango_.cell_height();
+    fb_.image().fill(col * cw, row * ch, fb_.image(), src_col * cw, src_row * ch, w * cw, h * ch);
 }
