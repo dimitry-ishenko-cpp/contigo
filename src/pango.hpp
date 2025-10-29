@@ -56,7 +56,7 @@ private:
     layout_ptr layout_;
     int baseline_;
 
-    void render_text(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const vte::cell>, const color&);
+    void render_chunk(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const vte::cell>, const color&);
 };
 
 ////////////////////////////////////////////////////////////////////////////////

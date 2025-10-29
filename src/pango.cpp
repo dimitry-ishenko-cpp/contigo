@@ -154,45 +154,57 @@ constexpr bool operator==(const color& x, const color& y) noexcept
     return x.red == y.red && x.green == y.green && x.blue == y.blue && x.alpha == y.alpha;
 }
 
-void engine::render_text(pixman::image& image, int x, int y, unsigned w, unsigned h, std::span<const vte::cell> cells, const color& fg)
+void engine::render_chunk(pixman::image& image, int x, int y, unsigned w, unsigned h, std::span<const vte::cell> cells, const color& fg)
 {
     auto attrs = create_attrs();
 
-    auto begin = cells.begin();
-    auto from_bold = begin, from_italic = begin, from_strike = begin, from_underline = begin;
-    std::string text = begin->chars;
+    auto cell = cells.begin();
+    auto bold = cell->bold, italic = cell->italic, strike = cell->strike;
+    auto underline = cell->underline;
+    unsigned pos_bold = 0, pos_italic = 0, pos_strike = 0, pos_underline = 0;
 
-    for (auto to = begin + 1; to != cells.end(); ++to)
+    std::string chunk;
+    unsigned pos = 0;
+
+    for (; cell != cells.end(); ++cell)
     {
-        text += to->chars;
-        if (to->bold != from_bold->bold)
+        std::string chars{cell->chars[0] ? cell->chars : " "};
+        chunk += chars;
+
+        if (cell->bold != bold)
         {
-            maybe_insert_bold(attrs, from_bold - begin, to - begin, from_bold->bold);
-            from_bold = to;
+            maybe_insert_bold(attrs, pos_bold, pos, bold);
+            bold = cell->bold;
+            pos_bold = pos;
         }
-        if (to->italic != from_italic->italic)
+        if (cell->italic != italic)
         {
-            maybe_insert_italic(attrs, from_italic - begin, to - begin, from_italic->italic);
-            from_italic = to;
+            maybe_insert_italic(attrs, pos_italic, pos, italic);
+            italic = cell->italic;
+            pos_italic = pos;
         }
-        if (to->strike != from_strike->strike)
+        if (cell->strike != strike)
         {
-            maybe_insert_strike(attrs, from_strike - begin, to - begin, from_strike->strike);
-            from_strike = to;
+            maybe_insert_strike(attrs, pos_strike, pos, strike);
+            strike = cell->strike;
+            pos_strike = pos;
         }
-        if (to->underline != from_underline->underline)
+        if (cell->underline != underline)
         {
-            maybe_insert_underline(attrs, from_underline - begin, to - begin, from_underline->underline);
-            from_underline = to;
+            maybe_insert_underline(attrs, pos_underline, pos, underline);
+            underline = cell->underline;
+            pos_underline = pos;
         }
+
+        pos += chars.size();
     }
 
-    maybe_insert_bold(attrs, from_bold - begin, cells.size(), from_bold->bold);
-    maybe_insert_italic(attrs, from_italic - begin, cells.size(), from_italic->italic);
-    maybe_insert_strike(attrs, from_strike - begin, cells.size(), from_strike->strike);
-    maybe_insert_underline(attrs, from_underline - begin, cells.size(), from_underline->underline);
+    maybe_insert_bold(attrs, pos_bold, pos, bold);
+    maybe_insert_italic(attrs, pos_italic, pos, italic);
+    maybe_insert_strike(attrs, pos_strike, pos, strike);
+    maybe_insert_underline(attrs, pos_underline, pos, underline);
 
-    pango_layout_set_text(&*layout_, text.data(), -1);
+    pango_layout_set_text(&*layout_, chunk.data(), chunk.size());
     pango_layout_set_attributes(&*layout_, &*attrs);
     auto line = pango_layout_get_line_readonly(&*layout_, 0);
 
@@ -213,12 +225,12 @@ pixman::image engine::render_line(unsigned width, std::span<const vte::cell> cel
 {
     pixman::image image{width, cell_height_};
 
-    int x = 0, y = 0;
-    unsigned w = cell_width_, h = cell_height_;
-
     // render background
+    int x = 0, y = 0;
+    unsigned w = 0, h = cell_height_;
+
     auto from = cells.begin();
-    for (auto to = from + 1; to != cells.end(); ++to, w += cell_width_)
+    for (auto to = from; to != cells.end(); ++to, w += cell_width_)
     {
         if (to->bg != from->bg)
         {
@@ -230,20 +242,20 @@ pixman::image engine::render_line(unsigned width, std::span<const vte::cell> cel
     }
     image.fill(x, y, w, h, from->bg);
 
-    ////////////////////
-    x = 0; w = cell_width_;
+    // render text
+    x = 0; w = 0;
 
     from = cells.begin();
-    for (auto to = from + 1; to != cells.end(); ++to, w += cell_width_)
+    for (auto to = from; to != cells.end(); ++to, w += cell_width_)
     {
         if (to->fg != from->fg)
         {
-            render_text(image, x, y, w, h, std::span{from, to}, from->fg);
+            render_chunk(image, x, y, w, h, std::span{from, to}, from->fg);
             from = to;
             x += w; w = 0;
         }
     }
-    render_text(image, x, y, w, h, std::span{from, cells.end()}, from->fg);
+    render_chunk(image, x, y, w, h, std::span{from, cells.end()}, from->fg);
 
     return image;
 }
