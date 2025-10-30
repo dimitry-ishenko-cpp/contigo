@@ -27,14 +27,37 @@ static int damage(VTermRect rect, void* ctx)
 static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
-    // TODO
+
+    vt->cursor_.x = pos.col;
+    vt->cursor_.y = pos.row;
+    vt->cursor_.visible = visible;
+    if (vt->cursor_cb_) vt->cursor_cb_(vt->cursor_);
+
     return true;
 }
 
 static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
-    // TODO
+    bool cb = !!vt->cursor_cb_;
+
+    switch (prop)
+    {
+        case VTERM_PROP_CURSORBLINK: vt->cursor_.blink = val->boolean; break;
+        case VTERM_PROP_CURSORSHAPE:
+            switch (val->number)
+            {
+                case VTERM_PROP_CURSORSHAPE_BAR_LEFT: vt->cursor_.shape = cursor::vline; break;
+                case VTERM_PROP_CURSORSHAPE_BLOCK: vt->cursor_.shape = cursor::block; break;
+                case VTERM_PROP_CURSORSHAPE_UNDERLINE: vt->cursor_.shape = cursor::hline; break;
+                default: cb = false;
+            }
+            break;
+        case VTERM_PROP_CURSORVISIBLE: vt->cursor_.visible = val->boolean; break;
+        default: cb = false;
+    }
+    if (cb) vt->cursor_cb_(vt->cursor_);
+
     return true;
 }
 

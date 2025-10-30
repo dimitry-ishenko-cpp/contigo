@@ -39,6 +39,14 @@ struct cell
     color fg, bg;
 };
 
+struct cursor
+{
+    int x, y;
+    bool visible;
+    bool blink;
+    enum { block, hline, vline } shape;
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 class machine
 {
@@ -48,6 +56,9 @@ public:
 
     using row_changed_callback = std::function<void(int y)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
+
+    using cursor_changed_callback = std::function<void(const cursor&)>;
+    void on_cursor_changed(cursor_changed_callback cb) { cursor_cb_ = std::move(cb); }
 
     using size_changed_callback = std::function<void(unsigned w, unsigned h)>;
     void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
@@ -68,8 +79,10 @@ private:
     VTermState* state_;
 
     unsigned width_;
+    cursor cursor_;
 
     row_changed_callback row_cb_;
+    cursor_changed_callback cursor_cb_;
     size_changed_callback size_cb_;
 
     ////////////////////
