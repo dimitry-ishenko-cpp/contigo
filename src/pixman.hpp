@@ -77,6 +77,11 @@ struct image : image_base
         pixman_image_composite32(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_, 0, 0, 0, 0, x, y, src.width(), src.height());
     }
 
+    void fill(int x, int y, const image& src, int src_x, int src_y, unsigned w, unsigned h)
+    {
+        pixman_image_composite32(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_, src_x, src_y, 0, 0, x, y, w, h);
+    }
+
     void alpha_blend(int x, int y, const gray& mask, const color& c)
     {
         image_ptr solid{pixman_image_create_solid_fill(&c)};
