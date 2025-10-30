@@ -10,13 +10,15 @@
 #include "drm.hpp"
 #include "framebuf.hpp"
 #include "pango.hpp"
+#include "pixman.hpp"
 #include "pty.hpp"
 #include "tty.hpp"
 #include "vte.hpp"
 
 #include <asio/any_io_executor.hpp>
-#include <string>
 #include <memory>
+#include <optional>
+#include <string>
 #include <vector>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,5 +63,11 @@ private:
     void disable();
 
     void change(int row);
+    
+    vte::cursor cursor_;
+    std::optional<pixman::image> undo_;
+    void draw_cursor();
+    void undo_cursor();
+
     void commit();
 };
