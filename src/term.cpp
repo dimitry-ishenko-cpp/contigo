@@ -32,6 +32,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     drm_->on_vblank([&](){ commit(); });
     drm_->activate(*fb_);
 
+    vte_->on_output_data([&](auto data){ pty_->write(data); });
     vte_->on_row_changed([&](auto row){ change(row); });
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
