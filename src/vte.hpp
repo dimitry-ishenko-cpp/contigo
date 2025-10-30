@@ -54,6 +54,9 @@ public:
     ////////////////////
     explicit machine(unsigned rows, unsigned cols);
 
+    using output_data_callback = std::function<void(std::span<const char>)>;
+    void on_output_data(output_data_callback cb) { output_cb_ = std::move(cb); }
+
     using row_changed_callback = std::function<void(int row)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
@@ -81,6 +84,7 @@ private:
     unsigned cols_;
     cursor cursor_;
 
+    output_data_callback output_cb_;
     row_changed_callback row_cb_;
     cursor_changed_callback cursor_cb_;
     size_changed_callback size_cb_;

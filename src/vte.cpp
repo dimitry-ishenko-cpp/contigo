@@ -75,6 +75,12 @@ static int resize(int rows, int cols, void* ctx)
     return true;
 }
 
+static void output(const char* s, std::size_t len, void *ctx)
+{
+    auto vt = static_cast<machine*>(ctx);
+    if (vt->output_cb_) vt->output_cb_(std::span{s, len});
+}
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,6 +91,9 @@ machine::machine(unsigned rows, unsigned cols) :
 {
     info() << "Virtual terminal size: " << rows << "x" << cols;
 
+    vterm_set_utf8(&*vterm_, true);
+    vterm_output_set_callback(&*vterm_, &dispatch::output, this);
+
     static const VTermScreenCallbacks callbacks
     {
         .damage      = dispatch::damage,
@@ -93,8 +102,6 @@ machine::machine(unsigned rows, unsigned cols) :
         .bell        = dispatch::bell,
         .resize      = dispatch::resize,
     };
-
-    vterm_set_utf8(&*vterm_, true);
 
     vterm_screen_set_callbacks(screen_, &callbacks, this);
     vterm_screen_set_damage_merge(screen_, VTERM_DAMAGE_SCROLL);
