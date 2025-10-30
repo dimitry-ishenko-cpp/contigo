@@ -26,7 +26,7 @@ class device
 public:
     ////////////////////
     // NB: passing by value here to have own copy with guaranteed lifetime
-    device(const asio::any_io_executor&, unsigned w, unsigned h, std::string pgm, std::vector<std::string> args);
+    device(const asio::any_io_executor&, unsigned rows, unsigned cols, std::string pgm, std::vector<std::string> args);
     ~device() { stop_child(); }
 
     using read_data_callback = std::function<void(std::span<const char>)>;
@@ -36,7 +36,7 @@ public:
     void on_child_exit(child_exit_callback cb) { child_cb_ = std::move(cb); }
 
     void write(std::span<const char>);
-    void resize(unsigned w, unsigned h);
+    void resize(unsigned rows, unsigned cols);
 
 private:
     ////////////////////

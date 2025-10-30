@@ -20,10 +20,10 @@ term::term(const asio::any_io_executor& ex, term_options options)
     pango_ = std::make_unique<pango::engine>(options.font, options.dpi.value_or(mode_.dpi));
     cell_ = pango_->cell();
 
-    auto vte_width = mode_.width / cell_.width;
-    auto vte_height = mode_.height / cell_.height;
-    vte_ = std::make_unique<vte::machine>(vte_width, vte_height);
-    pty_ = std::make_unique<pty::device>(ex, vte_width, vte_height, std::move(options.login), std::move(options.args));
+    auto vte_rows = mode_.height / cell_.height;
+    auto vte_cols = mode_.width / cell_.width;
+    vte_ = std::make_unique<vte::machine>(vte_rows, vte_cols);
+    pty_ = std::make_unique<pty::device>(ex, vte_rows, vte_cols, std::move(options.login), std::move(options.args));
 
     tty_->on_acquire([&]{ enable(); });
     tty_->on_release([&]{ disable(); });
@@ -32,8 +32,8 @@ term::term(const asio::any_io_executor& ex, term_options options)
     drm_->on_vblank([&](){ commit(); });
     drm_->activate(*fb_);
 
-    vte_->on_row_changed([&](auto y){ change(y); });
-    vte_->on_size_changed([&](auto w, auto h){ pty_->resize(w, h); });
+    vte_->on_row_changed([&](auto row){ change(row); });
+    vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
     pty_->on_read_data([&](auto data){ vte_->write(data); });
 }
@@ -55,10 +55,10 @@ void term::disable()
     drm_->disable();
 }
 
-void term::change(int y)
+void term::change(int row)
 {
-    auto image = pango_->render_line(mode_.width, vte_->row(y));
-    fb_->image().fill(0, y * cell_.height, image);
+    auto image = pango_->render_line(mode_.width, vte_->cells(row));
+    fb_->image().fill(0, row * cell_.height, image);
 
     // TODO track damage
 }

@@ -56,11 +56,10 @@ private:
     drm::mode mode_;
     pango::cell cell_;
 
-    ////////////////////
     bool enabled_ = true;
     void enable();
     void disable();
 
-    void change(int y);
+    void change(int row);
     void commit();
 };

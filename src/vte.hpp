@@ -41,7 +41,7 @@ struct cell
 
 struct cursor
 {
-    int x, y;
+    int row, col;
     bool visible;
     bool blink;
     enum { block, hline, vline } shape;
@@ -52,25 +52,25 @@ class machine
 {
 public:
     ////////////////////
-    explicit machine(unsigned w, unsigned h);
+    explicit machine(unsigned rows, unsigned cols);
 
-    using row_changed_callback = std::function<void(int y)>;
+    using row_changed_callback = std::function<void(int row)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
     using cursor_changed_callback = std::function<void(const cursor&)>;
     void on_cursor_changed(cursor_changed_callback cb) { cursor_cb_ = std::move(cb); }
 
-    using size_changed_callback = std::function<void(unsigned w, unsigned h)>;
+    using size_changed_callback = std::function<void(unsigned rows, unsigned cols)>;
     void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
 
     ////////////////////
     void write(std::span<const char>);
     void commit();
 
-    vte::cell cell(int x, int y);
-    std::vector<vte::cell> row(int y);
+    vte::cell cell(int row, int col);
+    std::vector<vte::cell> cells(int row);
 
-    void resize(unsigned w, unsigned h);
+    void resize(unsigned rows, unsigned cols);
 
 private:
     ////////////////////
@@ -78,7 +78,7 @@ private:
     VTermScreen* screen_;
     VTermState* state_;
 
-    unsigned width_;
+    unsigned cols_;
     cursor cursor_;
 
     row_changed_callback row_cb_;

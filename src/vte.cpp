@@ -19,8 +19,8 @@ static int damage(VTermRect rect, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
     if (vt->row_cb_)
-        for (auto y = rect.start_row; y < rect.end_row; ++y)
-            vt->row_cb_(y);
+        for (auto row = rect.start_row; row < rect.end_row; ++row)
+            vt->row_cb_(row);
     return true;
 }
 
@@ -28,8 +28,8 @@ static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
 
-    vt->cursor_.x = pos.col;
-    vt->cursor_.y = pos.row;
+    vt->cursor_.row = pos.row;
+    vt->cursor_.col = pos.col;
     vt->cursor_.visible = visible;
     if (vt->cursor_cb_) vt->cursor_cb_(vt->cursor_);
 
@@ -71,19 +71,19 @@ static int bell(void* ctx)
 static int resize(int rows, int cols, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
-    if (vt->size_cb_) vt->size_cb_(cols, rows);
+    if (vt->size_cb_) vt->size_cb_(rows, cols);
     return true;
 }
 
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-machine::machine(unsigned w, unsigned h) :
-    vterm_{vterm_new(h, w), &vterm_free},
+machine::machine(unsigned rows, unsigned cols) :
+    vterm_{vterm_new(rows, cols), &vterm_free},
     screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
-    width_{w}
+    cols_{cols}
 {
-    info() << "Virtual terminal size: " << w << "x" << h;
+    info() << "Virtual terminal size: " << rows << "x" << cols;
 
     static const VTermScreenCallbacks callbacks
     {
@@ -150,12 +150,12 @@ auto vtc_to_color(VTermState* state, VTermColor* vc)
 
 }
 
-vte::cell machine::cell(int x, int y)
+vte::cell machine::cell(int row, int col)
 {
     vte::cell cell;
 
     VTermScreenCell vtc;
-    if (vterm_screen_get_cell(screen_, VTermPos{y, x}, &vtc))
+    if (vterm_screen_get_cell(screen_, VTermPos{row, col}, &vtc))
     {
         ucs4_to_utf8(cell.chars, vtc.chars);
         cell.width = vtc.width;
@@ -172,20 +172,20 @@ vte::cell machine::cell(int x, int y)
     return cell;
 }
 
-std::vector<vte::cell> machine::row(int y)
+std::vector<vte::cell> machine::cells(int row)
 {
     std::vector<vte::cell> cells;
-    cells.reserve(width_);
+    cells.reserve(cols_);
 
-    for (auto x = 0; x < width_; ++x) cells.push_back(cell(x, y));
+    for (auto col = 0; col < cols_; ++col) cells.push_back(cell(row, col));
 
     return cells;
 }
 
-void machine::resize(unsigned w, unsigned h)
+void machine::resize(unsigned rows, unsigned cols)
 {
-    info() << "Resizing vte to: " << w << "x" << h;
-    vterm_set_size(&*vterm_, h, width_ = w);
+    info() << "Resizing vte to: " << rows << "x" << cols;
+    vterm_set_size(&*vterm_, rows, cols_ = cols);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

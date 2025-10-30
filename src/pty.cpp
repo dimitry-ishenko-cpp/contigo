@@ -28,11 +28,11 @@ using namespace std::chrono_literals;
 namespace pty
 {
 
-device::device(const asio::any_io_executor& ex, unsigned w, unsigned h, std::string pgm, std::vector<std::string> args) :
+device::device(const asio::any_io_executor& ex, unsigned rows, unsigned cols, std::string pgm, std::vector<std::string> args) :
     fd_{ex}, child_fd_{ex}
 {
     int pt;
-    winsize ws(h, w, 0, 0);
+    winsize ws(rows, cols);
     char name[PATH_MAX];
 
     info() << "Creating pseudo tty";
@@ -58,10 +58,10 @@ device::device(const asio::any_io_executor& ex, unsigned w, unsigned h, std::str
 
 void device::write(std::span<const char> data) { asio::write(fd_, asio::buffer(data)); }
 
-void device::resize(unsigned w, unsigned h)
+void device::resize(unsigned rows, unsigned cols)
 {
-    info() << "Resizing pty to: " << w << "x" << h;
-    command<TIOCSWINSZ, winsize> cmd{winsize(h, w)};
+    info() << "Resizing pty to: " << rows << "x" << cols;
+    command<TIOCSWINSZ, winsize> cmd{winsize(rows, cols)};
     fd_.io_control(cmd);
 
     if (child_pid_) kill(child_pid_, SIGWINCH);
