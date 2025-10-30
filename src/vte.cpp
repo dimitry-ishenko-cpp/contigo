@@ -43,18 +43,28 @@ static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 
     switch (prop)
     {
-        case VTERM_PROP_CURSORBLINK: vt->cursor_.blink = val->boolean; break;
-        case VTERM_PROP_CURSORSHAPE:
-            switch (val->number)
-            {
-                case VTERM_PROP_CURSORSHAPE_BAR_LEFT: vt->cursor_.shape = cursor::vline; break;
-                case VTERM_PROP_CURSORSHAPE_BLOCK: vt->cursor_.shape = cursor::block; break;
-                case VTERM_PROP_CURSORSHAPE_UNDERLINE: vt->cursor_.shape = cursor::hline; break;
-                default: cb = false;
-            }
+    case VTERM_PROP_CURSORBLINK:
+        vt->cursor_.blink = val->boolean;
+        break;
+    case VTERM_PROP_CURSORSHAPE:
+        switch (val->number)
+        {
+        case VTERM_PROP_CURSORSHAPE_BAR_LEFT:
+            vt->cursor_.shape = cursor::vline;
             break;
-        case VTERM_PROP_CURSORVISIBLE: vt->cursor_.visible = val->boolean; break;
+        case VTERM_PROP_CURSORSHAPE_BLOCK:
+            vt->cursor_.shape = cursor::block;
+            break;
+        case VTERM_PROP_CURSORSHAPE_UNDERLINE:
+            vt->cursor_.shape = cursor::hline;
+            break;
         default: cb = false;
+        }
+        break;
+    case VTERM_PROP_CURSORVISIBLE:
+        vt->cursor_.visible = val->boolean;
+        break;
+    default: cb = false;
     }
     if (cb) vt->cursor_cb_(vt->cursor_);
 
