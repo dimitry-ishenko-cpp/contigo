@@ -74,13 +74,13 @@ struct image : image_base
 
     void fill(int x, int y, const image& src)
     {
-        pixman_image_composite(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_, 0, 0, 0, 0, x, y, src.width(), src.height());
+        pixman_image_composite32(PIXMAN_OP_SRC, &*src.pix_, nullptr, &*pix_, 0, 0, 0, 0, x, y, src.width(), src.height());
     }
 
     void alpha_blend(int x, int y, const gray& mask, const color& c)
     {
         image_ptr solid{pixman_image_create_solid_fill(&c)};
-        pixman_image_composite(PIXMAN_OP_OVER, &*solid, &*mask.pix_, &*pix_, 0, 0, 0, 0, x, y, mask.width(), mask.height());
+        pixman_image_composite32(PIXMAN_OP_OVER, &*solid, &*mask.pix_, &*pix_, 0, 0, 0, 0, x, y, mask.width(), mask.height());
     }
 };
 
