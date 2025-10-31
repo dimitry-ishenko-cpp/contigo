@@ -12,6 +12,7 @@
 #include <asio/posix/stream_descriptor.hpp>
 #include <asio/signal_set.hpp>
 #include <functional>
+#include <optional>
 #include <span>
 
 #include <termios.h>
@@ -31,7 +32,7 @@ class device
 {
 public:
     ////////////////////
-    device(const asio::any_io_executor&, num, bool activate);
+    device(const asio::any_io_executor&, num);
 
     using release_callback = std::function<void()>;
     void on_release(release_callback cb) { release_cb_ = std::move(cb); }
@@ -42,17 +43,20 @@ public:
     using read_data_callback = std::function<void(std::span<const char>)>;
     void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
 
+    void activate() { active_.activate(); }
+
 private:
     ////////////////////
     struct scoped_active
     {
         asio::posix::stream_descriptor& fd;
-        tty::num prev, num;
-        bool active = false;
+        std::optional<tty::num> prev;
+        tty::num num;
 
-        void make_active(tty::num);
+        void activate();
+        void activate(tty::num);
 
-        scoped_active(asio::posix::stream_descriptor&, tty::num, bool activate);
+        scoped_active(asio::posix::stream_descriptor&, tty::num);
         ~scoped_active();
     };
 

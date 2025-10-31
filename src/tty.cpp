@@ -55,9 +55,9 @@ num active(const asio::any_io_executor& ex)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-device::device(const asio::any_io_executor& ex, tty::num num, bool activate) :
+device::device(const asio::any_io_executor& ex, tty::num num) :
     fd_{open(ex, num)},
-    active_{fd_, num, activate}, raw_mode_{fd_}, proc_switch_{fd_}, graph_mode_{fd_},
+    active_{fd_, num}, raw_mode_{fd_}, proc_switch_{fd_}, graph_mode_{fd_},
     sigs_{ex, release, acquire}
 {
     sched_signal_callback();
@@ -65,26 +65,30 @@ device::device(const asio::any_io_executor& ex, tty::num num, bool activate) :
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-device::scoped_active::scoped_active(asio::posix::stream_descriptor& fd, tty::num num, bool activate) :
-    fd{fd}, prev{tty::active(fd.get_executor())}, num{num}
-{
-    if (num != prev && activate)
-    {
-        make_active(num);
-        active = true;
-    }
-}
+device::scoped_active::scoped_active(asio::posix::stream_descriptor& fd, tty::num num) :
+    fd{fd}, num{num}
+{ }
 
 device::scoped_active::~scoped_active()
 {
-    if (active)
+    if (prev)
     {
-        auto now = tty::active(fd.get_executor());
-        if (now == num) make_active(prev);
+        auto active = tty::active(fd.get_executor());
+        if (active == num) activate(*prev);
     }
 }
 
-void device::scoped_active::make_active(tty::num num)
+void device::scoped_active::activate()
+{
+    auto active = tty::active(fd.get_executor());
+    if (active != num)
+    {
+        prev = active;
+        activate(num);
+    }
+}
+
+void device::scoped_active::activate(tty::num num)
 {
     info() << "Activating tty" << num;
     command<VT_ACTIVATE, tty::num> activate{num};
