@@ -63,7 +63,7 @@ private:
     void disable();
 
     void change(int row);
-    
+
     vte::cursor cursor_;
     std::optional<pixman::image> undo_;
     void draw_cursor();

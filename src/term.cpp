@@ -75,28 +75,30 @@ void term::draw_cursor()
 {
     if (cursor_.visible)
     {
-        auto x = cursor_.col * cell_.width, y = cursor_.row * cell_.height; 
-
-        undo_ = pixman::image{cell_.width, cell_.height};
-        undo_->fill(0, 0, fb_->image(), x, y, cell_.width, cell_.height);
-
         auto cell = vte_->cell(cursor_.row, cursor_.col);
+
+        auto x = cursor_.col * cell_.width, y = cursor_.row * cell_.height;
+        auto w = cell_.width, h = cell_.height;
+
+        undo_ = pixman::image{w, h};
+        undo_->fill(0, 0, fb_->image(), x, y, w, h);
+
         switch (cursor_.shape)
         {
         case vte::cursor::block:
             {
                 std::swap(cell.fg, cell.bg); // TODO use reverse attr
-                auto image = pango_->render_line(cell_.width, std::span{&cell, 1});
+                auto image = pango_->render_line(w, std::span{&cell, 1});
                 fb_->image().fill(x, y, image);
             }
             break;
 
         case vte::cursor::vline:
-            fb_->image().fill(x, y, 2, cell_.height, cell.fg);
+            fb_->image().fill(x, y, 2, h, cell.fg);
             break;
 
         case vte::cursor::hline:
-            fb_->image().fill(x, y + cell_.height - 2, cell_.width, 2, cell.fg);
+            fb_->image().fill(x, y + h - 2, w, 2, cell.fg);
             break;
         };
     }
@@ -106,7 +108,8 @@ void term::undo_cursor()
 {
     if (undo_)
     {
-        fb_->image().fill(cursor_.col * cell_.width, cursor_.row * cell_.height, *undo_);
+        auto x = cursor_.col * cell_.width, y = cursor_.row * cell_.height;
+        fb_->image().fill(x, y, *undo_);
         undo_.reset();
     }
 }
