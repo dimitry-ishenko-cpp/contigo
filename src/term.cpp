@@ -37,7 +37,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     }
 
     vte_->on_output_data([&](auto data){ pty_->write(data); });
-    vte_->on_row_changed([&](auto row){ change(row); });
+    vte_->on_row_changed([&](auto row, auto col, auto cols){ change(row, col, cols); });
     vte_->on_cursor_changed([&](auto&& cursor){ undo_cursor(); cursor_ = cursor; draw_cursor(); });
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
@@ -61,7 +61,7 @@ void term::disable()
     drm_->disable();
 }
 
-void term::change(int row)
+void term::change(int row, int col, unsigned cols)
 {
     auto image = pango_->render_line(mode_.width, vte_->cells(row));
     fb_->image().fill(0, row * cell_.height, image);

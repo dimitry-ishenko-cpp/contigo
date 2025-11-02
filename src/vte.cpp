@@ -19,8 +19,10 @@ static int damage(VTermRect rect, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
     if (vt->row_cb_)
-        for (auto row = rect.start_row; row < rect.end_row; ++row)
-            vt->row_cb_(row);
+    {
+        auto col = rect.start_col, cols = rect.end_col - rect.start_col;
+        for (auto row = rect.start_row; row < rect.end_row; ++row) vt->row_cb_(row, col, cols);
+    }
     return true;
 }
 

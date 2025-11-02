@@ -57,7 +57,7 @@ public:
     using output_data_callback = std::function<void(std::span<const char>)>;
     void on_output_data(output_data_callback cb) { output_cb_ = std::move(cb); }
 
-    using row_changed_callback = std::function<void(int row)>;
+    using row_changed_callback = std::function<void(int row, int col, unsigned cols)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
     using cursor_changed_callback = std::function<void(const cursor&)>;
