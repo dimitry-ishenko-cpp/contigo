@@ -229,7 +229,7 @@ pixman::image engine::render_line(unsigned width, std::span<const vte::cell> cel
     unsigned w = 0, h = cell_.height;
 
     auto from = cells.begin();
-    for (auto to = from; to != cells.end(); ++to, w += cell_.width)
+    for (auto to = from; to != cells.end(); ++to)
     {
         if (to->bg != from->bg)
         {
@@ -238,6 +238,7 @@ pixman::image engine::render_line(unsigned width, std::span<const vte::cell> cel
             from = to;
             x += w; w = 0;
         }
+        w += cell_.width;
     }
     image.fill(x, y, w, h, from->bg);
 
@@ -245,7 +246,7 @@ pixman::image engine::render_line(unsigned width, std::span<const vte::cell> cel
     x = 0; w = 0;
 
     from = cells.begin();
-    for (auto to = from; to != cells.end(); ++to, w += cell_.width)
+    for (auto to = from; to != cells.end(); ++to)
     {
         if (to->fg != from->fg)
         {
@@ -253,6 +254,7 @@ pixman::image engine::render_line(unsigned width, std::span<const vte::cell> cel
             from = to;
             x += w; w = 0;
         }
+        w += cell_.width;
     }
     render_chunk(image, x, y, w, h, std::span{from, cells.end()}, from->fg);
 
