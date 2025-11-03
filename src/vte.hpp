@@ -20,8 +20,9 @@
 namespace vte
 {
 
-using vterm_ptr = std::unique_ptr<VTerm, void(*)(VTerm*)>;
+using attrs = VTermScreenCellAttrs;
 using pixman::color;
+using vterm_ptr = std::unique_ptr<VTerm, void(*)(VTerm*)>;
 
 ////////////////////////////////////////////////////////////////////////////////
 struct cell
@@ -30,11 +31,7 @@ struct cell
 
     char chars[max_chars];
     unsigned width;
-
-    bool bold;
-    bool italic;
-    bool strike;
-    unsigned underline :2;
+    vte::attrs attrs;
 
     color fg, bg;
 };

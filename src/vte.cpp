@@ -161,10 +161,10 @@ void ucs4_to_utf8(char* out, const uint32_t* in)
     *out = '\0';
 }
 
-auto vtc_to_color(VTermState* state, VTermColor* vc)
+auto to_color(VTermState* state, VTermColor vc)
 {
-    vterm_state_convert_color_to_rgb(state, vc);
-    return color(vc->rgb.red << 8, vc->rgb.green << 8, vc->rgb.blue << 8, 0xffff);
+    vterm_state_convert_color_to_rgb(state, &vc);
+    return color(vc.rgb.red << 8, vc.rgb.green << 8, vc.rgb.blue << 8, 0xffff);
 }
 
 }
@@ -178,14 +178,9 @@ vte::cell machine::cell(int row, int col)
     {
         ucs4_to_utf8(cell.chars, vtc.chars);
         cell.width = vtc.width;
-
-        cell.bold  = vtc.attrs.bold;
-        cell.italic= vtc.attrs.italic;
-        cell.strike= vtc.attrs.strike;
-        cell.underline = vtc.attrs.underline;
-
-        cell.fg = vtc_to_color(state_, &vtc.fg);
-        cell.bg = vtc_to_color(state_, &vtc.bg);
+        cell.attrs = vtc.attrs;
+        cell.fg = to_color(state_, vtc.fg);
+        cell.bg = to_color(state_, vtc.bg);
     }
 
     return cell;

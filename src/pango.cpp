@@ -116,19 +116,22 @@ void maybe_insert_strike(attrs_ptr& attrs, unsigned from, unsigned to, bool stri
 
 void maybe_insert_underline(attrs_ptr& attrs, unsigned from, unsigned to, unsigned underline)
 {
-    PangoUnderline val;
-    switch (underline)
+    constexpr PangoUnderline to_pango[] =
     {
-        case 1: val = PANGO_UNDERLINE_SINGLE; break;
-        case 2: val = PANGO_UNDERLINE_DOUBLE; break;
-        case 3: val = PANGO_UNDERLINE_ERROR ; break;
-        default: return;
-    }
+        PANGO_UNDERLINE_NONE,
+        PANGO_UNDERLINE_SINGLE,
+        PANGO_UNDERLINE_DOUBLE,
+        PANGO_UNDERLINE_ERROR,
+    };
+    auto val = to_pango[underline];
 
-    auto attr = pango_attr_underline_new(val);
-    attr->start_index = from;
-    attr->end_index = to;
-    pango_attr_list_insert(&*attrs, attr);
+    if (val != PANGO_UNDERLINE_NONE)
+    {
+        auto attr = pango_attr_underline_new(val);
+        attr->start_index = from;
+        attr->end_index = to;
+        pango_attr_list_insert(&*attrs, attr);
+    }
 }
 
 }
@@ -158,8 +161,8 @@ void engine::render_chunk(pixman::image& image, int x, int y, unsigned w, unsign
     auto attrs = create_attrs();
 
     auto cell = cells.begin();
-    auto bold = cell->bold, italic = cell->italic, strike = cell->strike;
-    auto underline = cell->underline;
+    bool bold = cell->attrs.bold, italic = cell->attrs.italic, strike = cell->attrs.strike;
+    auto underline = cell->attrs.underline;
     unsigned pos_bold = 0, pos_italic = 0, pos_strike = 0, pos_underline = 0;
 
     std::string chunk;
@@ -170,28 +173,28 @@ void engine::render_chunk(pixman::image& image, int x, int y, unsigned w, unsign
         std::string chars{cell->chars[0] ? cell->chars : " "};
         chunk += chars;
 
-        if (cell->bold != bold)
+        if (cell->attrs.bold != bold)
         {
             maybe_insert_bold(attrs, pos_bold, pos, bold);
-            bold = cell->bold;
+            bold = cell->attrs.bold;
             pos_bold = pos;
         }
-        if (cell->italic != italic)
+        if (cell->attrs.italic != italic)
         {
             maybe_insert_italic(attrs, pos_italic, pos, italic);
-            italic = cell->italic;
+            italic = cell->attrs.italic;
             pos_italic = pos;
         }
-        if (cell->strike != strike)
+        if (cell->attrs.strike != strike)
         {
             maybe_insert_strike(attrs, pos_strike, pos, strike);
-            strike = cell->strike;
+            strike = cell->attrs.strike;
             pos_strike = pos;
         }
-        if (cell->underline != underline)
+        if (cell->attrs.underline != underline)
         {
             maybe_insert_underline(attrs, pos_underline, pos, underline);
-            underline = cell->underline;
+            underline = cell->attrs.underline;
             pos_underline = pos;
         }
 
