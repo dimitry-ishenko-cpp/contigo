@@ -78,8 +78,16 @@ void term::draw_cursor()
 {
     if (cursor_.visible)
     {
-        auto cell = vte_->cell(cursor_.row, cursor_.col);
-        cell.attrs.reverse = !cell.attrs.reverse;
+        // the cursor can land on one of the following:
+        //   1. normal cell => render this cell
+        //   2. wide   cell => render this cell and the next one (empty)
+        //   3. empty  cell => if the prior cell is wide, render that cell and this one
+        //
+        auto cells = vte_->cells(cursor_.row, cursor_.col - 1, 3);
+        auto n = 1;
+        if (!cells[n].chars[0] && cells[n - 1].width == 2) --n, --cursor_.col;
+
+        auto& cell = cells[n];
 
         auto x = cursor_.col * cell_.width, y = cursor_.row * cell_.height;
         auto w = cell_.width * cell.width, h = cell_.height;
@@ -91,7 +99,8 @@ void term::draw_cursor()
         {
         case vte::cursor::block:
             {
-                auto image = pango_->render(std::span{&cell, 1});
+                cell.attrs.reverse = !cell.attrs.reverse;
+                auto image = pango_->render(std::span{&cell, cell.width});
                 fb_->image().fill(x, y, image);
             }
             break;
