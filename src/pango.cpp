@@ -134,6 +134,11 @@ void maybe_insert_underline(attrs_ptr& attrs, unsigned from, unsigned to, unsign
     }
 }
 
+constexpr bool operator==(const pixman::color& x, const pixman::color& y) noexcept
+{
+    return x.red == y.red && x.green == y.green && x.blue == y.blue && x.alpha == y.alpha;
+}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -149,11 +154,6 @@ engine::engine(std::string_view font_desc, unsigned dpi) :
     auto size = pango_pixels(pango_font_description_get_size(&*font_desc_));
 
     info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_.width << "x" << cell_.height;
-}
-
-constexpr bool operator==(const color& x, const color& y) noexcept
-{
-    return x.red == y.red && x.green == y.green && x.blue == y.blue && x.alpha == y.alpha;
 }
 
 void engine::render_chunk(pixman::image& image, int x, int y, unsigned w, unsigned h, std::span<const vte::cell> cells, const color& fg)

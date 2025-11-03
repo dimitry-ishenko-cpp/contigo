@@ -36,8 +36,6 @@ struct cell
     int baseline;
 };
 
-using pixman::color;
-
 ////////////////////////////////////////////////////////////////////////////////
 class engine
 {
@@ -59,7 +57,7 @@ private:
     layout_ptr layout_;
     pango::cell cell_;
 
-    void render_chunk(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const vte::cell>, const color&);
+    void render_chunk(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const vte::cell>, const pixman::color&);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
