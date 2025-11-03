@@ -62,7 +62,7 @@ private:
     void enable();
     void disable();
 
-    void change(int row, int col, unsigned cols);
+    void change(int row, int col, unsigned count);
 
     vte::cursor cursor_;
     std::optional<pixman::image> undo_;

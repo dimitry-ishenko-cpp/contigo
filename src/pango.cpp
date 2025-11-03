@@ -10,7 +10,6 @@
 #include "vte.hpp"
 
 #include <stdexcept>
-#include <string>
 
 #define pango_pixels PANGO_PIXELS
 
@@ -74,69 +73,62 @@ auto create_layout(context_ptr& context, font_desc_ptr& font_desc)
     return layout;
 }
 
-auto create_attrs()
+constexpr PangoUnderline to_pango[] =
+{
+    PANGO_UNDERLINE_NONE,
+    PANGO_UNDERLINE_SINGLE,
+    PANGO_UNDERLINE_DOUBLE,
+    PANGO_UNDERLINE_ERROR,
+};
+
+auto create_attrs(const vte::cell& cell)
 {
     attrs_ptr attrs{pango_attr_list_new(), &pango_attr_list_unref};
     if (!attrs) throw std::runtime_error{"Failed to create attribute list"};
-    return attrs;
-}
 
-void maybe_insert_bold(attrs_ptr& attrs, unsigned from, unsigned to, bool bold)
-{
-    if (bold)
+    if (cell.attrs.bold)
     {
         auto attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
-        attr->start_index = from;
-        attr->end_index = to;
+        attr->start_index = 0;
+        attr->end_index = 1;
         pango_attr_list_insert(&*attrs, attr);
     }
-}
 
-void maybe_insert_italic(attrs_ptr& attrs, unsigned from, unsigned to, bool italic)
-{
-    if (italic)
+    if (cell.attrs.italic)
     {
         auto attr = pango_attr_style_new(PANGO_STYLE_ITALIC);
-        attr->start_index = from;
-        attr->end_index = to;
+        attr->start_index = 0;
+        attr->end_index = 1;
         pango_attr_list_insert(&*attrs, attr);
     }
-}
 
-void maybe_insert_strike(attrs_ptr& attrs, unsigned from, unsigned to, bool strike)
-{
-    if (strike)
+    if (cell.attrs.strike)
     {
         auto attr = pango_attr_strikethrough_new(true);
-        attr->start_index = from;
-        attr->end_index = to;
+        attr->start_index = 0;
+        attr->end_index = 1;
         pango_attr_list_insert(&*attrs, attr);
     }
-}
 
-void maybe_insert_underline(attrs_ptr& attrs, unsigned from, unsigned to, unsigned underline)
-{
-    constexpr PangoUnderline to_pango[] =
+    if (cell.attrs.underline)
     {
-        PANGO_UNDERLINE_NONE,
-        PANGO_UNDERLINE_SINGLE,
-        PANGO_UNDERLINE_DOUBLE,
-        PANGO_UNDERLINE_ERROR,
-    };
-    auto val = to_pango[underline];
-
-    if (val != PANGO_UNDERLINE_NONE)
-    {
-        auto attr = pango_attr_underline_new(val);
-        attr->start_index = from;
-        attr->end_index = to;
+        auto attr = pango_attr_underline_new(to_pango[cell.attrs.underline]);
+        attr->start_index = 0;
+        attr->end_index = 1;
         pango_attr_list_insert(&*attrs, attr);
     }
+
+    return attrs;
 }
 
 constexpr bool operator==(const pixman::color& x, const pixman::color& y) noexcept
 {
     return x.red == y.red && x.green == y.green && x.blue == y.blue && x.alpha == y.alpha;
+}
+
+constexpr bool operator==(const vte::attrs& x, const vte::attrs& y) noexcept
+{
+    return x.bold == y.bold && x.italic == y.italic && x.strike == y.strike && x.underline == y.underline;
 }
 
 }
@@ -156,61 +148,57 @@ engine::engine(std::string_view font_desc, unsigned dpi) :
     info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_.width << "x" << cell_.height;
 }
 
-void engine::render_chunk(pixman::image& image, int x, int y, unsigned w, unsigned h, std::span<const vte::cell> cells, const color& fg)
+pixman::image engine::render(std::span<const vte::cell> cells)
 {
-    auto attrs = create_attrs();
+    unsigned w = cell_.width * cells.size(), h = cell_.height;
+    pixman::image image{w, h};
 
-    auto cell = cells.begin();
-    bool bold = cell->attrs.bold, italic = cell->attrs.italic, strike = cell->attrs.strike;
-    auto underline = cell->attrs.underline;
-    unsigned pos_bold = 0, pos_italic = 0, pos_strike = 0, pos_underline = 0;
+    // render background
+    int x = 0, y = 0; w = 0;
 
-    std::string chunk;
-    unsigned pos = 0;
+    auto from = cells.begin();
+    auto fbg = from->attrs.reverse ? from->fg : from->bg;
 
-    for (; cell != cells.end(); ++cell)
+    for (auto to = from; to != cells.end(); ++to, w += cell_.width)
     {
-        std::string chars{cell->chars[0] ? cell->chars : " "};
-        chunk += chars;
+        auto tbg = to->attrs.reverse ? to->fg : to->bg;
+        if (tbg != fbg)
+        {
+            image.fill(x, y, w, h, fbg);
 
-        if (cell->attrs.bold != bold)
-        {
-            maybe_insert_bold(attrs, pos_bold, pos, bold);
-            bold = cell->attrs.bold;
-            pos_bold = pos;
+            from = to; fbg = tbg;
+            x += w; w = 0;
         }
-        if (cell->attrs.italic != italic)
-        {
-            maybe_insert_italic(attrs, pos_italic, pos, italic);
-            italic = cell->attrs.italic;
-            pos_italic = pos;
-        }
-        if (cell->attrs.strike != strike)
-        {
-            maybe_insert_strike(attrs, pos_strike, pos, strike);
-            strike = cell->attrs.strike;
-            pos_strike = pos;
-        }
-        if (cell->attrs.underline != underline)
-        {
-            maybe_insert_underline(attrs, pos_underline, pos, underline);
-            underline = cell->attrs.underline;
-            pos_underline = pos;
-        }
-
-        pos += chars.size();
     }
+    image.fill(x, y, w, h, fbg);
 
-    maybe_insert_bold(attrs, pos_bold, pos, bold);
-    maybe_insert_italic(attrs, pos_italic, pos, italic);
-    maybe_insert_strike(attrs, pos_strike, pos, strike);
-    maybe_insert_underline(attrs, pos_underline, pos, underline);
+    // render text
+    x = 0;
 
-    pango_layout_set_text(&*layout_, chunk.data(), chunk.size());
+    from = cells.begin();
+    auto attrs = create_attrs(*from);
+
+    for (auto to = from; to != cells.end(); ++to, x += cell_.width)
+        if (to->chars[0] && to->chars[0] != ' ' && !to->attrs.conceal)
+        {
+            if (to->attrs != from->attrs)
+            {
+                from = to;
+                attrs = create_attrs(*from);
+            }
+            render(image, x, y, *to, attrs);
+        }
+
+    return image;
+}
+
+void engine::render(pixman::image& image, int x, int y, const vte::cell& cell, const attrs_ptr& attrs)
+{
+    pango_layout_set_text(&*layout_, cell.chars, -1);
     pango_layout_set_attributes(&*layout_, &*attrs);
-    auto line = pango_layout_get_line_readonly(&*layout_, 0);
+    auto symbol = pango_layout_get_line_readonly(&*layout_, 0);
 
-    pixman::gray mask{w, h};
+    pixman::gray mask{cell_.width * cell.width, cell_.height};
     FT_Bitmap ftb;
     ftb.rows  = mask.height();
     ftb.width = mask.width();
@@ -218,50 +206,9 @@ void engine::render_chunk(pixman::image& image, int x, int y, unsigned w, unsign
     ftb.buffer= mask.data<uint8_t*>();
     ftb.num_grays = mask.num_colors;
     ftb.pixel_mode = FT_PIXEL_MODE_GRAY;
-    pango_ft2_render_layout_line(&ftb, line, 0, cell_.baseline);
+    pango_ft2_render_layout_line(&ftb, symbol, 0, cell_.baseline);
 
-    image.alpha_blend(x, y, mask, fg);
-}
-
-pixman::image engine::render_line(unsigned width, std::span<const vte::cell> cells)
-{
-    pixman::image image{width, cell_.height};
-
-    // render background
-    int x = 0, y = 0;
-    unsigned w = 0, h = cell_.height;
-
-    auto from = cells.begin();
-    for (auto to = from; to != cells.end(); ++to)
-    {
-        if (to->bg != from->bg)
-        {
-            image.fill(x, y, w, h, from->bg);
-
-            from = to;
-            x += w; w = 0;
-        }
-        w += cell_.width;
-    }
-    image.fill(x, y, w, h, from->bg);
-
-    // render text
-    x = 0; w = 0;
-
-    from = cells.begin();
-    for (auto to = from; to != cells.end(); ++to)
-    {
-        if (to->fg != from->fg)
-        {
-            render_chunk(image, x, y, w, h, std::span{from, to}, from->fg);
-            from = to;
-            x += w; w = 0;
-        }
-        w += cell_.width;
-    }
-    render_chunk(image, x, y, w, h, std::span{from, cells.end()}, from->fg);
-
-    return image;
+    image.alpha_blend(x, y, mask, cell.attrs.reverse ? cell.bg : cell.fg);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

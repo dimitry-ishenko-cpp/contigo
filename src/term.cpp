@@ -61,12 +61,15 @@ void term::disable()
     drm_->disable();
 }
 
-void term::change(int row, int col, unsigned cols)
+void term::change(int row, int col, unsigned count)
 {
-    auto image = pango_->render_line(mode_.width, vte_->cells(row));
-    fb_->image().fill(0, row * cell_.height, image);
+    int x = col * cell_.width, y = row * cell_.height;
 
-    if (row == cursor_.row) draw_cursor();
+    auto cells = vte_->cells(row, col, count);
+    auto image = pango_->render(cells);
+    fb_->image().fill(x, y, image);
+
+    if (cursor_.row == row && cursor_.col >= col && cursor_.col < (col + count)) draw_cursor();
 
     // TODO track damage
 }
@@ -76,9 +79,10 @@ void term::draw_cursor()
     if (cursor_.visible)
     {
         auto cell = vte_->cell(cursor_.row, cursor_.col);
+        cell.attrs.reverse = !cell.attrs.reverse;
 
         auto x = cursor_.col * cell_.width, y = cursor_.row * cell_.height;
-        auto w = cell_.width, h = cell_.height;
+        auto w = cell_.width * cell.width, h = cell_.height;
 
         undo_ = pixman::image{w, h};
         undo_->fill(0, 0, fb_->image(), x, y, w, h);
@@ -87,8 +91,7 @@ void term::draw_cursor()
         {
         case vte::cursor::block:
             {
-                std::swap(cell.fg, cell.bg); // TODO use reverse attr
-                auto image = pango_->render_line(w, std::span{&cell, 1});
+                auto image = pango_->render(std::span{&cell, 1});
                 fb_->image().fill(x, y, image);
             }
             break;

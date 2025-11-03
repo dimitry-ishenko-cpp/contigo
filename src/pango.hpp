@@ -45,7 +45,7 @@ public:
 
     constexpr auto& cell() const noexcept { return cell_; }
 
-    pixman::image render_line(unsigned width, std::span<const vte::cell>);
+    pixman::image render(std::span<const vte::cell>);
 
 private:
     ////////////////////
@@ -57,7 +57,7 @@ private:
     layout_ptr layout_;
     pango::cell cell_;
 
-    void render_chunk(pixman::image&, int x, int y, unsigned w, unsigned h, std::span<const vte::cell>, const pixman::color&);
+    void render(pixman::image&, int x, int y, const vte::cell&, const attrs_ptr&);
 };
 
 ////////////////////////////////////////////////////////////////////////////////

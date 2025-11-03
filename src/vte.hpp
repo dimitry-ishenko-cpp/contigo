@@ -52,7 +52,7 @@ public:
     using output_data_callback = std::function<void(std::span<const char>)>;
     void on_output_data(output_data_callback cb) { output_cb_ = std::move(cb); }
 
-    using row_changed_callback = std::function<void(int row, int col, unsigned cols)>;
+    using row_changed_callback = std::function<void(int row, int col, unsigned count)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
     using cursor_changed_callback = std::function<void(const cursor&)>;
@@ -66,7 +66,7 @@ public:
     void commit();
 
     vte::cell cell(int row, int col);
-    std::vector<vte::cell> cells(int row);
+    std::vector<vte::cell> cells(int row, int col, unsigned count);
 
     void resize(unsigned rows, unsigned cols);
 
@@ -76,7 +76,6 @@ private:
     VTermScreen* screen_;
     VTermState* state_;
 
-    unsigned cols_;
     cursor cursor_;
 
     output_data_callback output_cb_;

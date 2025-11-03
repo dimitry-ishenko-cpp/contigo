@@ -98,8 +98,7 @@ static void output(const char* s, std::size_t len, void *ctx)
 ////////////////////////////////////////////////////////////////////////////////
 machine::machine(unsigned rows, unsigned cols) :
     vterm_{vterm_new(rows, cols), &vterm_free},
-    screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)},
-    cols_{cols}
+    screen_{vterm_obtain_screen(&*vterm_)}, state_{vterm_obtain_state(&*vterm_)}
 {
     info() << "Virtual terminal size: " << rows << "x" << cols;
 
@@ -186,12 +185,12 @@ vte::cell machine::cell(int row, int col)
     return cell;
 }
 
-std::vector<vte::cell> machine::cells(int row)
+std::vector<vte::cell> machine::cells(int row, int col, unsigned count)
 {
     std::vector<vte::cell> cells;
-    cells.reserve(cols_);
+    cells.reserve(count);
 
-    for (auto col = 0; col < cols_; ++col) cells.push_back(cell(row, col));
+    for (; count; ++col, --count) cells.push_back(cell(row, col));
 
     return cells;
 }
@@ -199,7 +198,7 @@ std::vector<vte::cell> machine::cells(int row)
 void machine::resize(unsigned rows, unsigned cols)
 {
     info() << "Resizing vte to: " << rows << "x" << cols;
-    vterm_set_size(&*vterm_, rows, cols_ = cols);
+    vterm_set_size(&*vterm_, rows, cols);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
