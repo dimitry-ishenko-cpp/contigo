@@ -159,7 +159,7 @@ pixman::image engine::render(std::span<const vte::cell> cells)
     auto from = cells.begin();
     auto fbg = from->attrs.reverse ? from->fg : from->bg;
 
-    for (auto to = from; to != cells.end(); ++to, w += cell_.width)
+    for (auto to = from; to < cells.end(); to += to->width)
     {
         auto tbg = to->attrs.reverse ? to->fg : to->bg;
         if (tbg != fbg)
@@ -169,6 +169,8 @@ pixman::image engine::render(std::span<const vte::cell> cells)
             from = to; fbg = tbg;
             x += w; w = 0;
         }
+
+        w += cell_.width * to->width;
     }
     image.fill(x, y, w, h, fbg);
 
@@ -178,8 +180,9 @@ pixman::image engine::render(std::span<const vte::cell> cells)
     from = cells.begin();
     auto attrs = create_attrs(*from);
 
-    for (auto to = from; to != cells.end(); ++to, x += cell_.width)
-        if (to->chars[0] && to->chars[0] != ' ' && !to->attrs.conceal)
+    for (auto to = from; to < cells.end(); to += to->width)
+    {
+        if (to->chars[0] && !to->attrs.conceal && (to->chars[0] != ' ' || to->attrs.reverse))
         {
             if (to->attrs != from->attrs)
             {
@@ -188,6 +191,8 @@ pixman::image engine::render(std::span<const vte::cell> cells)
             }
             render(image, x, y, *to, attrs);
         }
+        x += cell_.width * to->width;
+    }
 
     return image;
 }
