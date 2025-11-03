@@ -65,7 +65,6 @@ public:
     void write(std::span<const char>);
     void commit();
 
-    vte::cell cell(int row, int col);
     std::vector<vte::cell> cells(int row, int col, unsigned count);
 
     void resize(unsigned rows, unsigned cols);
@@ -82,6 +81,8 @@ private:
     row_changed_callback row_cb_;
     cursor_changed_callback cursor_cb_;
     size_changed_callback size_cb_;
+
+    vte::cell cell(int row, int col);
 
     ////////////////////
     struct dispatch;

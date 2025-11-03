@@ -126,6 +126,22 @@ machine::machine(unsigned rows, unsigned cols) :
 void machine::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void machine::commit() { vterm_screen_flush_damage(screen_); }
 
+std::vector<vte::cell> machine::cells(int row, int col, unsigned count)
+{
+    std::vector<vte::cell> cells;
+    cells.reserve(count);
+
+    for (; count; ++col, --count) cells.push_back(cell(row, col));
+
+    return cells;
+}
+
+void machine::resize(unsigned rows, unsigned cols)
+{
+    info() << "Resizing vte to: " << rows << "x" << cols;
+    vterm_set_size(&*vterm_, rows, cols);
+}
+
 namespace
 {
 
@@ -183,22 +199,6 @@ vte::cell machine::cell(int row, int col)
     }
 
     return cell;
-}
-
-std::vector<vte::cell> machine::cells(int row, int col, unsigned count)
-{
-    std::vector<vte::cell> cells;
-    cells.reserve(count);
-
-    for (; count; ++col, --count) cells.push_back(cell(row, col));
-
-    return cells;
-}
-
-void machine::resize(unsigned rows, unsigned cols)
-{
-    info() << "Resizing vte to: " << rows << "x" << cols;
-    vterm_set_size(&*vterm_, rows, cols);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
