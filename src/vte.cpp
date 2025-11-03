@@ -164,7 +164,7 @@ void ucs4_to_utf8(char* out, const uint32_t* in)
 auto to_color(VTermState* state, VTermColor vc)
 {
     vterm_state_convert_color_to_rgb(state, &vc);
-    return color(vc.rgb.red << 8, vc.rgb.green << 8, vc.rgb.blue << 8, 0xffff);
+    return pixman::color(vc.rgb.red << 8, vc.rgb.green << 8, vc.rgb.blue << 8, 0xffff);
 }
 
 }

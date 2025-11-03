@@ -21,7 +21,6 @@ namespace vte
 {
 
 using attrs = VTermScreenCellAttrs;
-using pixman::color;
 using vterm_ptr = std::unique_ptr<VTerm, void(*)(VTerm*)>;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -32,8 +31,7 @@ struct cell
     char chars[max_chars];
     unsigned width;
     vte::attrs attrs;
-
-    color fg, bg;
+    pixman::color fg, bg;
 };
 
 struct cursor
