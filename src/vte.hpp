@@ -40,7 +40,7 @@ struct cursor
     int row, col;
     bool visible;
     bool blink;
-    enum { block, hline, vline } shape;
+    enum shape_t { block, hline, vline } shape;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +48,7 @@ class machine
 {
 public:
     ////////////////////
-    explicit machine(unsigned rows, unsigned cols);
+    machine(unsigned rows, unsigned cols);
 
     using output_data_callback = std::function<void(std::span<const char>)>;
     void on_output_data(output_data_callback cb) { output_cb_ = std::move(cb); }

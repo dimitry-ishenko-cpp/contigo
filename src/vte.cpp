@@ -38,6 +38,14 @@ static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
     return true;
 }
 
+static constexpr cursor::shape_t to_shape[] =
+{
+    cursor::block, // ?
+    cursor::block, // VTERM_PROP_CURSORSHAPE_BLOCK
+    cursor::hline, // VTERM_PROP_CURSORSHAPE_UNDERLINE
+    cursor::vline, // VTERM_PROP_CURSORSHAPE_BAR_LEFT
+};
+
 static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
@@ -49,19 +57,7 @@ static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
         vt->cursor_.blink = val->boolean;
         break;
     case VTERM_PROP_CURSORSHAPE:
-        switch (val->number)
-        {
-        case VTERM_PROP_CURSORSHAPE_BAR_LEFT:
-            vt->cursor_.shape = cursor::vline;
-            break;
-        case VTERM_PROP_CURSORSHAPE_BLOCK:
-            vt->cursor_.shape = cursor::block;
-            break;
-        case VTERM_PROP_CURSORSHAPE_UNDERLINE:
-            vt->cursor_.shape = cursor::hline;
-            break;
-        default: cb = false;
-        }
+        vt->cursor_.shape = to_shape[val->number];
         break;
     case VTERM_PROP_CURSORVISIBLE:
         vt->cursor_.visible = val->boolean;
