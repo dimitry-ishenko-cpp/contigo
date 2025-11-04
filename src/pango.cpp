@@ -157,11 +157,11 @@ pixman::image engine::render(std::span<const vte::cell> cells)
     int x = 0, y = 0; w = 0;
 
     auto from = cells.begin();
-    auto fbg = from->attrs.reverse ? from->fg : from->bg;
+    auto fbg = from->bg;
 
     for (auto to = from; to < cells.end(); to += to->width)
     {
-        auto tbg = to->attrs.reverse ? to->fg : to->bg;
+        auto tbg = to->bg;
         if (tbg != fbg)
         {
             image.fill(x, y, w, h, fbg);
@@ -213,7 +213,7 @@ void engine::render(pixman::image& image, int x, int y, const vte::cell& cell, c
     ftb.pixel_mode = FT_PIXEL_MODE_GRAY;
     pango_ft2_render_layout_line(&ftb, symbol, 0, cell_.baseline);
 
-    image.alpha_blend(x, y, mask, cell.attrs.reverse ? cell.bg : cell.fg);
+    image.alpha_blend(x, y, mask, cell.fg);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

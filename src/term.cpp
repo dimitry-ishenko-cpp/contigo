@@ -99,7 +99,7 @@ void term::draw_cursor()
         {
         case vte::cursor::block:
             {
-                cell.attrs.reverse = !cell.attrs.reverse;
+                std::swap(cell.fg, cell.bg);
                 auto image = pango_->render(std::span{&cell, cell.width});
                 fb_->image().fill(x, y, image);
             }
