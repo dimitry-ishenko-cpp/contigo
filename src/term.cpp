@@ -63,6 +63,10 @@ void term::disable()
 
 void term::change(int row, int col, unsigned count)
 {
+    // grab extra cell on the left and on the right to allow for overhang 
+    if (col > 0) --col, ++count;
+    if (col + count < size_.cols) ++count;
+
     int x = col * cell_.width, y = row * cell_.height;
 
     auto cells = vte_->cells(row, col, count);

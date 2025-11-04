@@ -203,7 +203,8 @@ void engine::render(pixman::image& image, int x, int y, const vte::cell& cell, c
     pango_layout_set_attributes(&*layout_, &*attrs);
     auto symbol = pango_layout_get_line_readonly(&*layout_, 0);
 
-    pixman::gray mask{cell_.width * cell.width, cell_.height};
+    // +1 to allow overhang on the right
+    pixman::gray mask{cell_.width * (cell.width + 1), cell_.height};
     FT_Bitmap ftb;
     ftb.rows  = mask.height();
     ftb.width = mask.width();
