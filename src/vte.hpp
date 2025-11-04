@@ -29,6 +29,7 @@ struct cell
     static constexpr unsigned max_chars = 32;
 
     char chars[max_chars];
+    std::size_t len;
     unsigned width;
     vte::attrs attrs;
     pixman::color fg, bg;

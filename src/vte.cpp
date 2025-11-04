@@ -145,8 +145,9 @@ void machine::resize(unsigned rows, unsigned cols)
 namespace
 {
 
-void ucs4_to_utf8(char* out, const uint32_t* in)
+void ucs4_to_utf8(const uint32_t* in, char* out, std::size_t* len)
 {
+    auto begin = out;
     for (; *in; ++in)
     {
         auto cp = *in;
@@ -174,6 +175,7 @@ void ucs4_to_utf8(char* out, const uint32_t* in)
         }
     }
     *out = '\0';
+    *len = out - begin;
 }
 
 auto to_color(VTermState* state, VTermColor vc)
@@ -191,7 +193,7 @@ vte::cell machine::cell(int row, int col)
     VTermScreenCell vtc;
     if (vterm_screen_get_cell(screen_, VTermPos{row, col}, &vtc))
     {
-        ucs4_to_utf8(cell.chars, vtc.chars);
+        ucs4_to_utf8(vtc.chars, cell.chars, &cell.len);
         cell.width = vtc.width;
         cell.attrs = vtc.attrs;
         cell.fg = to_color(state_, vtc.fg);

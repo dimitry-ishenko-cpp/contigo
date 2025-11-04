@@ -199,7 +199,7 @@ pixman::image engine::render(std::span<const vte::cell> cells)
 
 void engine::render(pixman::image& image, int x, int y, const vte::cell& cell, const attrs_ptr& attrs)
 {
-    pango_layout_set_text(&*layout_, cell.chars, -1);
+    pango_layout_set_text(&*layout_, cell.chars, cell.len);
     pango_layout_set_attributes(&*layout_, &*attrs);
     auto symbol = pango_layout_get_line_readonly(&*layout_, 0);
 
