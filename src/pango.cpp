@@ -90,7 +90,7 @@ auto create_attrs(const vte::cell& cell)
     {
         auto attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
         attr->start_index = 0;
-        attr->end_index = 1;
+        attr->end_index = cell.max_chars;
         pango_attr_list_insert(&*attrs, attr);
     }
 
@@ -98,7 +98,7 @@ auto create_attrs(const vte::cell& cell)
     {
         auto attr = pango_attr_style_new(PANGO_STYLE_ITALIC);
         attr->start_index = 0;
-        attr->end_index = 1;
+        attr->end_index = cell.max_chars;
         pango_attr_list_insert(&*attrs, attr);
     }
 
@@ -106,7 +106,7 @@ auto create_attrs(const vte::cell& cell)
     {
         auto attr = pango_attr_strikethrough_new(true);
         attr->start_index = 0;
-        attr->end_index = 1;
+        attr->end_index = cell.max_chars;
         pango_attr_list_insert(&*attrs, attr);
     }
 
@@ -114,7 +114,7 @@ auto create_attrs(const vte::cell& cell)
     {
         auto attr = pango_attr_underline_new(to_pango[cell.attrs.underline]);
         attr->start_index = 0;
-        attr->end_index = 1;
+        attr->end_index = cell.max_chars;
         pango_attr_list_insert(&*attrs, attr);
     }
 
