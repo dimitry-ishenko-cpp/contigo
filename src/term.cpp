@@ -20,10 +20,10 @@ term::term(const asio::any_io_executor& ex, term_options options)
     pango_ = std::make_unique<pango::engine>(options.font, options.dpi.value_or(mode_.dpi));
     cell_ = pango_->cell();
 
-    auto vte_rows = mode_.height / cell_.height;
-    auto vte_cols = mode_.width / cell_.width;
-    vte_ = std::make_unique<vte::machine>(vte_rows, vte_cols);
-    pty_ = std::make_unique<pty::device>(ex, vte_rows, vte_cols, std::move(options.login), std::move(options.args));
+    size_.rows = mode_.height / cell_.height;
+    size_.cols = mode_.width / cell_.width;
+    vte_ = std::make_unique<vte::machine>(size_.rows, size_.cols);
+    pty_ = std::make_unique<pty::device>(ex, size_.rows, size_.cols, std::move(options.login), std::move(options.args));
 
     tty_->on_acquire([&]{ enable(); });
     tty_->on_release([&]{ disable(); });

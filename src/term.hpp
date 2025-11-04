@@ -57,6 +57,7 @@ private:
 
     drm::mode mode_;
     pango::cell cell_;
+    struct { unsigned rows, cols; } size_;
 
     bool enabled_ = true;
     void enable();
