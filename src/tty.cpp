@@ -201,8 +201,7 @@ void device::sched_async_read()
     {
         if (!ec)
         {
-            if (read_cb_)
-                read_cb_(std::span<const char>{buffer_.begin(), size});
+            if (read_cb_) read_cb_(std::span<const char>{buffer_.begin(), size});
             sched_async_read();
         }
     });
