@@ -92,6 +92,17 @@ auto get_crtc(asio::posix::stream_descriptor& fd, std::uint32_t crtc_id)
     return crtc;
 }
 
+template<unsigned Op, typename T>
+inline void drm_control(asio::posix::stream_descriptor& fd, command<Op, T>& cmd)
+{
+    std::error_code ec;
+
+    do fd.io_control(cmd, ec);
+    while (ec == std::errc::interrupted || ec == std::errc::resource_unavailable_try_again);
+
+    if (ec) throw std::system_error{ec};
+}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -125,15 +136,15 @@ device::device(const asio::any_io_executor& ex, drm::num num) : fd_{open(ex, num
 void device::disable()
 {
     info() << "Dropping drm master";
-    command<DRM_IOCTL_DROP_MASTER, int> cmd{0};
-    fd_.io_control(cmd);
+    command<DRM_IOCTL_DROP_MASTER, int> drop_master{};
+    drm_control(fd_, drop_master);
 }
 
 void device::enable()
 {
     info() << "Acquiring drm master";
-    command<DRM_IOCTL_SET_MASTER, int> cmd{0};
-    fd_.io_control(cmd);
+    command<DRM_IOCTL_SET_MASTER, int> set_master{};
+    drm_control(fd_, set_master);
 }
 
 void device::activate(framebuf& fb)
