@@ -50,8 +50,8 @@ public:
     ////////////////////
     machine(unsigned rows, unsigned cols);
 
-    using output_data_callback = std::function<void(std::span<const char>)>;
-    void on_output_data(output_data_callback cb) { output_cb_ = std::move(cb); }
+    using send_data_callback = std::function<void(std::span<const char>)>;
+    void on_send_data(send_data_callback cb) { send_cb_ = std::move(cb); }
 
     using row_changed_callback = std::function<void(int row, int col, unsigned count)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
@@ -63,7 +63,7 @@ public:
     void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
 
     ////////////////////
-    void write(std::span<const char>);
+    void recv(std::span<const char>);
     void commit();
 
     std::vector<vte::cell> cells(int row, int col, unsigned count);
@@ -78,7 +78,7 @@ private:
 
     cursor cursor_;
 
-    output_data_callback output_cb_;
+    send_data_callback send_cb_;
     row_changed_callback row_cb_;
     cursor_changed_callback cursor_cb_;
     size_changed_callback size_cb_;

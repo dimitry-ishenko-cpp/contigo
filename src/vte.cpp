@@ -83,10 +83,10 @@ static int resize(int rows, int cols, void* ctx)
     return true;
 }
 
-static void output(const char* s, std::size_t len, void *ctx)
+static void output(const char* data, std::size_t size, void *ctx)
 {
     auto vt = static_cast<machine*>(ctx);
-    if (vt->output_cb_) vt->output_cb_(std::span{s, len});
+    if (vt->send_cb_) vt->send_cb_(std::span{data, size});
 }
 
 };
@@ -119,7 +119,7 @@ machine::machine(unsigned rows, unsigned cols) :
     vterm_screen_reset(screen_, true);
 }
 
-void machine::write(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
+void machine::recv(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void machine::commit() { vterm_screen_flush_damage(screen_); }
 
 std::vector<vte::cell> machine::cells(int row, int col, unsigned count)
