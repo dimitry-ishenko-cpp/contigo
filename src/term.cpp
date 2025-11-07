@@ -63,19 +63,27 @@ void term::disable()
 
 void term::change(int row, int col, unsigned count)
 {
-    // grab extra cell on the left and on the right to allow for overhang 
-    if (col > 0) --col, ++count;
-    if (col + count < size_.cols) ++count;
+    if (row >= 0 && row < size_.rows)
+    {
+        auto col_end = col + count;
+        if (col < 0) col = 0;
+        if (col_end > size_.cols) col_end = size_.cols;
+        count = col_end - col;
 
-    int x = col * cell_.width, y = row * cell_.height;
+        // grab extra cell on the left and on the right to allow for overhang
+        if (col > 0) --col, ++count;
+        if (col_end < size_.cols) ++col_end, ++count;
 
-    auto cells = vte_->cells(row, col, count);
-    auto image = pango_->render(cells);
-    fb_->image().fill(x, y, image);
+        int x = col * cell_.width, y = row * cell_.height;
 
-    if (cursor_.row == row && cursor_.col >= col && cursor_.col < (col + count)) draw_cursor();
+        auto cells = vte_->cells(row, col, count);
+        auto image = pango_->render(cells);
+        fb_->image().fill(x, y, image);
 
-    // TODO track damage
+        if (cursor_.row == row && cursor_.col >= col && cursor_.col < col_end) draw_cursor();
+
+        // TODO track damage
+    }
 }
 
 void term::draw_cursor()
