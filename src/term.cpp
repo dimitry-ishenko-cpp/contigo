@@ -27,7 +27,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     tty_->on_acquire([&]{ enable(); });
     tty_->on_release([&]{ disable(); });
-    tty_->on_read_data([&](auto data){ pty_->write(data); });
+    tty_->on_read_data([&](auto data){ vte_->send(data); });
 
     drm_->on_vblank([&](){ commit(); });
     if (options.tty_activate)
