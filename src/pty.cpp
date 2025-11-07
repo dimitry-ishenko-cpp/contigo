@@ -86,7 +86,7 @@ void device::start_child(std::string pgm, std::vector<std::string> args)
     for (auto&& arg : args) argv.push_back(arg.data());
     argv.push_back(nullptr);
 
-    setenv("TERM", "linux", true);
+    setenv("TERM", "xterm-256color", true);
 
     execv(argv[0], argv.data());
     throw posix_error{"execv"};
