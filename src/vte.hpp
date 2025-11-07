@@ -63,6 +63,7 @@ public:
     void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
 
     ////////////////////
+    void send(std::span<const char>);
     void recv(std::span<const char>);
     void commit();
 

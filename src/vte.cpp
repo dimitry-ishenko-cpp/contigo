@@ -8,6 +8,10 @@
 #include "logging.hpp"
 #include "vte.hpp"
 
+#include <optional>
+#include <tuple>
+#include <variant>
+
 ////////////////////////////////////////////////////////////////////////////////
 namespace vte
 {
@@ -119,6 +123,180 @@ machine::machine(unsigned rows, unsigned cols) :
     vterm_screen_reset(screen_, true);
 }
 
+namespace
+{
+
+using code_point = std::uint32_t;
+using key = VTermKey;
+using mod = VTermModifier;
+using key_press = std::tuple<std::variant<code_point, key>, mod>;
+
+constexpr auto operator|(mod x, mod y) { return static_cast<mod>(static_cast<int>(x) | static_cast<int>(y)); }
+constexpr auto fn_key(unsigned n) { return static_cast<key>(VTERM_KEY_FUNCTION(n)); }
+
+std::optional<key_press> parse(std::span<const char> data)
+{
+    mod mod = VTERM_MOD_NONE;
+
+    auto ci = data.begin(), end = data.end();
+    if (ci == data.end()) return {};
+
+    char8_t c0 = *ci++;
+    if (c0 == 0x1b)
+    {
+        if (ci == end) return key_press{VTERM_KEY_ESCAPE, mod};
+
+        char8_t c1 = *ci++;
+        if (ci == end)
+        {
+            mod = mod | VTERM_MOD_ALT;
+            c0 = c1;
+        }
+        else if (c1 == '[')
+        {
+            char8_t c2 = *ci++;
+            switch (c2)
+            {
+            case 'A': return key_press{VTERM_KEY_UP   , mod};
+            case 'B': return key_press{VTERM_KEY_DOWN , mod};
+            case 'C': return key_press{VTERM_KEY_RIGHT, mod};
+            case 'D': return key_press{VTERM_KEY_LEFT , mod};
+            case 'F': return key_press{VTERM_KEY_END  , mod};
+            case 'G': return key_press{VTERM_KEY_KP_5 , mod};
+            case 'H': return key_press{VTERM_KEY_HOME , mod};
+
+            case '[':
+                if (ci != end)
+                {
+                    char8_t c3 = *ci++;
+                    if (c3 >= 'A' && c3 <= 'E') return key_press{fn_key(c3 - 'A' + 1), mod}; // f1-f5
+                }
+                break;
+
+            default:
+                if (ci != end)
+                {
+                    char8_t c3 = *ci++;
+                    if (c3 == '~')
+                    {
+                        switch (c2)
+                        {
+                        case '1': return key_press{VTERM_KEY_HOME, mod};
+                        case '2': return key_press{VTERM_KEY_INS, mod};
+                        case '3': return key_press{VTERM_KEY_DEL, mod};
+                        case '4': return key_press{VTERM_KEY_END, mod};
+                        case '5': return key_press{VTERM_KEY_PAGEUP, mod};
+                        case '6': return key_press{VTERM_KEY_PAGEDOWN, mod};
+                        }
+                    }
+                    else if (ci != end)
+                    {
+                        char8_t c4 = *ci++;
+                        if (c2 >= '0' && c2 <= '9' && c3 >= '0' && c3 <= '9' && c4 == '~')
+                        {
+                            auto code = (c2 - '0') * 10 + (c3 - '0');
+                            switch (code)
+                            {
+                            case 17:
+                            case 18:
+                            case 19:
+                            case 20:
+                            case 21: return key_press{fn_key(code - 11), mod}; // f6-f10
+                            case 23:
+                            case 24: return key_press{fn_key(code - 12), mod}; // f11-f12
+                            case 25:
+                            case 26:
+                                mod = mod | VTERM_MOD_SHIFT;
+                                return key_press{fn_key(code - 22), mod}; // shift+f3-f4
+                            case 28:
+                            case 29:
+                                mod = mod | VTERM_MOD_SHIFT;
+                                return key_press{fn_key(code - 23), mod}; // shift+f5-f6
+                            case 31:
+                            case 32:
+                            case 33:
+                            case 34:
+                                mod = mod | VTERM_MOD_SHIFT;
+                                return key_press{fn_key(code - 24), mod}; // shift+f7-f10
+                            }
+                        }
+                    }
+                }
+            }
+            return {};
+        }
+    }
+
+    switch (c0)
+    {
+    case 0x08:
+    case 0x7f:
+        return key_press{VTERM_KEY_BACKSPACE, mod};
+
+    case 0x09:
+        return key_press{VTERM_KEY_TAB, mod};
+
+    case 0x0d:
+        return key_press{VTERM_KEY_ENTER, mod};
+
+    case 0x1b:
+        return key_press{VTERM_KEY_ESCAPE, mod};
+
+    default:
+        {
+            code_point cp;
+
+            if (c0 >= 1 && c0 <= 0x1a) // ctrl+?
+            {
+                cp = c0 - 1 + 'a';
+                mod = mod | VTERM_MOD_CTRL;
+            }
+            else if (c0 >= 0x80) // utf8
+            {
+                int n;
+
+                     if ((c0 & 0xe0) == 0xc0) n = 1, cp = c0 & 0x1f; // 110xxxxx 10xxxxxx
+                else if ((c0 & 0xf0) == 0xe0) n = 2, cp = c0 & 0x0f; // 1110xxxx 10xxxxxx 10xxxxxx
+                else if ((c0 & 0xf8) == 0xf0) n = 3, cp = c0 & 0x07; // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+                else return {}; // ignore
+
+                if ((end - ci) < n) return {}; // ignore
+
+                for (; n; --n)
+                {
+                    c0 = *ci++;
+                    if ((c0 & 0xc0) == 0x80)
+                        cp = (cp << 6) | (c0 & 0x3f);
+                    else return {}; // ignore
+                }
+            }
+            else cp = c0;
+
+            return key_press{cp, mod};
+        }
+    }
+}
+
+}
+
+void machine::send(std::span<const char> data)
+{
+    if (auto key_press = parse(data))
+    {
+        auto [val, mod] = *key_press;
+        if (std::holds_alternative<code_point>(val))
+        {
+            auto cp = std::get<vte::code_point>(val);
+            vterm_keyboard_unichar(&*vterm_, cp, mod);
+        }
+        else
+        {
+            auto key = std::get<vte::key>(val);
+            vterm_keyboard_key(&*vterm_, key, mod);
+        }
+    }
+}
+
 void machine::recv(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void machine::commit() { vterm_screen_flush_damage(screen_); }
 
@@ -141,7 +319,7 @@ void machine::resize(unsigned rows, unsigned cols)
 namespace
 {
 
-void ucs4_to_utf8(const uint32_t* in, char* out, std::size_t* len)
+void ucs4_to_utf8(const code_point* in, char* out, std::size_t* len)
 {
     auto begin = out;
     for (; *in; ++in)
