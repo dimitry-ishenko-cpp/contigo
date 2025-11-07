@@ -11,7 +11,7 @@
 
 #include <stdexcept>
 
-#define pango_pixels PANGO_PIXELS
+#define pango_pixels PANGO_PIXELS_CEIL
 
 ////////////////////////////////////////////////////////////////////////////////
 namespace pango
