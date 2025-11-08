@@ -17,6 +17,8 @@ add_executable(term
     framebuf.hpp
     logging.hpp
     main.cpp
+    mouse.cpp
+    mouse.hpp
     pango.cpp
     pango.hpp
     pixman.hpp
