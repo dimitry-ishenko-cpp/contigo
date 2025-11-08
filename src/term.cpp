@@ -35,7 +35,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     vte_->on_send_data([&](auto data){ pty_->write(data); });
     vte_->on_row_changed([&](auto row, auto col, auto cols){ change(row, col, cols); });
-    vte_->on_cursor_moved([&](auto&& cursor){ undo_cursor(); cursor_ = cursor; draw_cursor(); });
+    vte_->on_cursor_moved([&](auto&& cursor){ move_cursor(cursor); });
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
     pty_->on_read_data([&](auto data){ vte_->recv(data); });
@@ -83,6 +83,19 @@ void term::change(int row, int col, unsigned count)
     }
 }
 
+void term::move_cursor(const vte::cursor& cursor)
+{
+    if (undo_)
+    {
+        auto x = cursor_.col * box_.width, y = cursor_.row * box_.height;
+        fb_->image().fill(x, y, *undo_);
+        undo_.reset();
+    }
+    cursor_ = cursor;
+
+    draw_cursor();
+}
+
 void term::draw_cursor()
 {
     if (cursor_.visible)
@@ -107,11 +120,8 @@ void term::draw_cursor()
         switch (cursor_.shape)
         {
         case vte::cursor::block:
-            {
-                std::swap(cell.fg, cell.bg);
-                auto image = pango_->render(std::span{&cell, cell.width});
-                fb_->image().fill(x, y, image);
-            }
+            std::swap(cell.fg, cell.bg);
+            fb_->image().fill(x, y, pango_->render(std::span{&cell, cell.width}));
             break;
 
         case vte::cursor::vline:
@@ -122,16 +132,6 @@ void term::draw_cursor()
             fb_->image().fill(x, y + h - 2, w, 2, cell.fg);
             break;
         };
-    }
-}
-
-void term::undo_cursor()
-{
-    if (undo_)
-    {
-        auto x = cursor_.col * box_.width, y = cursor_.row * box_.height;
-        fb_->image().fill(x, y, *undo_);
-        undo_.reset();
     }
 }
 

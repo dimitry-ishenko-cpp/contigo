@@ -67,8 +67,9 @@ private:
 
     vte::cursor cursor_;
     std::optional<pixman::image> undo_;
+
+    void move_cursor(const vte::cursor&);
     void draw_cursor();
-    void undo_cursor();
 
     void commit();
 };
