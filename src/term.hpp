@@ -9,6 +9,7 @@
 
 #include "drm.hpp"
 #include "framebuf.hpp"
+#include "mouse.hpp"
 #include "pango.hpp"
 #include "pixman.hpp"
 #include "pty.hpp"
@@ -54,6 +55,8 @@ private:
     std::unique_ptr<pango::engine> pango_;
     std::unique_ptr<vte::machine> vte_;
     std::unique_ptr<pty::device> pty_;
+
+    std::unique_ptr<mouse::device> mouse_;
 
     drm::mode mode_;
     pango::box box_;

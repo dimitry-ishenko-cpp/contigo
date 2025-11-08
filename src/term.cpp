@@ -8,6 +8,8 @@
 #include "logging.hpp"
 #include "term.hpp"
 
+#include <exception>
+
 ////////////////////////////////////////////////////////////////////////////////
 term::term(const asio::any_io_executor& ex, term_options options)
 {
@@ -39,6 +41,17 @@ term::term(const asio::any_io_executor& ex, term_options options)
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
     pty_->on_read_data([&](auto data){ vte_->recv(data); });
+
+    try // mouse is optional
+    {
+        mouse_ = std::make_unique<mouse::device>(ex, size_.rows, size_.cols);
+
+        mouse_->on_moved([&](auto row, auto col){ vte_->mouse(row, col); });
+        mouse_->on_button_changed([&](auto button, auto state){ vte_->button(button, state); });
+
+        vte_->on_size_changed([&](auto rows, auto cols){ mouse_->resize(rows, cols); });
+    }
+    catch (const std::exception& e) { err() << e.what(); }
 }
 
 void term::enable()
