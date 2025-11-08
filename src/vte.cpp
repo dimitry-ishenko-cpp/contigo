@@ -42,7 +42,7 @@ static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
     return true;
 }
 
-static constexpr cursor::shape_t to_shape[] =
+static constexpr enum cursor::shape to_shape[] =
 {
     cursor::block, // ?
     cursor::block, // VTERM_PROP_CURSORSHAPE_BLOCK
@@ -315,6 +315,9 @@ void machine::resize(unsigned rows, unsigned cols)
     info() << "Resizing vte to: " << rows << "x" << cols;
     vterm_set_size(&*vterm_, rows, cols);
 }
+
+void machine::mouse(int row, int col) { vterm_mouse_move(&*vterm_, row, col, VTERM_MOD_NONE); }
+void machine::button(vte::button button, bool state) { vterm_mouse_button(&*vterm_, button, state, VTERM_MOD_NONE); }
 
 namespace
 {

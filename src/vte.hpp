@@ -40,8 +40,11 @@ struct cursor
     int row, col;
     bool visible;
     bool blink;
-    enum shape_t { block, hline, vline } shape;
+    enum shape { block, hline, vline } shape;
 };
+
+enum button : unsigned { button_left = 1, button_mid, button_right };
+enum wheel  : unsigned { wheel_up = 4, wheel_down, wheel_left, wheel_right };
 
 ////////////////////////////////////////////////////////////////////////////////
 class machine
@@ -71,7 +74,10 @@ public:
 
     void resize(unsigned rows, unsigned cols);
 
-private:
+    void mouse(int row, int col);
+    void button(vte::button, bool state);
+
+  private:
     ////////////////////
     vterm_ptr vterm_;
     VTermScreen* screen_;
