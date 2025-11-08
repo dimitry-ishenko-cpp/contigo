@@ -50,7 +50,7 @@ auto create_font_desc(std::string_view font_desc)
     return desc;
 }
 
-auto get_metrics(font_map_ptr& font_map, context_ptr& context, font_desc_ptr& font_desc, layout_ptr& layout)
+auto get_box(font_map_ptr& font_map, context_ptr& context, font_desc_ptr& font_desc, layout_ptr& layout)
 {
     font_ptr font{pango_font_map_load_font(&*font_map, &*context, &*font_desc), &g_object_unref};
     if (!font) throw std::runtime_error{"Failed to load font"};
@@ -58,8 +58,7 @@ auto get_metrics(font_map_ptr& font_map, context_ptr& context, font_desc_ptr& fo
     font_metrics_ptr metrics{pango_font_get_metrics(&*font, nullptr), &pango_font_metrics_unref};
     if (!metrics) throw std::runtime_error{"Failed to get font metrics"};
 
-    return cell
-    {
+    return pango::box{
         .width = pango_pixels(pango_font_metrics_get_approximate_char_width(&*metrics)),
         .height = pango_pixels(pango_font_metrics_get_height(&*metrics)),
         .baseline = pango_pixels(pango_layout_get_baseline(&*layout))
@@ -138,19 +137,19 @@ engine::engine(std::string_view font_desc, unsigned dpi) :
     ft_lib_{create_ft_lib()},
     font_map_{create_font_map(dpi)}, context_{create_context(font_map_)}, font_desc_{create_font_desc(font_desc)},
     layout_{create_layout(context_, font_desc_)},
-    cell_{get_metrics(font_map_, context_, font_desc_, layout_)}
+    box_{get_box(font_map_, context_, font_desc_, layout_)}
 {
     auto name = pango_font_description_get_family(&*font_desc_);
     auto style = pango_font_description_get_style(&*font_desc_);
     auto weight = pango_font_description_get_weight(&*font_desc_);
     auto size = pango_pixels(pango_font_description_get_size(&*font_desc_));
 
-    info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", cell=" << cell_.width << "x" << cell_.height;
+    info() << "Using font: " << name << ", style=" << style << ", weight=" << weight << ", size=" << size << ", box=" << box_.width << "x" << box_.height;
 }
 
 pixman::image engine::render(std::span<const vte::cell> cells)
 {
-    unsigned w = cell_.width * cells.size(), h = cell_.height;
+    unsigned w = box_.width * cells.size(), h = box_.height;
     pixman::image image{w, h};
 
     // render background
@@ -170,7 +169,7 @@ pixman::image engine::render(std::span<const vte::cell> cells)
             x += w; w = 0;
         }
 
-        w += cell_.width * to->width;
+        w += box_.width * to->width;
     }
     image.fill(x, y, w, h, fbg);
 
@@ -191,7 +190,7 @@ pixman::image engine::render(std::span<const vte::cell> cells)
             }
             render(image, x, y, *to, attrs);
         }
-        x += cell_.width * to->width;
+        x += box_.width * to->width;
     }
 
     return image;
@@ -204,7 +203,7 @@ void engine::render(pixman::image& image, int x, int y, const vte::cell& cell, c
     auto symbol = pango_layout_get_line_readonly(&*layout_, 0);
 
     // +1 to allow overhang on the right
-    pixman::gray mask{cell_.width * (cell.width + 1), cell_.height};
+    pixman::gray mask{box_.width * (cell.width + 1), box_.height};
     FT_Bitmap ftb;
     ftb.rows  = mask.height();
     ftb.width = mask.width();
@@ -212,7 +211,7 @@ void engine::render(pixman::image& image, int x, int y, const vte::cell& cell, c
     ftb.buffer= mask.data<uint8_t*>();
     ftb.num_grays = mask.num_colors;
     ftb.pixel_mode = FT_PIXEL_MODE_GRAY;
-    pango_ft2_render_layout_line(&ftb, symbol, 0, cell_.baseline);
+    pango_ft2_render_layout_line(&ftb, symbol, 0, box_.baseline);
 
     image.alpha_blend(x, y, mask, cell.fg);
 }

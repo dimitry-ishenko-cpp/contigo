@@ -18,10 +18,10 @@ term::term(const asio::any_io_executor& ex, term_options options)
     fb_ = std::make_unique<drm::framebuf>(*drm_, mode_.width, mode_.height);
 
     pango_ = std::make_unique<pango::engine>(options.font, options.dpi.value_or(mode_.dpi));
-    cell_ = pango_->cell();
+    box_ = pango_->box();
 
-    size_.rows = mode_.height / cell_.height;
-    size_.cols = mode_.width / cell_.width;
+    size_.rows = mode_.height / box_.height;
+    size_.cols = mode_.width / box_.width;
     vte_ = std::make_unique<vte::machine>(size_.rows, size_.cols);
     pty_ = std::make_unique<pty::device>(ex, size_.rows, size_.cols, std::move(options.login), std::move(options.args));
 
@@ -74,7 +74,7 @@ void term::change(int row, int col, unsigned count)
         if (col > 0) --col, ++count;
         if (col_end < size_.cols) ++col_end, ++count;
 
-        int x = col * cell_.width, y = row * cell_.height;
+        int x = col * box_.width, y = row * box_.height;
 
         auto cells = vte_->cells(row, col, count);
         auto image = pango_->render(cells);
@@ -101,8 +101,8 @@ void term::draw_cursor()
 
         auto& cell = cells[n];
 
-        auto x = cursor_.col * cell_.width, y = cursor_.row * cell_.height;
-        auto w = cell_.width * cell.width, h = cell_.height;
+        auto x = cursor_.col * box_.width, y = cursor_.row * box_.height;
+        auto w = box_.width * cell.width, h = box_.height;
 
         undo_ = pixman::image{w, h};
         undo_->fill(0, 0, fb_->image(), x, y, w, h);
@@ -132,7 +132,7 @@ void term::undo_cursor()
 {
     if (undo_)
     {
-        auto x = cursor_.col * cell_.width, y = cursor_.row * cell_.height;
+        auto x = cursor_.col * box_.width, y = cursor_.row * box_.height;
         fb_->image().fill(x, y, *undo_);
         undo_.reset();
     }

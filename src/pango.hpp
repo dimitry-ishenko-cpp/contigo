@@ -30,7 +30,7 @@ using font_metrics_ptr = std::unique_ptr<PangoFontMetrics, void(*)(PangoFontMetr
 using layout_ptr = std::unique_ptr<PangoLayout, void(*)(void*)>;
 using attrs_ptr = std::unique_ptr<PangoAttrList, void(*)(PangoAttrList*)>;
 
-struct cell
+struct box
 {
     unsigned width, height;
     int baseline;
@@ -43,7 +43,7 @@ public:
     ////////////////////
     engine(std::string_view font_desc, unsigned dpi);
 
-    constexpr auto& cell() const noexcept { return cell_; }
+    constexpr auto& box() const noexcept { return box_; }
 
     pixman::image render(std::span<const vte::cell>);
 
@@ -55,7 +55,7 @@ private:
     font_desc_ptr font_desc_;
 
     layout_ptr layout_;
-    pango::cell cell_;
+    pango::box box_;
 
     void render(pixman::image&, int x, int y, const vte::cell&, const attrs_ptr&);
 };

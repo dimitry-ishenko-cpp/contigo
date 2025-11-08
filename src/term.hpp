@@ -56,7 +56,7 @@ private:
     std::unique_ptr<pty::device> pty_;
 
     drm::mode mode_;
-    pango::cell cell_;
+    pango::box box_;
     struct { unsigned rows, cols; } size_;
 
     bool enabled_ = true;
