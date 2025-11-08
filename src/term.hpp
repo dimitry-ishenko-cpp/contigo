@@ -68,11 +68,12 @@ private:
 
     void change(int row, int col, unsigned count);
 
-    vte::cursor cursor_;
-    std::optional<pixman::image> undo_;
+    enum kind { mouse, keyboard, size };
+    vte::cursor cursor_[kind::size];
+    std::optional<pixman::image> undo_[kind::size];
 
-    void move_cursor(const vte::cursor&);
-    void draw_cursor();
+    void move(kind, const vte::cursor&);
+    void draw_cursor(kind);
 
     void commit();
 };

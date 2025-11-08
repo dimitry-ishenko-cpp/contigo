@@ -37,7 +37,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     vte_->on_send_data([&](auto data){ pty_->write(data); });
     vte_->on_row_changed([&](auto row, auto col, auto cols){ change(row, col, cols); });
-    vte_->on_cursor_moved([&](auto&& cursor){ move_cursor(cursor); });
+    vte_->on_cursor_moved([&](auto&& cursor){ move(keyboard, cursor); });
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
     pty_->on_read_data([&](auto data){ vte_->recv(data); });
@@ -46,7 +46,16 @@ term::term(const asio::any_io_executor& ex, term_options options)
     {
         mouse_ = std::make_unique<mouse::device>(ex, size_.rows, size_.cols);
 
-        mouse_->on_moved([&](auto row, auto col){ vte_->mouse(row, col); });
+        mouse_->on_moved([&](auto row, auto col)
+        {
+            static vte::cursor cursor{ .visible = true, .shape = vte::cursor::block };
+
+            cursor.row = row;
+            cursor.col = col;
+            move(mouse, cursor);
+
+            vte_->mouse(row, col);
+        });
         mouse_->on_button_changed([&](auto button, auto state){ vte_->button(button, state); });
 
         vte_->on_size_changed([&](auto rows, auto cols){ mouse_->resize(rows, cols); });
@@ -90,47 +99,49 @@ void term::change(int row, int col, unsigned count)
         auto image = pango_->render(cells);
         fb_->image().fill(x, y, image);
 
-        if (cursor_.row == row && cursor_.col >= col && cursor_.col < col_end) draw_cursor();
+        for (auto k : {keyboard, mouse})
+            if (cursor_[k].row == row && cursor_[k].col >= col && cursor_[k].col < col_end)
+                draw_cursor(k);
 
         // TODO track damage
     }
 }
 
-void term::move_cursor(const vte::cursor& cursor)
+void term::move(kind k, const vte::cursor& cursor)
 {
-    if (undo_)
+    if (undo_[k])
     {
-        auto x = cursor_.col * box_.width, y = cursor_.row * box_.height;
-        fb_->image().fill(x, y, *undo_);
-        undo_.reset();
+        auto x = cursor_[k].col * box_.width, y = cursor_[k].row * box_.height;
+        fb_->image().fill(x, y, *undo_[k]);
+        undo_[k].reset();
     }
-    cursor_ = cursor;
+    cursor_[k] = cursor;
 
-    draw_cursor();
+    draw_cursor(k);
 }
 
-void term::draw_cursor()
+void term::draw_cursor(kind k)
 {
-    if (cursor_.visible)
+    if (cursor_[k].visible)
     {
         // the cursor can land on one of the following:
         //   1. normal cell => render this cell
         //   2. wide   cell => render this cell and the next one (empty)
         //   3. empty  cell => if the prior cell is wide, render that cell and this one
         //
-        auto cells = vte_->cells(cursor_.row, cursor_.col - 1, 3);
+        auto cells = vte_->cells(cursor_[k].row, cursor_[k].col - 1, 3);
         auto n = 1;
-        if (!cells[n].chars[0] && cells[n - 1].width == 2) --n, --cursor_.col;
+        if (!cells[n].chars[0] && cells[n - 1].width == 2) --n, --cursor_[k].col;
 
         auto& cell = cells[n];
 
-        auto x = cursor_.col * box_.width, y = cursor_.row * box_.height;
+        auto x = cursor_[k].col * box_.width, y = cursor_[k].row * box_.height;
         auto w = box_.width * cell.width, h = box_.height;
 
-        undo_ = pixman::image{w, h};
-        undo_->fill(0, 0, fb_->image(), x, y, w, h);
+        undo_[k] = pixman::image{w, h};
+        undo_[k]->fill(0, 0, fb_->image(), x, y, w, h);
 
-        switch (cursor_.shape)
+        switch (cursor_[k].shape)
         {
         case vte::cursor::block:
             std::swap(cell.fg, cell.bg);
