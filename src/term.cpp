@@ -12,6 +12,7 @@
 term::term(const asio::any_io_executor& ex, term_options options)
 {
     tty_ = std::make_unique<tty::device>(ex, options.tty_num);
+    if (options.tty_activate) tty_->activate();
 
     drm_ = std::make_unique<drm::device>(ex, options.drm_num);
     mode_ = drm_->mode();
@@ -30,11 +31,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     tty_->on_read_data([&](auto data){ vte_->send(data); });
 
     drm_->on_vblank([&](){ commit(); });
-    if (options.tty_activate)
-    {
-        tty_->activate();
-        drm_->activate(*fb_);
-    }
+    if (options.tty_activate) drm_->activate(*fb_);
 
     vte_->on_send_data([&](auto data){ pty_->write(data); });
     vte_->on_row_changed([&](auto row, auto col, auto cols){ change(row, col, cols); });
