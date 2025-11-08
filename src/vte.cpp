@@ -37,7 +37,7 @@ static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
     vt->cursor_.row = pos.row;
     vt->cursor_.col = pos.col;
     vt->cursor_.visible = visible;
-    if (vt->cursor_cb_) vt->cursor_cb_(vt->cursor_);
+    if (vt->move_cb_) vt->move_cb_(vt->cursor_);
 
     return true;
 }
@@ -53,7 +53,7 @@ static constexpr enum cursor::shape to_shape[] =
 static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
-    bool cb = !!vt->cursor_cb_;
+    bool cb = !!vt->move_cb_;
 
     switch (prop)
     {
@@ -68,7 +68,7 @@ static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
         break;
     default: cb = false;
     }
-    if (cb) vt->cursor_cb_(vt->cursor_);
+    if (cb) vt->move_cb_(vt->cursor_);
 
     return true;
 }

@@ -35,7 +35,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     vte_->on_send_data([&](auto data){ pty_->write(data); });
     vte_->on_row_changed([&](auto row, auto col, auto cols){ change(row, col, cols); });
-    vte_->on_cursor_changed([&](auto&& cursor){ undo_cursor(); cursor_ = cursor; draw_cursor(); });
+    vte_->on_cursor_moved([&](auto&& cursor){ undo_cursor(); cursor_ = cursor; draw_cursor(); });
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
     pty_->on_read_data([&](auto data){ vte_->recv(data); });
