@@ -75,13 +75,16 @@ private:
     struct cursor
     {
         int row = 0, col = 0;
-        vte::cursor state;
+        vte::cursor state { .shape = vte::cursor::block };
     }
     cursor_[kind::size];
     std::optional<pixman::image> patch_[kind::size];
 
     void move_cursor(kind, int row, int col);
     void change(kind, const vte::cursor&);
+
+    void show_cursor(kind);
+    void hide_cursor(kind);
 
     void draw_cursor(kind);
     void undraw_cursor(kind);

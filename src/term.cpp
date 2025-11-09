@@ -27,8 +27,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     size_.cols = mode_.width / box_.width;
 
     vte_ = std::make_unique<vte::machine>(size_.rows, size_.cols);
-    cursor_[keyboard].state.visible = true;
-    cursor_[keyboard].state.shape = vte::cursor::block;
+    show_cursor(keyboard);
 
     pty_ = std::make_unique<pty::device>(ex, size_.rows, size_.cols, std::move(options.login), std::move(options.args));
 
@@ -41,7 +40,11 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     vte_->on_send_data([&](auto data){ pty_->send(data); });
     vte_->on_row_changed([&](auto row, auto col, auto cols){ update(row, col, cols); });
-    vte_->on_cursor_moved([&](auto row, auto col){ move_cursor(keyboard, row, col); });
+    vte_->on_cursor_moved([&](auto row, auto col)
+    {
+        hide_cursor(mouse);
+        move_cursor(keyboard, row, col);
+    });
     vte_->on_cursor_changed([&](auto&& cursor){ change(keyboard, cursor); });
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
@@ -50,11 +53,10 @@ term::term(const asio::any_io_executor& ex, term_options options)
     try // mouse is optional
     {
         mouse_ = std::make_unique<mouse::device>(ex, size_.rows, size_.cols);
-        cursor_[mouse].state.visible = true;
-        cursor_[mouse].state.shape = vte::cursor::block;
 
         mouse_->on_moved([&](auto row, auto col)
         {
+            show_cursor(mouse);
             move_cursor(mouse, row, col);
             vte_->move_mouse(row, col);
         });
@@ -129,6 +131,9 @@ void term::change(kind k, const vte::cursor& state)
     cursor_[k].state = state;
     draw_cursor(k);
 }
+
+void term::show_cursor(kind k) { cursor_[k].state.visible = true; }
+void term::hide_cursor(kind k) { cursor_[k].state.visible = false; undraw_cursor(k); }
 
 void term::draw_cursor(kind k)
 {
