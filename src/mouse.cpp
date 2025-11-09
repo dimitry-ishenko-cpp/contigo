@@ -46,8 +46,8 @@ void device::sched_async_read()
     {
         if (!ec)
         {
-            row_ = std::clamp(row_ - event_.dy / 2, 0, max_row_);
-            col_ = std::clamp(col_ + event_.dx / 2, 0, max_col_);
+            row_ = std::clamp(row_ - event_.dy, 0, max_row_);
+            col_ = std::clamp(col_ + event_.dx, 0, max_col_);
             if (move_cb_) move_cb_(row_, col_);
 
             auto& state = event_.state;
