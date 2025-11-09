@@ -84,6 +84,16 @@ void term::disable()
     drm_->disable();
 }
 
+namespace
+{
+
+inline bool is_blank(const vte::cell& cell)
+{
+    return !cell.len || cell.chars[0] == ' ' || cell.attrs.conceal;
+}
+
+}
+
 void term::update(int row, int col, unsigned count)
 {
     if (row >= 0 && row < size_.rows)
@@ -91,16 +101,27 @@ void term::update(int row, int col, unsigned count)
         auto col_end = col + count;
         if (col < 0) col = 0;
         if (col_end > size_.cols) col_end = size_.cols;
-        count = col_end - col;
 
-        // grab extra cell on the left and on the right to allow for overhang
-        if (col > 0) --col, ++count;
-        if (col_end < size_.cols) ++col_end, ++count;
+        // grab extra cell before and after to deal with overhang
+        bool before = (col > 0); if (before) --col;
+        bool after = (col_end < size_.cols); if (after) ++col_end;
+
+        auto cells = vte_->cells(row, col, col_end - col);
+
+        if (before && is_blank(*cells.begin()))
+        {
+            cells.erase(cells.begin());
+            ++col;
+        }
+        if (after && !is_blank(*cells.rbegin()))
+        {
+            cells.pop_back();
+            --col_end;
+        }
+
+        auto image = pango_->render(cells);
 
         int x = col * box_.width, y = row * box_.height;
-
-        auto cells = vte_->cells(row, col, count);
-        auto image = pango_->render(cells);
         fb_->image().fill(x, y, image);
 
         for (auto k : {keyboard, mouse})
