@@ -37,7 +37,6 @@ struct cell
 
 struct cursor
 {
-    int row, col;
     bool visible;
     bool blink;
     enum shape { block, hline, vline } shape;
@@ -59,8 +58,11 @@ public:
     using row_changed_callback = std::function<void(int row, int col, unsigned count)>;
     void on_row_changed(row_changed_callback cb) { row_cb_ = std::move(cb); }
 
-    using cursor_moved_callback = std::function<void(const cursor&)>;
+    using cursor_moved_callback = std::function<void(int row, int col)>;
     void on_cursor_moved(cursor_moved_callback cb) { move_cb_ = std::move(cb); }
+
+    using cursor_changed_callback = std::function<void(const cursor&)>;
+    void on_cursor_changed(cursor_changed_callback cb) { cursor_cb_ = std::move(cb); }
 
     using size_changed_callback = std::function<void(unsigned rows, unsigned cols)>;
     void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
@@ -83,11 +85,13 @@ public:
     VTermScreen* screen_;
     VTermState* state_;
 
-    cursor cursor_;
-
     send_data_callback send_cb_;
     row_changed_callback row_cb_;
+
     cursor_moved_callback move_cb_;
+    cursor cursor_;
+    cursor_changed_callback cursor_cb_;
+
     size_changed_callback size_cb_;
 
     vte::cell cell(int row, int col);

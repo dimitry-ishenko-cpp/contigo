@@ -25,7 +25,11 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     size_.rows = mode_.height / box_.height;
     size_.cols = mode_.width / box_.width;
+
     vte_ = std::make_unique<vte::machine>(size_.rows, size_.cols);
+    cursor_[keyboard].state.visible = true;
+    cursor_[keyboard].state.shape = vte::cursor::block;
+
     pty_ = std::make_unique<pty::device>(ex, size_.rows, size_.cols, std::move(options.login), std::move(options.args));
 
     tty_->on_acquired([&]{ enable(); });
@@ -37,7 +41,8 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     vte_->on_send_data([&](auto data){ pty_->send(data); });
     vte_->on_row_changed([&](auto row, auto col, auto cols){ update(row, col, cols); });
-    vte_->on_cursor_moved([&](auto&& cursor){ move_cursor(keyboard, cursor); });
+    vte_->on_cursor_moved([&](auto row, auto col){ move_cursor(keyboard, row, col); });
+    vte_->on_cursor_changed([&](auto&& cursor){ change(keyboard, cursor); });
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
     pty_->on_data_received([&](auto data){ vte_->recv(data); });
@@ -45,15 +50,12 @@ term::term(const asio::any_io_executor& ex, term_options options)
     try // mouse is optional
     {
         mouse_ = std::make_unique<mouse::device>(ex, size_.rows, size_.cols);
+        cursor_[mouse].state.visible = true;
+        cursor_[mouse].state.shape = vte::cursor::block;
 
         mouse_->on_moved([&](auto row, auto col)
         {
-            static vte::cursor cursor{ .visible = true, .shape = vte::cursor::block };
-
-            cursor.row = row;
-            cursor.col = col;
-            move_cursor(mouse, cursor);
-
+            move_cursor(mouse, row, col);
             vte_->move_mouse(row, col);
         });
         mouse_->on_button_changed([&](auto button, auto state){ vte_->change(button, state); });
@@ -107,35 +109,52 @@ void term::update(int row, int col, unsigned count)
     }
 }
 
-void term::move_cursor(kind k, const vte::cursor& cursor)
+void term::commit()
 {
-    hide_cursor(k);
-    cursor_[k] = cursor;
+    vte_->commit();
+    if (enabled_) fb_->commit();
+}
+
+void term::move_cursor(kind k, int row, int col)
+{
+    undraw_cursor(k);
+    cursor_[k].row = row;
+    cursor_[k].col = col;
+    draw_cursor(k);
+}
+
+void term::change(kind k, const vte::cursor& state)
+{
+    undraw_cursor(k);
+    cursor_[k].state = state;
     draw_cursor(k);
 }
 
 void term::draw_cursor(kind k)
 {
-    if (cursor_[k].visible)
+    auto& cursor = cursor_[k];
+    auto& patch = patch_[k];
+
+    if (cursor.state.visible)
     {
         // the cursor can land on one of the following:
         //   1. normal cell => render this cell
         //   2. wide   cell => render this cell and the next one (empty)
         //   3. empty  cell => if the prior cell is wide, render that cell and this one
         //
-        auto cells = vte_->cells(cursor_[k].row, cursor_[k].col - 1, 3);
+        auto cells = vte_->cells(cursor.row, cursor.col - 1, 3);
         auto n = 1;
         if (!cells[n].chars[0] && cells[n - 1].width == 2) --n, --cursor_[k].col;
 
         auto& cell = cells[n];
 
-        auto x = cursor_[k].col * box_.width, y = cursor_[k].row * box_.height;
+        auto x = cursor.col * box_.width, y = cursor.row * box_.height;
         auto w = box_.width * cell.width, h = box_.height;
 
-        patch_[k] = pixman::image{w, h};
-        patch_[k]->fill(0, 0, fb_->image(), x, y, w, h);
+        patch = pixman::image{w, h};
+        patch->fill(0, 0, fb_->image(), x, y, w, h);
 
-        switch (cursor_[k].shape)
+        switch (cursor.state.shape)
         {
         case vte::cursor::block:
             std::swap(cell.fg, cell.bg);
@@ -153,7 +172,7 @@ void term::draw_cursor(kind k)
     }
 }
 
-void term::hide_cursor(kind k)
+void term::undraw_cursor(kind k)
 {
     if (patch_[k])
     {
@@ -161,10 +180,4 @@ void term::hide_cursor(kind k)
         fb_->image().fill(x, y, *patch_[k]);
         patch_[k].reset();
     }
-}
-
-void term::commit()
-{
-    vte_->commit();
-    if (enabled_) fb_->commit();
 }

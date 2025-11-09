@@ -33,27 +33,21 @@ static int damage(VTermRect rect, void* ctx)
 static int move_cursor(VTermPos pos, VTermPos old_pos, int visible, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
-
-    vt->cursor_.row = pos.row;
-    vt->cursor_.col = pos.col;
-    vt->cursor_.visible = visible;
-    if (vt->move_cb_) vt->move_cb_(vt->cursor_);
-
+    if (vt->move_cb_) vt->move_cb_(pos.row, pos.col);
     return true;
 }
 
 static constexpr enum cursor::shape to_shape[] =
 {
-    cursor::block, // ?
-    cursor::block, // VTERM_PROP_CURSORSHAPE_BLOCK
-    cursor::hline, // VTERM_PROP_CURSORSHAPE_UNDERLINE
-    cursor::vline, // VTERM_PROP_CURSORSHAPE_BAR_LEFT
+    cursor::block, // [?]
+    cursor::block, // [VTERM_PROP_CURSORSHAPE_BLOCK]
+    cursor::hline, // [VTERM_PROP_CURSORSHAPE_UNDERLINE]
+    cursor::vline, // [VTERM_PROP_CURSORSHAPE_BAR_LEFT]
 };
 
 static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
 {
     auto vt = static_cast<machine*>(ctx);
-    bool cb = !!vt->move_cb_;
 
     switch (prop)
     {
@@ -66,10 +60,10 @@ static int set_prop(VTermProp prop, VTermValue* val, void* ctx)
     case VTERM_PROP_CURSORVISIBLE:
         vt->cursor_.visible = val->boolean;
         break;
-    default: cb = false;
+    default: vt = nullptr;
     }
-    if (cb) vt->move_cb_(vt->cursor_);
 
+    if (vt && vt->cursor_cb_) vt->cursor_cb_(vt->cursor_);
     return true;
 }
 

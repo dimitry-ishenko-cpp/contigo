@@ -67,14 +67,22 @@ private:
     void disable();
 
     void update(int row, int col, unsigned count);
+    void commit();
 
+    ////////////////////
     enum kind { mouse, keyboard, size };
-    vte::cursor cursor_[kind::size];
+
+    struct cursor
+    {
+        int row = 0, col = 0;
+        vte::cursor state;
+    }
+    cursor_[kind::size];
     std::optional<pixman::image> patch_[kind::size];
 
-    void move_cursor(kind, const vte::cursor&);
-    void draw_cursor(kind);
-    void hide_cursor(kind);
+    void move_cursor(kind, int row, int col);
+    void change(kind, const vte::cursor&);
 
-    void commit();
+    void draw_cursor(kind);
+    void undraw_cursor(kind);
 };
