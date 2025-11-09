@@ -23,7 +23,7 @@ class device
 {
 public:
     ////////////////////
-    device(const asio::any_io_executor&, unsigned rows, unsigned cols);
+    device(const asio::any_io_executor&, unsigned rows, unsigned cols, float speed = 1);
 
     using moved_callback = std::function<void(int row, int col)>;
     void on_moved(moved_callback cb) { move_cb_ = std::move(cb); }
@@ -40,8 +40,9 @@ public:
     moved_callback move_cb_;
     button_changed_callback button_cb_;
 
-    int max_row_, max_col_;
-    int row_ = 0, col_ = 0;
+    float max_row_, max_col_;
+    float speed_;
+    float row_ = 0, col_ = 0;
 
 #pragma pack(push, 1)
     struct button

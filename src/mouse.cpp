@@ -33,8 +33,8 @@ auto open(const asio::any_io_executor& ex)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-device::device(const asio::any_io_executor& ex, unsigned rows, unsigned cols) :
-    fd_{open(ex)}
+device::device(const asio::any_io_executor& ex, unsigned rows, unsigned cols, float speed) :
+    fd_{open(ex)}, speed_{speed}
 {
     resize(rows, cols);
     sched_async_read();
@@ -46,8 +46,8 @@ void device::sched_async_read()
     {
         if (!ec)
         {
-            row_ = std::clamp(row_ - event_.dy, 0, max_row_);
-            col_ = std::clamp(col_ + event_.dx, 0, max_col_);
+            row_ = std::clamp(row_ - event_.dy * speed_, 0.f, max_row_);
+            col_ = std::clamp(col_ + event_.dx * speed_, 0.f, max_col_);
             if (move_cb_) move_cb_(row_, col_);
 
             auto& state = event_.state;
