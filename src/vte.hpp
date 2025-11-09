@@ -70,6 +70,7 @@ public:
     ////////////////////
     void recv(std::span<const char>);
     void send(std::span<const char>);
+
     void commit();
 
     std::vector<vte::cell> cells(int row, int col, unsigned count);

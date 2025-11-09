@@ -191,25 +191,21 @@ std::optional<key_press> parse(std::span<const char> data)
                             auto code = (c2 - '0') * 10 + (c3 - '0');
                             switch (code)
                             {
-                            case 17:
-                            case 18:
-                            case 19:
-                            case 20:
-                            case 21: return key_press{fn_key(code - 11), mod}; // f6-f10
-                            case 23:
-                            case 24: return key_press{fn_key(code - 12), mod}; // f11-f12
-                            case 25:
-                            case 26:
+                            case 17: case 18: case 19: case 20: case 21:
+                                return key_press{fn_key(code - 11), mod}; // f6-f10
+
+                            case 23: case 24:
+                                return key_press{fn_key(code - 12), mod}; // f11-f12
+
+                            case 25: case 26:
                                 mod = mod | VTERM_MOD_SHIFT;
                                 return key_press{fn_key(code - 22), mod}; // shift+f3-f4
-                            case 28:
-                            case 29:
+
+                            case 28: case 29:
                                 mod = mod | VTERM_MOD_SHIFT;
                                 return key_press{fn_key(code - 23), mod}; // shift+f5-f6
-                            case 31:
-                            case 32:
-                            case 33:
-                            case 34:
+
+                            case 31: case 32: case 33: case 34:
                                 mod = mod | VTERM_MOD_SHIFT;
                                 return key_press{fn_key(code - 24), mod}; // shift+f7-f10
                             }
