@@ -67,7 +67,7 @@ private:
     void deactivate();
 
     void update(int row, int col, unsigned count);
-    void commit();
+    void update();
 
     ////////////////////
     enum kind { mouse, keyboard, size };

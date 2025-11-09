@@ -35,7 +35,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     tty_->on_released([&]{ deactivate(); });
     tty_->on_data_received([&](auto data){ vte_->send(data); });
 
-    drm_->on_vblank([&](){ commit(); });
+    drm_->on_vblank([&](){ update(); });
     if (options.tty_activate) activate();
 
     vte_->on_send_data([&](auto data){ pty_->send(data); });
@@ -132,7 +132,7 @@ void term::update(int row, int col, unsigned count)
     }
 }
 
-void term::commit()
+void term::update()
 {
     vte_->commit();
     if (active_) fb_->commit();
