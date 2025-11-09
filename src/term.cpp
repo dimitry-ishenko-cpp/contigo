@@ -31,12 +31,12 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     pty_ = std::make_unique<pty::device>(ex, size_.rows, size_.cols, std::move(options.login), std::move(options.args));
 
-    tty_->on_acquired([&]{ enable(); });
-    tty_->on_released([&]{ disable(); });
+    tty_->on_acquired([&]{ activate(); });
+    tty_->on_released([&]{ deactivate(); });
     tty_->on_data_received([&](auto data){ vte_->send(data); });
 
     drm_->on_vblank([&](){ commit(); });
-    if (options.tty_activate) enable();
+    if (options.tty_activate) activate();
 
     vte_->on_send_data([&](auto data){ pty_->send(data); });
     vte_->on_row_changed([&](auto row, auto col, auto cols){ update(row, col, cols); });
@@ -67,19 +67,19 @@ term::term(const asio::any_io_executor& ex, term_options options)
     catch (const std::exception& e) { err() << e.what(); }
 }
 
-void term::enable()
+void term::activate()
 {
-    info() << "Enabling screen rendering";
-    enabled_ = true;
+    info() << "Activating terminal";
+    active_ = true;
 
     drm_->acquire_master();
     drm_->set_output(*fb_);
 }
 
-void term::disable()
+void term::deactivate()
 {
-    info() << "Disabling screen rendering";
-    enabled_ = false;
+    info() << "Deactivating terminal";
+    active_ = false;
 
     drm_->drop_master();
 }
@@ -135,7 +135,7 @@ void term::update(int row, int col, unsigned count)
 void term::commit()
 {
     vte_->commit();
-    if (enabled_) fb_->commit();
+    if (active_) fb_->commit();
 }
 
 void term::move_cursor(kind k, int row, int col)

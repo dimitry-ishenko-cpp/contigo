@@ -62,9 +62,9 @@ private:
     pango::box box_;
     struct { unsigned rows, cols; } size_;
 
-    bool enabled_ = false;
-    void enable();
-    void disable();
+    bool active_ = false;
+    void activate();
+    void deactivate();
 
     void update(int row, int col, unsigned count);
     void commit();
