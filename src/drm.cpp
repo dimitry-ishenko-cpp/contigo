@@ -147,7 +147,7 @@ void device::drop_master()
     drm_control(fd_, drop_master);
 }
 
-void device::activate(framebuf& fb)
+void device::set_output(framebuf& fb)
 {
     info() << "Activating crtc";
     auto code = drmModeSetCrtc(fd_.native_handle(), crtc_.id, fb.id(), 0, 0, &conn_->connector_id, 1, &conn_->modes[mode_.idx]);

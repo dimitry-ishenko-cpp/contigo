@@ -51,7 +51,7 @@ public:
     void acquire_master();
     void drop_master();
 
-    void activate(framebuf&);
+    void set_output(framebuf&);
 
     using vblank_callback = std::function<void()>;
     void on_vblank(vblank_callback cb) { vblank_cb_ = std::move(cb); }

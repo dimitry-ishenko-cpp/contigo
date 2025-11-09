@@ -73,7 +73,7 @@ void term::enable()
     enabled_ = true;
 
     drm_->acquire_master();
-    drm_->activate(*fb_);
+    drm_->set_output(*fb_);
 }
 
 void term::disable()
