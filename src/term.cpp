@@ -72,7 +72,7 @@ void term::enable()
     info() << "Enabling screen rendering";
     enabled_ = true;
 
-    drm_->enable();
+    drm_->acquire_master();
     drm_->activate(*fb_);
 }
 
@@ -81,7 +81,7 @@ void term::disable()
     info() << "Disabling screen rendering";
     enabled_ = false;
 
-    drm_->disable();
+    drm_->drop_master();
 }
 
 namespace

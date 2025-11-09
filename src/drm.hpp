@@ -48,8 +48,8 @@ public:
 
     constexpr auto& mode() const noexcept { return mode_; }
 
-    void disable();
-    void enable();
+    void acquire_master();
+    void drop_master();
 
     void activate(framebuf&);
 

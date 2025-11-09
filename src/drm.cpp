@@ -133,18 +133,18 @@ device::device(const asio::any_io_executor& ex, drm::num num) : fd_{open(ex, num
     sched_vblank_wait();
 }
 
-void device::disable()
-{
-    info() << "Dropping drm master";
-    command<DRM_IOCTL_DROP_MASTER, int> drop_master{};
-    drm_control(fd_, drop_master);
-}
-
-void device::enable()
+void device::acquire_master()
 {
     info() << "Acquiring drm master";
     command<DRM_IOCTL_SET_MASTER, int> set_master{};
     drm_control(fd_, set_master);
+}
+
+void device::drop_master()
+{
+    info() << "Dropping drm master";
+    command<DRM_IOCTL_DROP_MASTER, int> drop_master{};
+    drm_control(fd_, drop_master);
 }
 
 void device::activate(framebuf& fb)
