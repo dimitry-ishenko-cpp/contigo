@@ -279,6 +279,8 @@ std::optional<key_press> parse(std::span<const char> data)
 
 }
 
+void machine::recv(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
+
 void machine::send(std::span<const char> data)
 {
     if (auto key_press = parse(data))
@@ -297,7 +299,6 @@ void machine::send(std::span<const char> data)
     }
 }
 
-void machine::recv(std::span<const char> data) { vterm_input_write(&*vterm_, data.data(), data.size()); }
 void machine::commit() { vterm_screen_flush_damage(screen_); }
 
 std::vector<vte::cell> machine::cells(int row, int col, unsigned count)
@@ -316,8 +317,8 @@ void machine::resize(unsigned rows, unsigned cols)
     vterm_set_size(&*vterm_, rows, cols);
 }
 
-void machine::mouse(int row, int col) { vterm_mouse_move(&*vterm_, row, col, VTERM_MOD_NONE); }
-void machine::button(vte::button button, bool state) { vterm_mouse_button(&*vterm_, button, state, VTERM_MOD_NONE); }
+void machine::move_mouse(int row, int col) { vterm_mouse_move(&*vterm_, row, col, VTERM_MOD_NONE); }
+void machine::change(vte::button button, bool state) { vterm_mouse_button(&*vterm_, button, state, VTERM_MOD_NONE); }
 
 namespace
 {

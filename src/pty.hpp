@@ -29,27 +29,28 @@ public:
     device(const asio::any_io_executor&, unsigned rows, unsigned cols, std::string pgm, std::vector<std::string> args);
     ~device() { stop_child(); }
 
-    using read_data_callback = std::function<void(std::span<const char>)>;
-    void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
+    using data_received_callback = std::function<void(std::span<const char>)>;
+    void on_data_received(data_received_callback cb) { recv_cb_ = std::move(cb); }
 
-    using child_exit_callback = std::function<void(int exit_code)>;
-    void on_child_exit(child_exit_callback cb) { child_cb_ = std::move(cb); }
+    using child_exited_callback = std::function<void(int exit_code)>;
+    void on_child_exited(child_exited_callback cb) { child_cb_ = std::move(cb); }
 
-    void write(std::span<const char>);
+    void send(std::span<const char>);
+
     void resize(unsigned rows, unsigned cols);
 
 private:
     ////////////////////
     asio::posix::stream_descriptor fd_;
 
-    read_data_callback read_cb_;
     std::array<char, 4096> buffer_;
+    data_received_callback recv_cb_;
 
     void sched_async_read();
 
     pid_t child_pid_;
     asio::posix::stream_descriptor child_fd_;
-    child_exit_callback child_cb_;
+    child_exited_callback child_cb_;
 
     void start_child(std::string pgm, std::vector<std::string> args);
     void stop_child();

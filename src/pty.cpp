@@ -56,7 +56,7 @@ device::device(const asio::any_io_executor& ex, unsigned rows, unsigned cols, st
     else start_child(std::move(pgm), std::move(args));
 }
 
-void device::write(std::span<const char> data) { asio::write(fd_, asio::buffer(data)); }
+void device::send(std::span<const char> data) { asio::write(fd_, asio::buffer(data)); }
 
 void device::resize(unsigned rows, unsigned cols)
 {
@@ -73,7 +73,7 @@ void device::sched_async_read()
     {
         if (!ec)
         {
-            if (read_cb_) read_cb_(std::span<const char>{buffer_.begin(), size});
+            if (recv_cb_) recv_cb_(std::span<const char>{buffer_.begin(), size});
             sched_async_read();
         }
     });

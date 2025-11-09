@@ -28,19 +28,19 @@ term::term(const asio::any_io_executor& ex, term_options options)
     vte_ = std::make_unique<vte::machine>(size_.rows, size_.cols);
     pty_ = std::make_unique<pty::device>(ex, size_.rows, size_.cols, std::move(options.login), std::move(options.args));
 
-    tty_->on_acquire([&]{ enable(); });
-    tty_->on_release([&]{ disable(); });
-    tty_->on_read_data([&](auto data){ vte_->send(data); });
+    tty_->on_acquired([&]{ enable(); });
+    tty_->on_released([&]{ disable(); });
+    tty_->on_data_received([&](auto data){ vte_->send(data); });
 
     drm_->on_vblank([&](){ commit(); });
     if (options.tty_activate) drm_->activate(*fb_);
 
-    vte_->on_send_data([&](auto data){ pty_->write(data); });
-    vte_->on_row_changed([&](auto row, auto col, auto cols){ change(row, col, cols); });
-    vte_->on_cursor_moved([&](auto&& cursor){ move(keyboard, cursor); });
+    vte_->on_send_data([&](auto data){ pty_->send(data); });
+    vte_->on_row_changed([&](auto row, auto col, auto cols){ update(row, col, cols); });
+    vte_->on_cursor_moved([&](auto&& cursor){ move_cursor(keyboard, cursor); });
     vte_->on_size_changed([&](auto rows, auto cols){ pty_->resize(rows, cols); });
 
-    pty_->on_read_data([&](auto data){ vte_->recv(data); });
+    pty_->on_data_received([&](auto data){ vte_->recv(data); });
 
     try // mouse is optional
     {
@@ -52,11 +52,11 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
             cursor.row = row;
             cursor.col = col;
-            move(mouse, cursor);
+            move_cursor(mouse, cursor);
 
-            vte_->mouse(row, col);
+            vte_->move_mouse(row, col);
         });
-        mouse_->on_button_changed([&](auto button, auto state){ vte_->button(button, state); });
+        mouse_->on_button_changed([&](auto button, auto state){ vte_->change(button, state); });
 
         vte_->on_size_changed([&](auto rows, auto cols){ mouse_->resize(rows, cols); });
     }
@@ -80,7 +80,7 @@ void term::disable()
     drm_->disable();
 }
 
-void term::change(int row, int col, unsigned count)
+void term::update(int row, int col, unsigned count)
 {
     if (row >= 0 && row < size_.rows)
     {
@@ -107,16 +107,10 @@ void term::change(int row, int col, unsigned count)
     }
 }
 
-void term::move(kind k, const vte::cursor& cursor)
+void term::move_cursor(kind k, const vte::cursor& cursor)
 {
-    if (undo_[k])
-    {
-        auto x = cursor_[k].col * box_.width, y = cursor_[k].row * box_.height;
-        fb_->image().fill(x, y, *undo_[k]);
-        undo_[k].reset();
-    }
+    hide_cursor(k);
     cursor_[k] = cursor;
-
     draw_cursor(k);
 }
 
@@ -138,8 +132,8 @@ void term::draw_cursor(kind k)
         auto x = cursor_[k].col * box_.width, y = cursor_[k].row * box_.height;
         auto w = box_.width * cell.width, h = box_.height;
 
-        undo_[k] = pixman::image{w, h};
-        undo_[k]->fill(0, 0, fb_->image(), x, y, w, h);
+        patch_[k] = pixman::image{w, h};
+        patch_[k]->fill(0, 0, fb_->image(), x, y, w, h);
 
         switch (cursor_[k].shape)
         {
@@ -156,6 +150,16 @@ void term::draw_cursor(kind k)
             fb_->image().fill(x, y + h - 2, w, 2, cell.fg);
             break;
         };
+    }
+}
+
+void term::hide_cursor(kind k)
+{
+    if (patch_[k])
+    {
+        auto x = cursor_[k].col * box_.width, y = cursor_[k].row * box_.height;
+        fb_->image().fill(x, y, *patch_[k]);
+        patch_[k].reset();
     }
 }
 

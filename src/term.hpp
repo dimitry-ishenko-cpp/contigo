@@ -42,8 +42,8 @@ public:
     ////////////////////
     term(const asio::any_io_executor&, term_options);
 
-    using exit_callback = pty::device::child_exit_callback;
-    void on_exit(exit_callback cb) { pty_->on_child_exit(std::move(cb)); }
+    using exited_callback = pty::device::child_exited_callback;
+    void on_exited(exited_callback cb) { pty_->on_child_exited(std::move(cb)); }
 
 private:
     ////////////////////
@@ -66,14 +66,15 @@ private:
     void enable();
     void disable();
 
-    void change(int row, int col, unsigned count);
+    void update(int row, int col, unsigned count);
 
     enum kind { mouse, keyboard, size };
     vte::cursor cursor_[kind::size];
-    std::optional<pixman::image> undo_[kind::size];
+    std::optional<pixman::image> patch_[kind::size];
 
-    void move(kind, const vte::cursor&);
+    void move_cursor(kind, const vte::cursor&);
     void draw_cursor(kind);
+    void hide_cursor(kind);
 
     void commit();
 };

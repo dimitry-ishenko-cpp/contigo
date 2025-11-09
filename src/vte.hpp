@@ -66,16 +66,16 @@ public:
     void on_size_changed(size_changed_callback cb) { size_cb_ = std::move(cb); }
 
     ////////////////////
-    void send(std::span<const char>);
     void recv(std::span<const char>);
+    void send(std::span<const char>);
     void commit();
 
     std::vector<vte::cell> cells(int row, int col, unsigned count);
 
     void resize(unsigned rows, unsigned cols);
 
-    void mouse(int row, int col);
-    void button(vte::button, bool state);
+    void move_mouse(int row, int col);
+    void change(vte::button, bool state);
 
   private:
     ////////////////////

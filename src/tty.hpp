@@ -34,14 +34,14 @@ public:
     ////////////////////
     device(const asio::any_io_executor&, num);
 
-    using release_callback = std::function<void()>;
-    void on_release(release_callback cb) { release_cb_ = std::move(cb); }
+    using released_callback = std::function<void()>;
+    void on_released(released_callback cb) { release_cb_ = std::move(cb); }
 
-    using acquire_callback = std::function<void()>;
-    void on_acquire(acquire_callback cb) { acquire_cb_ = std::move(cb); }
+    using acquired_callback = std::function<void()>;
+    void on_acquired(acquired_callback cb) { acquire_cb_ = std::move(cb); }
 
-    using read_data_callback = std::function<void(std::span<const char>)>;
-    void on_read_data(read_data_callback cb) { read_cb_ = std::move(cb); }
+    using data_received_callback = std::function<void(std::span<const char>)>;
+    void on_data_received(data_received_callback cb) { recv_cb_ = std::move(cb); }
 
     void activate() { active_.activate(); }
 
@@ -94,14 +94,14 @@ private:
     scoped_process_switch proc_switch_;
     scoped_graphics_mode graph_mode_;
 
-    release_callback release_cb_;
-    acquire_callback acquire_cb_;
+    released_callback release_cb_;
+    acquired_callback acquire_cb_;
 
     asio::signal_set sigs_;
     void sched_signal_callback();
 
-    read_data_callback read_cb_;
     std::array<char, 4096> buffer_;
+    data_received_callback recv_cb_;
 
     void sched_async_read();
 };

@@ -98,7 +98,7 @@ try
         }
 
         term term{ex, std::move(options)};
-        term.on_exit([&](auto){ io.stop(); });
+        term.on_exited([&](auto){ io.stop(); });
 
         io.run();
     }
