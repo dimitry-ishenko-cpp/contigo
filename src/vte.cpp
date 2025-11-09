@@ -10,6 +10,7 @@
 
 #include <optional>
 #include <tuple>
+#include <utility> // std::swap
 #include <variant>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -364,8 +365,10 @@ vte::cell machine::cell(int row, int col)
         ucs4_to_utf8(vtc.chars, cell.chars, &cell.len);
         cell.width = vtc.width;
         cell.attrs = vtc.attrs;
+
         cell.fg = to_color(state_, vtc.fg);
         cell.bg = to_color(state_, vtc.bg);
+        if (cell.attrs.reverse) std::swap(cell.fg, cell.bg);
     }
 
     return cell;
