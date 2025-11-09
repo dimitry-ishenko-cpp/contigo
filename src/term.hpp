@@ -62,7 +62,7 @@ private:
     pango::box box_;
     struct { unsigned rows, cols; } size_;
 
-    bool enabled_ = true;
+    bool enabled_ = false;
     void enable();
     void disable();
 
