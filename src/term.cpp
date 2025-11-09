@@ -36,7 +36,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
     tty_->on_data_received([&](auto data){ vte_->send(data); });
 
     drm_->on_vblank([&](){ update(); });
-    if (options.tty_activate) activate();
+    if (options.tty_num == tty::active(ex)) activate();
 
     vte_->on_send_data([&](auto data){ pty_->send(data); });
     vte_->on_row_changed([&](auto row, auto col, auto cols){ update(row, col, cols); });
