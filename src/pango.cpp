@@ -181,7 +181,7 @@ pixman::image engine::render(std::span<const vte::cell> cells)
 
     for (auto to = from; to < cells.end(); to += to->width)
     {
-        if (to->chars[0] && !to->attrs.conceal && (to->chars[0] != ' ' || to->attrs.reverse))
+        if (to->len && to->chars[0] != ' ' && !to->attrs.conceal)
         {
             if (to->attrs != from->attrs)
             {

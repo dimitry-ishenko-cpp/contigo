@@ -170,7 +170,7 @@ void term::draw_cursor(kind k)
         //
         auto cells = vte_->cells(cursor.row, cursor.col - 1, 3);
         auto n = 1;
-        if (!cells[n].chars[0] && cells[n - 1].width == 2) --n, --cursor_[k].col;
+        if (!cells[n].len && cells[n - 1].width == 2) --n, --cursor_[k].col;
 
         auto& cell = cells[n];
 
