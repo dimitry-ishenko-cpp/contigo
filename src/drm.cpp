@@ -11,11 +11,14 @@
 #include "framebuf.hpp"
 #include "logging.hpp"
 
+#include <filesystem>
 #include <span>
 #include <stdexcept>
 
 #include <fcntl.h> // open
 #include <xf86drm.h>
+
+namespace fs = std::filesystem;
 
 ////////////////////////////////////////////////////////////////////////////////
 namespace drm
@@ -108,8 +111,12 @@ inline void drm_control(asio::posix::stream_descriptor& fd, command<Op, T>& cmd)
 ////////////////////////////////////////////////////////////////////////////////
 num find()
 {
-    // TODO
-    return 1;
+    for (auto n = 0; n < 16; ++n)
+    {
+        auto path = drm::path + std::to_string(n);
+        if (fs::exists(path)) return n;
+    }
+    throw std::runtime_error{"No graphics cards"};
 }
 
 ////////////////////////////////////////////////////////////////////////////////
