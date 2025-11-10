@@ -43,6 +43,8 @@ try
         { "-p", "--dpi", "N",           "Override DPI value reported by the screen." },
         { "-f", "--font", "name",       "Use specified font. Default: '" + options.font + "'\n" },
 
+        { "-s", "--speed", "S",         "Change mouse speed. Default: " + std::to_string(options.mouse_speed) + "\n" },
+
         { "-v", "--version",            "Print version number and exit" },
         { "-h", "--help",               "Show this help" },
 
@@ -90,6 +92,9 @@ try
 
         auto font = args["--font"];
         if (font) options.font = font.value();
+
+        auto speed = get<float>(args["--speed"], {}, {}, "mouse speed");
+        if (speed) options.mouse_speed = *speed;
 
         options.args = args["login"].values();
         if (options.args.size())
