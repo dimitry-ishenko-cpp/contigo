@@ -32,6 +32,8 @@ struct term_options
     std::optional<unsigned> dpi;
     std::string font = "monospace, 20";
 
+    float mouse_speed = .5;
+
     std::string login = "/bin/login";
     std::vector<std::string> args;
 };

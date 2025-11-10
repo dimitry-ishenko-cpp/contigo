@@ -52,7 +52,7 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     try // mouse is optional
     {
-        mouse_ = std::make_unique<mouse::device>(ex, size_.rows, size_.cols);
+        mouse_ = std::make_unique<mouse::device>(ex, size_.rows, size_.cols, options.mouse_speed);
 
         mouse_->on_moved([&](auto row, auto col)
         {
