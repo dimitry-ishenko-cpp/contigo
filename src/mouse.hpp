@@ -31,11 +31,15 @@ public:
     using button_changed_callback = std::function<void(vte::button, bool state)>;
     void on_button_changed(button_changed_callback cb) { button_cb_ = std::move(cb); }
 
+    void activate() { active_ = true; }
+    void deactivate() { active_ = false; }
+
     void resize(unsigned rows, unsigned cols);
 
   private:
     ////////////////////
     asio::posix::stream_descriptor fd_;
+    bool active_ = false;
 
     moved_callback move_cb_;
     button_changed_callback button_cb_;

@@ -48,10 +48,10 @@ void device::sched_async_read()
         {
             row_ = std::clamp(row_ - event_.dy * speed_, 0.f, max_row_);
             col_ = std::clamp(col_ + event_.dx * speed_, 0.f, max_col_);
-            if (move_cb_) move_cb_(row_, col_);
+            if (active_ && move_cb_) move_cb_(row_, col_);
 
             auto& state = event_.state;
-            if (button_cb_)
+            if (active_ && button_cb_)
             {
                 if (state.left  != state_.left ) { button_cb_(vte::button_left , state.left ); }
                 if (state.mid   != state_.mid  ) { button_cb_(vte::button_mid  , state.mid  ); }
