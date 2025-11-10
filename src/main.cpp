@@ -19,7 +19,8 @@
 #include <string>
 #include <string_view>
 
-std::optional<unsigned> get_num(const pgm::argval&, std::string_view prefix1, std::string_view prefix2, const std::string& name);
+template<typename T>
+std::optional<T> get(const pgm::argval&, std::string_view prefix1, std::string_view prefix2, const std::string& name);
 
 void show_usage(const pgm::args&, std::string_view name);
 void show_version(std::string_view name);
@@ -77,14 +78,14 @@ try
         });
 
         ////////////////////
-        auto tty = get_num(args["--tty"], tty::path, tty::name, "tty path or number");
+        auto tty = get<unsigned>(args["--tty"], tty::path, tty::name, "tty path or number");
         options.tty_num = tty.value_or(tty::active(ex));
         options.tty_activate = !!args["--activate"];
 
-        auto gpu = get_num(args["--gpu"], drm::path, drm::name, "GPU path or number");
+        auto gpu = get<unsigned>(args["--gpu"], drm::path, drm::name, "GPU path or number");
         options.drm_num = gpu.value_or(drm::find());
 
-        auto dpi = get_num(args["--dpi"], {}, {}, "DPI value");
+        auto dpi = get<unsigned>(args["--dpi"], {}, {}, "DPI value");
         if (dpi) options.dpi = *dpi;
 
         auto font = args["--font"];
@@ -112,7 +113,8 @@ catch (const std::exception& e)
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::optional<unsigned> get_num(const pgm::argval& argval, std::string_view prefix1, std::string_view prefix2, const std::string& name)
+template<typename T>
+std::optional<T> get(const pgm::argval& argval, std::string_view prefix1, std::string_view prefix2, const std::string& name)
 {
     if (argval)
     {
@@ -122,7 +124,7 @@ std::optional<unsigned> get_num(const pgm::argval& argval, std::string_view pref
         if (val.starts_with(prefix1)) off = prefix1.size();
         else if (val.starts_with(prefix2)) off = prefix2.size();
 
-        unsigned num;
+        T num;
         auto [end, ec] = std::from_chars(val.begin() + off, val.end(), num);
 
         if (ec != std::errc{} || end != val.end()) throw std::invalid_argument{
