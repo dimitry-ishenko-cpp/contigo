@@ -30,6 +30,11 @@ term::term(const asio::any_io_executor& ex, term_options options)
     show_cursor(keyboard);
 
     pty_ = std::make_unique<pty::device>(ex, size_.rows, size_.cols, std::move(options.login), std::move(options.args));
+    try // mouse is optional
+    {
+        mouse_ = std::make_unique<mouse::device>(ex, size_.rows, size_.cols, options.mouse_speed);
+    }
+    catch (const std::exception& e) { err() << e.what(); }
 
     tty_->on_acquired([&]{ activate(); });
     tty_->on_released([&]{ deactivate(); });
@@ -50,10 +55,8 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
     pty_->on_data_received([&](auto data){ vte_->recv(data); });
 
-    try // mouse is optional
+    if (mouse_)
     {
-        mouse_ = std::make_unique<mouse::device>(ex, size_.rows, size_.cols, options.mouse_speed);
-
         mouse_->on_moved([&](auto row, auto col)
         {
             show_cursor(mouse);
@@ -64,7 +67,6 @@ term::term(const asio::any_io_executor& ex, term_options options)
 
         vte_->on_size_changed([&](auto rows, auto cols){ mouse_->resize(rows, cols); });
     }
-    catch (const std::exception& e) { err() << e.what(); }
 }
 
 void term::activate()
@@ -74,6 +76,7 @@ void term::activate()
 
     drm_->acquire_master();
     drm_->set_output(*fb_);
+    if (mouse_) mouse_->activate();
 }
 
 void term::deactivate()
@@ -82,6 +85,7 @@ void term::deactivate()
     active_ = false;
 
     drm_->drop_master();
+    if (mouse_) mouse_->deactivate();
 }
 
 namespace
