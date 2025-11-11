@@ -200,15 +200,15 @@ std::optional<key_press> parse(std::span<const char> data)
 
                             case 25: case 26:
                                 mod = mod | VTERM_MOD_SHIFT;
-                                return key_press{fn_key(code - 22), mod}; // shift+f3-f4
+                                return key_press{fn_key(code - 24), mod}; // shift+f1-f2
 
                             case 28: case 29:
                                 mod = mod | VTERM_MOD_SHIFT;
-                                return key_press{fn_key(code - 23), mod}; // shift+f5-f6
+                                return key_press{fn_key(code - 25), mod}; // shift+f3-f4
 
                             case 31: case 32: case 33: case 34:
                                 mod = mod | VTERM_MOD_SHIFT;
-                                return key_press{fn_key(code - 24), mod}; // shift+f7-f10
+                                return key_press{fn_key(code - 26), mod}; // shift+f5-f8
                             }
                         }
                     }
