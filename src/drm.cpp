@@ -44,25 +44,9 @@ auto get_resources(asio::posix::stream_descriptor& fd)
     return ress;
 }
 
-auto find_connector(asio::posix::stream_descriptor& fd, resources& ress)
+auto get_connector(asio::posix::stream_descriptor& fd, std::uint32_t conn_id)
 {
-    auto conn_ids = std::span(ress->connectors, ress->count_connectors);
-    for (auto&& conn_id : conn_ids)
-    {
-        connector conn{drmModeGetConnector(fd.native_handle(), conn_id), &drmModeFreeConnector};
-        if (conn && conn->connection == DRM_MODE_CONNECTED && conn->count_modes) return conn;
-    }
-
-    throw std::runtime_error{"No active connectors"};
-}
-
-auto get_mode(connector& conn, unsigned n)
-{
-    return mode{.idx = n,
-        .width = conn->modes[n].hdisplay,
-        .height= conn->modes[n].vdisplay,
-        .rate  = conn->modes[n].vrefresh
-    };
+    return connector{drmModeGetConnector(fd.native_handle(), conn_id), &drmModeFreeConnector};
 }
 
 auto get_encoder(asio::posix::stream_descriptor& fd, std::uint32_t enc_id)
@@ -70,29 +54,40 @@ auto get_encoder(asio::posix::stream_descriptor& fd, std::uint32_t enc_id)
     return encoder{drmModeGetEncoder(fd.native_handle(), enc_id), &drmModeFreeEncoder};
 }
 
-auto find_crtc(asio::posix::stream_descriptor& fd, resources& ress, connector& conn)
+mode get_mode(const connector& conn, unsigned n)
 {
-    if (conn->encoder_id)
-    {
-        auto enc = get_encoder(fd, conn->encoder_id);
-        if (enc && enc->crtc_id) return enc->crtc_id;
-    }
-
-    auto enc_ids = std::span(conn->encoders, conn->count_encoders);
-    for (auto&& enc_id : enc_ids)
-        if (auto enc = get_encoder(fd, enc_id))
-            for (auto i = 0; i < ress->count_crtcs; ++i)
-                if (enc->possible_crtcs & (1 << i))
-                    return ress->crtcs[i];
-
-    throw std::runtime_error{"No valid encoder+crtc combinations"};
+    return {
+        .idx = n,
+        .width = conn->modes[n].hdisplay,
+        .height= conn->modes[n].vdisplay,
+        .rate  = conn->modes[n].vrefresh
+    };
 }
 
-auto get_crtc(asio::posix::stream_descriptor& fd, std::uint32_t crtc_id)
+auto get_name(const connector& conn)
 {
-    auto crtc = drmModeGetCrtc(fd.native_handle(), crtc_id);
-    if (!crtc) throw posix_error{"drmModeGetCrtc"};
-    return crtc;
+    static constexpr const char* types[] =
+    {
+        "Unknown",
+        "VGA",
+        "DVI-I", "DVI-D", "DVI-A",
+        "Composite", "S-Video",
+        "LVDS",
+        "Component",
+        "9PinDIN",
+        "DP",
+        "HDMI-A", "HDMI-B",
+        "TV",
+        "eDP",
+        "Virtual",
+        "DSI", "DPI", "Writeback", "SPI",
+        "USB"
+    };
+
+    std::string type = types[conn->connector_type < std::size(types) ? conn->connector_type : 0];
+    type += "-" + std::to_string(conn->connector_type_id);
+
+    return type;
 }
 
 template<unsigned Op, typename T>
@@ -106,6 +101,37 @@ inline void drm_control(asio::posix::stream_descriptor& fd, command<Op, T>& cmd)
     if (ec) throw std::system_error{ec};
 }
 
+////////////////////////////////////////////////////////////////////////////////
+auto find_connector(asio::posix::stream_descriptor& fd, const resources& ress)
+{
+    auto conn_ids = std::span(ress->connectors, ress->count_connectors);
+    for (auto conn_id : conn_ids)
+    {
+        auto conn = get_connector(fd, conn_id);
+        if (conn && conn->connection == DRM_MODE_CONNECTED && conn->count_modes) return conn;
+    }
+
+    throw std::runtime_error{"Connector not found"};
+}
+
+auto find_crtc(asio::posix::stream_descriptor& fd, const resources& ress, const connector& conn)
+{
+    if (conn->encoder_id)
+    {
+        auto enc = get_encoder(fd, conn->encoder_id);
+        if (enc && enc->crtc_id) return enc->crtc_id;
+    }
+
+    auto enc_ids = std::span(conn->encoders, conn->count_encoders);
+    for (auto enc_id : enc_ids)
+        if (auto enc = get_encoder(fd, enc_id))
+            for (auto i = 0; i < ress->count_crtcs; ++i)
+                if (enc->possible_crtcs & (1 << i))
+                    return ress->crtcs[i];
+
+    throw std::runtime_error{"Suitable encoder+crtc combo not found"};
+}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,7 +142,7 @@ num find()
         auto path = drm::path + std::to_string(n);
         if (fs::exists(path)) return n;
     }
-    throw std::runtime_error{"No graphics cards"};
+    throw std::runtime_error{"Graphics card not found"};
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -135,7 +161,7 @@ device::device(const asio::any_io_executor& ex, drm::num num) : fd_{open(ex, num
         mode_.dpi = (dpi_x + dpi_y) / 2 + .5;
     }
 
-    info() << "Using screen: " << mode_.width << "x" << mode_.height << "@" << mode_.rate << "hz, " << size << "DPI=" << mode_.dpi;
+    info() << "Screen info: " << mode_.width << "x" << mode_.height << "@" << mode_.rate << "hz, " << size << "DPI=" << mode_.dpi;
 
     sched_vblank_wait();
 }
@@ -152,13 +178,6 @@ void device::drop_master()
     info() << "Dropping drm master";
     command<DRM_IOCTL_DROP_MASTER, int> drop_master{};
     drm_control(fd_, drop_master);
-}
-
-void device::set_output(framebuf& fb)
-{
-    info() << "Activating crtc";
-    auto code = drmModeSetCrtc(fd_.native_handle(), crtc_.id, fb.id(), 0, 0, &conn_->connector_id, 1, &conn_->modes[mode_.idx]);
-    if (code) throw posix_error{"drmModeSetCrtc"};
 }
 
 void device::sched_vblank_wait()
@@ -187,15 +206,30 @@ void device::sched_vblank_wait()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-device::crtc::crtc(asio::posix::stream_descriptor& fd, resources& res, connector& conn) :
-    fd{fd}, id{find_crtc(fd, res, conn)}, conn_id{conn->connector_id}, prev{get_crtc(fd, id)}
-{ }
+device::crtc::crtc(asio::posix::stream_descriptor& fd, const resources& ress, const connector& conn) : fd{fd}
+{
+    auto crtc_id = find_crtc(fd, ress, conn);
+
+    dev = drmModeGetCrtc(fd.native_handle(), crtc_id);
+    if (!dev) throw posix_error{"drmModeGetCrtc"};
+
+    conns.push_back(conn->connector_id);
+
+    info() << "Outputting to: " << get_name(conn);
+}
 
 device::crtc::~crtc()
 {
     info() << "Restoring previous crtc";
-    drmModeSetCrtc(fd.native_handle(), prev->crtc_id, prev->buffer_id, prev->x, prev->y, &conn_id, 1, &prev->mode);
-    drmModeFreeCrtc(prev);
+    drmModeSetCrtc(fd.native_handle(), dev->crtc_id, dev->buffer_id, dev->x, dev->y, conns.data(), conns.size(), &dev->mode);
+    drmModeFreeCrtc(dev);
+}
+
+void device::crtc::set(framebuf& fb, drmModeModeInfo& mode)
+{
+    info() << "Setting up crtc";
+    auto code = drmModeSetCrtc(fd.native_handle(), dev->crtc_id, fb.id(), 0, 0, conns.data(), conns.size(), &mode);
+    if (code) throw posix_error{"drmModeSetCrtc"};
 }
 
 ////////////////////////////////////////////////////////////////////////////////

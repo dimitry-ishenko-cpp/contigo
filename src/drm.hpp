@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include <xf86drmMode.h>
 
@@ -51,7 +52,7 @@ public:
     void acquire_master();
     void drop_master();
 
-    void set_output(framebuf&);
+    void set_output(framebuf& fb) { crtc_.set(fb, conn_->modes[mode_.idx]); }
 
     using vblank_callback = std::function<void()>;
     void on_vblank(vblank_callback cb) { vblank_cb_ = std::move(cb); }
@@ -61,11 +62,13 @@ private:
     struct crtc
     {
         asio::posix::stream_descriptor& fd;
-        std::uint32_t id, conn_id;
-        drmModeCrtc* prev;
+        drmModeCrtc* dev;
+        std::vector<std::uint32_t> conns;
 
-        crtc(asio::posix::stream_descriptor&, resources&, connector&);
+        crtc(asio::posix::stream_descriptor&, const resources&, const connector&);
         ~crtc();
+
+        void set(framebuf&, drmModeModeInfo&);
     };
 
     ////////////////////
